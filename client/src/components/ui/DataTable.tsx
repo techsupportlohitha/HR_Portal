@@ -1,14 +1,23 @@
 import React, { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowDownIcon, ArrowUpIcon, ChevronsUpDownIcon } from 'lucide-react';
+import {
+  flexRender,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  SortingState,
+  useReactTable,
+} from '@tanstack/react-table';
 
-interface Column<T> {
+export interface Column<T> {
   header: string;
   accessor: keyof T | ((row: T) => React.ReactNode);
   className?: string;
+  sortable?: boolean;
 }
 
-interface DataTableProps<T> {
+export interface DataTableProps<T> {
   emptyMessage?: string;
   caption?: string;
   columns: Column<T>[];
@@ -20,149 +29,213 @@ interface DataTableProps<T> {
   onRowClick?: (row: T) => void;
 }
 
-export function DataTable<T>({ columns, data, keyField, selectable, pageSize = 10, onSelectionChange, onRowClick, emptyMessage = 'No data available', caption = 'Results' }: DataTableProps<T>) {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+export function DataTable<T>({ 
+  columns, 
+  data, 
+  keyField, 
+  selectable, 
+  pageSize = 10, 
+  onSelectionChange, 
+  onRowClick, 
+  emptyMessage = 'No data available', 
+  caption = 'Results' 
+}: DataTableProps<T>) {
+  
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [rowSelection, setRowSelection] = useState({});
 
-  const totalPages = Math.max(1, Math.ceil(data.length / pageSize));
-  const startIdx = (currentPage - 1) * pageSize;
-  const endIdx = startIdx + pageSize;
-  const pageData = data.slice(startIdx, endIdx);
-
-  const allOnPageSelected = pageData.length > 0 && pageData.every(row => selectedKeys.has(String(row[keyField])));
-
-  const toggleAll = () => {
-    const newKeys = new Set(selectedKeys);
-    if (allOnPageSelected) {
-      pageData.forEach(row => newKeys.delete(String(row[keyField])));
-    } else {
-      pageData.forEach(row => newKeys.add(String(row[keyField])));
+  const tanstackColumns = useMemo(() => {
+    const cols: any[] = [];
+    
+    if (selectable) {
+      cols.push({
+        id: 'select',
+        header: ({ table }: any) => (
+          <input
+            type="checkbox"
+            checked={table.getIsAllPageRowsSelected()}
+            onChange={table.getToggleAllPageRowsSelectedHandler()}
+            className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-accent-500 focus:outline-none"
+            aria-label="Select all"
+          />
+        ),
+        cell: ({ row }: any) => (
+          <input
+            type="checkbox"
+            checked={row.getIsSelected()}
+            onChange={row.getToggleSelectedHandler()}
+            onClick={(e) => e.stopPropagation()}
+            className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-accent-500 focus:outline-none"
+            aria-label="Select row"
+          />
+        ),
+        enableSorting: false,
+        enableHiding: false,
+      });
     }
-    setSelectedKeys(newKeys);
-    onSelectionChange?.(data.filter(r => newKeys.has(String(r[keyField]))));
-  };
 
-  const toggleRow = (row: T) => {
-    const key = String(row[keyField]);
-    const newKeys = new Set(selectedKeys);
-    if (newKeys.has(key)) newKeys.delete(key);
-    else newKeys.add(key);
-    setSelectedKeys(newKeys);
-    onSelectionChange?.(data.filter(r => newKeys.has(String(r[keyField]))));
-  };
+    columns.forEach((col, idx) => {
+      cols.push({
+        id: typeof col.accessor === 'string' ? col.accessor : `col_${idx}`,
+        ...(typeof col.accessor === 'string' ? { accessorKey: col.accessor } : {
+          accessorFn: (row: any) => row,
+        }),
+        header: ({ column }: any) => {
+          if (!col.sortable || typeof col.accessor !== 'string') {
+            return <div className={cn("text-xs font-semibold uppercase tracking-wider", col.className)}>{col.header}</div>;
+          }
+          return (
+            <button
+              onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+              className={cn(
+                "-ml-3 flex h-8 items-center rounded-md px-3 text-xs font-semibold uppercase tracking-wider hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-gray-500 dark:text-gray-400 outline-none focus-visible:ring-2 focus-visible:ring-slate-400",
+                col.className
+              )}
+            >
+              <span>{col.header}</span>
+              {column.getIsSorted() === "desc" ? (
+                <ArrowDownIcon className="ml-2 h-4 w-4" />
+              ) : column.getIsSorted() === "asc" ? (
+                <ArrowUpIcon className="ml-2 h-4 w-4" />
+              ) : (
+                <ChevronsUpDownIcon className="ml-2 h-4 w-4" />
+              )}
+            </button>
+          );
+        },
+        cell: ({ row }: any) => {
+          return (
+            <div className={cn(col.className)}>
+              {typeof col.accessor === 'function' 
+                ? col.accessor(row.original) 
+                : (row.original[col.accessor as keyof T] as React.ReactNode)}
+            </div>
+          );
+        },
+        enableSorting: !!col.sortable,
+      });
+    });
 
+    return cols;
+  }, [columns, selectable]);
+
+  const table = useReactTable({
+    data,
+    columns: tanstackColumns,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    onSortingChange: setSorting,
+    onRowSelectionChange: setRowSelection,
+    state: {
+      sorting,
+      rowSelection,
+    },
+    initialState: {
+      pagination: {
+        pageSize: pageSize,
+      },
+    },
+    getRowId: (row: any, index: number) => String(row[keyField]) || String(index),
+  });
+
+  React.useEffect(() => {
+    if (onSelectionChange) {
+      const selectedRows = table.getSelectedRowModel().rows.map((r: any) => r.original);
+      onSelectionChange(selectedRows);
+    }
+  }, [rowSelection, onSelectionChange, table]);
+
+  const pageIndex = table.getState().pagination.pageIndex;
+  const pageCount = table.getPageCount();
   const pageNumbers = useMemo(() => {
-    const pages: (number | '...')[] = [];
-    if (totalPages <= 7) {
+    const pages = [];
+    const totalPages = pageCount;
+    const currentPage = pageIndex + 1;
+    
+    if (totalPages <= 5) {
       for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
-      pages.push(1);
-      if (currentPage > 3) pages.push('...');
-      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+      if (currentPage > 3) pages.push(1, '...');
+      for (let i = Math.max(1, currentPage - 1); i <= Math.min(totalPages, currentPage + 1); i++) {
         pages.push(i);
       }
       if (currentPage < totalPages - 2) pages.push('...');
-      pages.push(totalPages);
+      if (currentPage < totalPages - 1) pages.push(totalPages);
     }
     return pages;
-  }, [currentPage, totalPages]);
+  }, [pageIndex, pageCount]);
 
   return (
     <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 overflow-hidden">
       <p className="border-b border-slate-100 px-4 py-2 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400 sm:hidden">
         Scroll horizontally to see all columns.
       </p>
-      <div className="w-full overflow-auto focus:outline-none focus:ring-2 focus:ring-inset focus:ring-slate-300 dark:focus:ring-slate-600" tabIndex={0} role="region" aria-label={`${caption}. Scroll horizontally for more columns.`}>
+      <div className="w-full overflow-auto focus:outline-none" tabIndex={0} role="region" aria-label={`${caption}. Scroll horizontally for more columns.`}>
         <table className="w-full text-sm text-left">
           <caption className="sr-only">{caption}</caption>
           <thead>
-            <tr className="border-b border-slate-200 dark:border-slate-700">
-              {selectable && (
-                <th className="px-4 py-3 w-10">
-                  <input
-                    aria-label={`Select all rows on page ${currentPage}`}
-                    type="checkbox"
-                    checked={allOnPageSelected}
-                    onChange={toggleAll}
-                    className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-accent-500 focus:ring-accent-400"
-                  />
-                </th>
-              )}
-              {columns.map((col, i) => (
-                <th
-                  key={i}
-                  className={cn(
-                    "px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider",
-                    col.className
-                  )}
-                >
-                  {col.header}
-                </th>
-              ))}
-            </tr>
+            {table.getHeaderGroups().map((headerGroup: any) => (
+              <tr key={headerGroup.id} className="border-b border-slate-200 dark:border-slate-700">
+                {headerGroup.headers.map((header: any) => (
+                  <th
+                    key={header.id}
+                    className={cn(
+                      "px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider align-middle whitespace-nowrap",
+                      header.id === 'select' ? "w-10" : ""
+                    )}
+                  >
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                  </th>
+                ))}
+              </tr>
+            ))}
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-            {pageData.length === 0 ? (
+            {table.getRowModel().rows.length === 0 ? (
               <tr>
                 <td
-                  colSpan={columns.length + (selectable ? 1 : 0)}
+                  colSpan={tanstackColumns.length}
                   className="px-4 py-12 text-center text-slate-400"
                 >
                   {emptyMessage}
                 </td>
               </tr>
             ) : (
-              pageData.map((row, i) => {
-                const key = String(row[keyField]) || String(i);
-                const isSelected = selectedKeys.has(key);
-                return (
-                  <tr
-                    key={key}
-                    onClick={() => onRowClick && onRowClick(row)}
-                    className={cn(
-                      "hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors",
-                      onRowClick && "cursor-pointer",
-                      isSelected && "bg-accent-50 dark:bg-accent-900/20"
-                    )}
-                  >
-                    {selectable && (
-                      <td className="px-4 py-3 w-10" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          aria-label={`Select row ${key}`}
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleRow(row)}
-                          className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-accent-500 focus:ring-accent-400"
-                        />
-                      </td>
-                    )}
-                    {columns.map((col, j) => (
-                      <td key={j} className={cn("px-4 py-3", col.className)}>
-                        {typeof col.accessor === 'function'
-                          ? col.accessor(row)
-                          : (row[col.accessor] as React.ReactNode)}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })
+              table.getRowModel().rows.map((row: any) => (
+                <tr
+                  key={row.id}
+                  onClick={() => onRowClick?.(row.original as T)}
+                  className={cn(
+                    "hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors",
+                    onRowClick && "cursor-pointer",
+                    row.getIsSelected() && "bg-accent-50 dark:bg-accent-900/20"
+                  )}
+                >
+                  {row.getVisibleCells().map((cell: any) => (
+                    <td key={cell.id} className={cn("px-4 py-3 align-middle whitespace-nowrap", cell.column.id === 'select' ? "w-10" : "")} onClick={cell.column.id === 'select' ? (e) => e.stopPropagation() : undefined}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))
             )}
           </tbody>
         </table>
       </div>
 
       {/* Pagination */}
-      {data.length > pageSize && (
+      {table.getPageCount() > 1 && (
         <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 dark:border-slate-700">
-          <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
-            Show {startIdx + 1} to {Math.min(endIdx, data.length)} of {data.length} results
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Show {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to {Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, data.length)} of {data.length} results
           </p>
           <div className="flex items-center gap-1">
             <button
               aria-label="Previous page"
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="h-8 w-8 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              className="h-8 w-8 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -172,15 +245,15 @@ export function DataTable<T>({ columns, data, keyField, selectable, pageSize = 1
               ) : (
                 <button
                   key={num}
-                  onClick={() => setCurrentPage(num)}
+                  onClick={() => table.setPageIndex((num as number) - 1)}
                   className={cn(
                     "h-8 w-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors",
-                    currentPage === num
+                    table.getState().pagination.pageIndex === (num as number) - 1
                       ? "bg-accent-500 text-white"
-                      : "border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800"
+                      : "border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                   )}
                   aria-label={`Page ${num}`}
-                  aria-current={currentPage === num ? 'page' : undefined}
+                  aria-current={table.getState().pagination.pageIndex === (num as number) - 1 ? 'page' : undefined}
                 >
                   {num}
                 </button>
@@ -188,9 +261,9 @@ export function DataTable<T>({ columns, data, keyField, selectable, pageSize = 1
             )}
             <button
               aria-label="Next page"
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="h-8 w-8 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              className="h-8 w-8 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronRight className="h-4 w-4" />
             </button>

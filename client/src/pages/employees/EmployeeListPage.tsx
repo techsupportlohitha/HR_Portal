@@ -13,12 +13,14 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Plus, Search, MoreHorizontal, UsersRound, Download } from 'lucide-react';
 import { Employee } from '@/types';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { useDebounce } from '@/hooks/useDebounce';
 
 export default function EmployeeListPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { canExport } = usePermissions();
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 500);
   const [departmentId, setDepartmentId] = useState('');
   const [location, setLocation] = useState('');
   const [status, setStatus] = useState('');
@@ -29,8 +31,8 @@ export default function EmployeeListPage() {
   });
 
   const { data: empData, isLoading } = useQuery({
-    queryKey: ['employees', { search, departmentId, location, status }],
-    queryFn: () => employeesApi.getAll({ search, departmentId, location, status }),
+    queryKey: ['employees', { search: debouncedSearch, departmentId, location, status }],
+    queryFn: () => employeesApi.getAll({ search: debouncedSearch, departmentId, location, status }),
   });
 
   const getEmpTypeBadge = (type: string) => {
@@ -41,16 +43,11 @@ export default function EmployeeListPage() {
   };
 
   const columns = [
-    { 
-      header: 'Name', 
-      accessor: (row: Employee) => (
-        <div className="font-semibold text-navy-900 dark:text-white">
-          {row.firstName} {row.lastName}
-        </div>
-      )
-    },
     { header: 'Employee ID', accessor: 'employeeCode' as keyof Employee },
-    { header: 'Job Title', accessor: 'designation' as keyof Employee },
+    { header: 'First Name', accessor: 'firstName' as keyof Employee, sortable: true },
+    { header: 'Last Name', accessor: 'lastName' as keyof Employee, sortable: true },
+    { header: 'Email', accessor: 'email' as keyof Employee, sortable: true },
+    { header: 'Job Title', accessor: 'designation' as keyof Employee, sortable: true },
     { 
       header: 'Department', 
       accessor: (row: Employee) => row.department?.name || '-'
@@ -144,7 +141,7 @@ export default function EmployeeListPage() {
             <input 
               aria-label="Search employees"
               placeholder="Search..." 
-              className="w-full pl-9 pr-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600 transition-all"
+              className="w-full pl-9 pr-4 py-2 bg-white dark:bg-gray-900 border border-slate-300 dark:border-slate-600 shadow-sm rounded-lg text-sm focus:outline-none transition-all"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />

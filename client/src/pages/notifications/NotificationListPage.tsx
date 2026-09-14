@@ -1,3 +1,4 @@
+import { formatDate, formatDateTime } from '@/utils/dateFormat';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -76,7 +77,7 @@ export default function NotificationListPage() {
                   </div>
                   <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500 text-sm">{notification.message}</p>
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                    {new Date(notification.createdAt).toLocaleString()}
+                    {formatDateTime(notification.createdAt)}
                   </p>
                 </div>
                 <div className="flex space-x-2">

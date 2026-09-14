@@ -28,6 +28,7 @@ import settingsRoutes from './modules/settings/settings.routes';
 import loginHistoryRoutes from './modules/loginHistory/loginHistory.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
 import userRoutes from './modules/users/user.routes';
+import leaveRoutes from './modules/leave/leave.routes';
 
 const app = express();
 
@@ -85,6 +86,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/login-history', loginHistoryRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/leaves', leaveRoutes);
 
 // Global error handler
 app.use(errorHandler);

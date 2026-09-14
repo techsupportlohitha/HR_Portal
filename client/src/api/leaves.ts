@@ -18,8 +18,8 @@ export const leavesApi = {
     const { data } = await apiClient.patch<ApiResponse<Leave>>(`/leaves/${id}/cancel`);
     return data;
   },
-  getPending: async () => {
-    const { data } = await apiClient.get<ApiResponse<Leave[]>>('/leaves/pending');
+  getAll: async () => {
+    const { data } = await apiClient.get<ApiResponse<Leave[]>>('/leaves/all');
     return data;
   },
   updateStatus: async ({ id, status, remarks }: { id: string; status: string; remarks?: string }) => {

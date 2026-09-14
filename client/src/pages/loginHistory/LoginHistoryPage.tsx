@@ -1,3 +1,4 @@
+import { formatDate, formatDateTime } from '@/utils/dateFormat';
 import { useQuery } from '@tanstack/react-query';
 import { auditApi } from '@/api/audit';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -39,7 +40,7 @@ export default function LoginHistoryPage() {
             {logs.map((log: any) => (
               <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                  {new Date(log.createdAt).toLocaleString()}
+                  {formatDateTime(log.createdAt)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                   {log.user?.email || 'System'}

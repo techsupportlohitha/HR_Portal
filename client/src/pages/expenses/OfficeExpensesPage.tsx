@@ -1,3 +1,4 @@
+import { formatDate, formatDateTime } from '@/utils/dateFormat';
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { expensesApi } from '@/api/expenses';
@@ -86,7 +87,7 @@ export default function OfficeExpensesPage() {
     },
     { 
       header: 'Date', 
-      accessor: (row: any) => new Date(row.expenseDate).toLocaleDateString(),
+      accessor: (row: any) => formatDate(row.expenseDate),
       className: 'text-gray-600 dark:text-gray-400 text-sm'
     },
     { 

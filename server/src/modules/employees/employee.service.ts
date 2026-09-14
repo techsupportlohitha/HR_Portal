@@ -110,8 +110,14 @@ export class EmployeeService {
         subordinates: { select: { id: true, firstName: true, lastName: true, designation: true } },
         user: { select: { id: true, email: true, role: true, isActive: true } },
         documents: true,
-          assignedAssets: true,
+        assignedAssets: true,
+        trainingParticipations: {
+          include: {
+            training: true,
+          },
         },
+        performanceReviews: true,
+      },
     });
 
     if (!employee) {

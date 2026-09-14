@@ -30,6 +30,11 @@ const LoginHistoryPage = lazy(() => import('@/pages/loginHistory/LoginHistoryPag
 const RoleManagementPage = lazy(() => import('@/pages/roles/RoleManagementPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
+// Leaves
+const LeaveApplicationPage = lazy(() => import('@/pages/leave/LeaveApplicationPage'));
+
+const LeaveApprovalsPage = lazy(() => import('@/pages/leave/LeaveApprovalsPage'));
+
 const AppRoutes = () => {
   return (
     <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-900"><LoadingSpinner /></div>}>
@@ -58,17 +63,21 @@ const AppRoutes = () => {
           
           <Route path="/training" element={<TrainingListPage />} />
           <Route path="/requests" element={<RequestListPage />} />
+          <Route path="/leaves" element={<LeaveApplicationPage />} />
+
           <Route path="/policies" element={<Navigate to="/documents" replace />} />
           <Route path="/profile" element={<Navigate to="/settings" replace />} />
           <Route path="/notifications" element={<NotificationListPage />} />
 
           <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'HR']} />}>
             <Route path="/recruitment" element={<RecruitmentPage />} />
+            <Route path="/leaves/approvals" element={<LeaveApprovalsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/audit" element={<AuditLogPage />} />
             <Route path="/login-history" element={<LoginHistoryPage />} />
             <Route path="/roles" element={<RoleManagementPage />} />
-            <Route path="/attrition" element={<AttritionDashboardPage />} />
+            <Route path="/dashboard/attrition" element={<AttritionDashboardPage />} />
+            <Route path="/attrition" element={<Navigate to="/dashboard/attrition" replace />} />
           </Route>
 
           <Route path="*" element={<NotFoundPage />} />

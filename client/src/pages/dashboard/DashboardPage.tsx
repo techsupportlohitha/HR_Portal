@@ -1,3 +1,4 @@
+import { formatDate, formatDateTime } from '@/utils/dateFormat';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,6 +16,7 @@ import { BoxReveal } from '@/components/ui/modern-animated-sign-in';
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const isAdminOrHR = user?.role === 'ADMIN' || user?.role === 'HR';
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [shouldAnimate] = useState(() => {
     const hasAnimated = sessionStorage.getItem('dashboard_animated');
@@ -33,12 +35,13 @@ export default function DashboardPage() {
   const { data: reqData } = useQuery({
     queryKey: ['requisitions'],
     queryFn: recruitmentApi.getRequisitions,
+    enabled: isAdminOrHR,
   });
 
   const { data: attritionData } = useQuery({
     queryKey: ['dashboard-attrition'],
     queryFn: () => dashboardApi.getAttrition().then((res: any) => res.data),
-    enabled: user?.role === 'ADMIN' || user?.role === 'HR',
+    enabled: isAdminOrHR,
   });
 
   if (isLoading) return <LoadingSpinner />;
@@ -63,7 +66,7 @@ export default function DashboardPage() {
       </BoxReveal>
 
       <BoxReveal disabled={!shouldAnimate} boxColor="var(--skeleton)" duration={0.5} width="100%">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${isAdminOrHR ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
         <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
           <div className="flex items-center gap-4">
             <div className="h-10 w-10 rounded-full bg-orange-50 flex items-center justify-center">
@@ -100,21 +103,23 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
-          <div className="flex items-center gap-4">
-            <div className="h-10 w-10 rounded-full bg-purple-50 flex items-center justify-center">
-              <Briefcase className="h-5 w-5 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-text-muted">Open Requisitions</p>
-              <h3 className="text-2xl font-bold text-text-heading">{stats.openRequisitions || 0}</h3>
+        {isAdminOrHR && (
+          <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-full bg-purple-50 flex items-center justify-center">
+                <Briefcase className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-text-muted">Open Requisitions</p>
+                <h3 className="text-2xl font-bold text-text-heading">{stats.openRequisitions || 0}</h3>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Recruitment Widget */}
-      <div className="mt-8 border-t border-slate-border pt-8">
+      {isAdminOrHR && <div className="mt-8 border-t border-slate-border pt-8">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-bold text-text-heading flex items-center gap-2">
@@ -278,12 +283,18 @@ export default function DashboardPage() {
                     <p className="text-[10px] text-text-muted mt-0.5">Target: Below 12%</p>
                   </div>
                 </div>
+                <Link
+                  to="/dashboard/attrition"
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-border px-3 py-2 text-sm font-semibold text-accent-600 transition-colors hover:bg-accent-50 hover:text-accent-700"
+                >
+                  View attrition dashboard
+                </Link>
               </div>
             </div>
           </div>
 
         </div>
-      </div>
+      </div>}
       </BoxReveal>
       
       {/* New Row: Team and Employee Performance */}

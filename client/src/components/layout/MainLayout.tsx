@@ -4,34 +4,43 @@ import { ErrorBoundary } from '../ui/ErrorBoundary';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 
+const DESKTOP_BREAKPOINT = 1024;
+const SIDEBAR_COLLAPSED_STORAGE_KEY = 'hr-portal-sidebar-collapsed';
+
 export default function MainLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= DESKTOP_BREAKPOINT);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= DESKTOP_BREAKPOINT);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => (
+    window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === 'true'
+  ));
   const location = useLocation();
   const sidebarContainerRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLElement | null>(null);
 
   // Close sidebar on mobile when navigating
   useEffect(() => {
-    if (window.innerWidth < 1024) {
+    if (!isDesktop) {
       setSidebarOpen(false);
     }
-  }, [location.pathname]);
+  }, [isDesktop, location.pathname]);
+
+  useEffect(() => {
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
 
   // Listen to window resize to handle default state
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 1024) {
-        setSidebarOpen(true);
-      } else {
-        setSidebarOpen(false);
-      }
+      const nextIsDesktop = window.innerWidth >= DESKTOP_BREAKPOINT;
+      setIsDesktop(nextIsDesktop);
+      setSidebarOpen(nextIsDesktop);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
-    if (!sidebarOpen || window.innerWidth >= 1024) return;
+    if (!sidebarOpen || isDesktop) return;
 
     menuButtonRef.current = document.activeElement as HTMLElement | null;
     const container = sidebarContainerRef.current;
@@ -62,12 +71,12 @@ export default function MainLayout() {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [sidebarOpen]);
+  }, [isDesktop, sidebarOpen]);
 
   return (
-    <div className="flex h-screen bg-[#f4f7f6] dark:bg-[#0b1120] transition-colors overflow-hidden relative">
+    <div className="flex h-screen bg-[#f4f7f6] dark:bg-[#09090b] transition-colors overflow-hidden relative">
       {/* Mobile overlay */}
-      {sidebarOpen && (
+      {sidebarOpen && !isDesktop && (
         <button
           type="button"
           aria-label="Close navigation menu"
@@ -79,19 +88,26 @@ export default function MainLayout() {
       {/* Sidebar container */}
       <div 
         ref={sidebarContainerRef}
-        role={sidebarOpen && window.innerWidth < 1024 ? 'dialog' : undefined}
-        aria-modal={sidebarOpen && window.innerWidth < 1024 ? true : undefined}
-        aria-label={sidebarOpen && window.innerWidth < 1024 ? 'Navigation menu' : undefined}
+        role={sidebarOpen && !isDesktop ? 'dialog' : undefined}
+        aria-modal={sidebarOpen && !isDesktop ? true : undefined}
+        aria-label={sidebarOpen && !isDesktop ? 'Navigation menu' : undefined}
         className={`fixed inset-y-0 left-0 z-50 transform transition-all duration-300 ease-in-out lg:relative 
-          ${sidebarOpen ? 'translate-x-0 lg:w-[18rem] lg:opacity-100' : '-translate-x-full lg:w-0 lg:opacity-0 lg:-ml-4 overflow-hidden'}`}
+          ${sidebarOpen
+            ? (sidebarCollapsed ? 'translate-x-0 lg:w-20 lg:opacity-100' : 'translate-x-0 lg:w-[18rem] lg:opacity-100')
+            : '-translate-x-full lg:w-0 lg:opacity-0 lg:-ml-4 overflow-hidden'}`}
       >
-        <div className="w-[18rem]">
-          <Sidebar />
+        <div className={`h-full ${sidebarCollapsed ? 'w-[18rem] lg:w-20' : 'w-[18rem] lg:w-[18rem]'}`}>
+          <Sidebar collapsed={isDesktop && sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(prev => !prev)} />
         </div>
       </div>
 
       <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
-        <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} menuOpen={sidebarOpen} />
+        <Header
+          onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+          menuOpen={sidebarOpen}
+          sidebarCollapsed={sidebarCollapsed}
+          onSidebarCollapseToggle={() => setSidebarCollapsed(prev => !prev)}
+        />
         <main className="flex-1 overflow-y-auto p-4 lg:p-6 lg:px-8">
           <ErrorBoundary><Outlet /></ErrorBoundary>
         </main>

@@ -1,3 +1,4 @@
+import { formatDate, formatDateTime } from '@/utils/dateFormat';
 import toast from 'react-hot-toast';
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -15,22 +16,40 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { Laptop, Plus, Settings2, RefreshCcw, Download } from 'lucide-react';
+import { Laptop, Plus, Settings2, RefreshCcw, Download, Search } from 'lucide-react';
+import { useDebounce } from '@/hooks/useDebounce';
 
 export default function AssetListPage() {
   const { user } = useAuth();
   const { canExport } = usePermissions();
   const queryClient = useQueryClient();
   const isAdminOrHR = user?.role === 'ADMIN' || user?.role === 'HR';
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [returnConfirmOpen, setReturnConfirmOpen] = useState(false);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [editingAsset, setEditingAsset] = useState<any>(null);
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
+
   const { data, isLoading } = useQuery({
     queryKey: ['assets'],
     queryFn: () => assetsApi.getAll().then(res => res.data),
   });
+
+  const filteredData = React.useMemo(() => {
+    if (!data) return [];
+    if (!debouncedSearch) return data;
+    const lowerSearch = debouncedSearch.toLowerCase();
+    return data.filter((asset: any) =>
+      asset.brandModel?.toLowerCase().includes(lowerSearch) ||
+      asset.serialNumber?.toLowerCase().includes(lowerSearch) ||
+      asset.assetType?.toLowerCase().includes(lowerSearch) ||
+      asset.assetCategory?.toLowerCase().includes(lowerSearch) ||
+      asset.assignedEmployee?.firstName?.toLowerCase().includes(lowerSearch) ||
+      asset.assignedEmployee?.lastName?.toLowerCase().includes(lowerSearch)
+    );
+  }, [data, debouncedSearch]);
 
   const { data: empData } = useQuery({
     queryKey: ['employees'],
@@ -76,8 +95,8 @@ export default function AssetListPage() {
   });
 
   const columns = [
-    { 
-      header: 'Asset', 
+    {
+      header: 'Asset',
       accessor: (row: any) => (
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
@@ -91,13 +110,13 @@ export default function AssetListPage() {
       )
     },
     { header: 'Type', accessor: 'assetType', className: 'text-gray-600 dark:text-gray-400 dark:text-gray-500' },
-    { 
-      header: 'Assigned To', 
+    {
+      header: 'Assigned To',
       accessor: (row: any) => row.assignedEmployee ? `${row.assignedEmployee.firstName} ${row.assignedEmployee.lastName}` : <span className="text-gray-400 dark:text-gray-500">Unassigned</span>,
       className: 'text-gray-600 dark:text-gray-400 dark:text-gray-500'
     },
-    { 
-      header: 'Status', 
+    {
+      header: 'Status',
       accessor: (row: any) => {
         if (row.status === 'IN_USE') return <Badge variant="success">In Use</Badge>;
         if (row.status === 'RETURN_REQUESTED') return <Badge variant="warning">Return Requested</Badge>;
@@ -105,24 +124,24 @@ export default function AssetListPage() {
         return <Badge variant="warning">{row.status}</Badge>;
       }
     },
-    { 
-      header: 'Action', 
+    {
+      header: 'Action',
       accessor: (row: any) => (
         <div className="flex items-center gap-2">
           {row.photoUrl && (
-            <a 
+            <a
               href={row.photoUrl}
               target="_blank"
               rel="noreferrer"
-              className="p-1 text-gray-400 dark:text-gray-500 hover:text-accent-500 transition-colors" 
+              className="p-1 text-gray-400 dark:text-gray-500 hover:text-accent-500 transition-colors"
               title="View Photo"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
             </a>
           )}
           {row.status === 'IN_USE' && row.assignedEmployee?.id === (user?.employeeId || user?.employee?.id) && (
-            <button 
-              className="p-1 text-gray-400 dark:text-gray-500 hover:text-amber-500 transition-colors" 
+            <button
+              className="p-1 text-gray-400 dark:text-gray-500 hover:text-amber-500 transition-colors"
               title="Return Asset"
               onClick={() => {
                 setSelectedAssetId(row.id);
@@ -133,8 +152,8 @@ export default function AssetListPage() {
             </button>
           )}
           {isAdminOrHR && row.status === 'RETURN_REQUESTED' && (
-            <button 
-              className="p-1 text-gray-400 dark:text-gray-500 hover:text-green-600 transition-colors" 
+            <button
+              className="p-1 text-gray-400 dark:text-gray-500 hover:text-green-600 transition-colors"
               title="Approve Return"
               onClick={() => approveReturnMutation.mutate(row.id)}
             >
@@ -143,11 +162,11 @@ export default function AssetListPage() {
           )}
 
           {isAdminOrHR && (
-             <button 
+             <button
                className="p-1 text-gray-400 dark:text-gray-500 hover:text-navy-900 dark:text-white transition-colors"
                onClick={() => {
                  setEditingAsset(row);
-                
+
                  setIsModalOpen(true);
                }}
              >
@@ -155,7 +174,7 @@ export default function AssetListPage() {
              </button>
           )}
         </div>
-      ) 
+      )
     },
   ];
 
@@ -163,14 +182,14 @@ export default function AssetListPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const assignedEmployeeId = formData.get('assignedEmployeeId') as string;
-    
+
     const payload: any = {
       assetType: formData.get('assetType'),
       assetCategory: formData.get('assetCategory'),
       brandModel: formData.get('brandModel'),
       serialNumber: formData.get('serialNumber'),
     };
-    
+
     if (formData.get('purchaseValue')) payload.purchaseValue = Number(formData.get('purchaseValue'));
     if (formData.get('purchaseDate')) payload.purchaseDate = new Date(formData.get('purchaseDate') as string).toISOString();
     if (formData.get('issueDate')) payload.issueDate = new Date(formData.get('issueDate') as string).toISOString();
@@ -207,9 +226,9 @@ export default function AssetListPage() {
           <div className="flex gap-3">
             <Button variant="outline" onClick={() => {
               if (!data) return;
-              const csvContent = "data:text/csv;charset=utf-8," 
+              const csvContent = "data:text/csv;charset=utf-8,"
                 + "Asset ID,Type,Category,Brand/Model,Serial Number,Purchase Value,Assigned Employee,Status\n"
-                + data.map((a: any) => 
+                + data.map((a: any) =>
                     `${a.id},${a.assetType},${a.assetCategory},${a.brandModel || ''},${a.serialNumber || ''},${a.purchaseValue || ''},${a.assignedEmployee ? a.assignedEmployee.firstName + ' ' + a.assignedEmployee.lastName : 'Unassigned'},${a.status}`
                   ).join("\n");
               const encodedUri = encodeURI(csvContent);
@@ -233,21 +252,35 @@ export default function AssetListPage() {
         {isLoading ? (
           <div className="py-12"><LoadingSpinner /></div>
         ) : !data || data.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             icon={Laptop}
             title={isAdminOrHR ? "No assets in inventory" : "No assigned assets"}
             description={isAdminOrHR ? "Start tracking hardware by adding your first asset." : "You do not currently have any equipment assigned to you."}
             actionLabel={isAdminOrHR ? "Add Asset" : undefined}
             onAction={isAdminOrHR ? () => setIsModalOpen(true) : undefined}
           />
-        ) : (
-          <DataTable 
-            columns={columns} 
-            data={data} 
-            keyField="id" 
-            emptyMessage="No assets found."
-          />
-        )}
+          ) : (
+            <div className="space-y-4">
+              <div className="flex gap-3">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  <input
+                    aria-label="Search assets"
+                    placeholder="Search assets..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 bg-white dark:bg-gray-900 border border-slate-300 dark:border-slate-600 shadow-sm rounded-lg text-sm focus:outline-none transition-all"
+                  />
+                </div>
+              </div>
+              <DataTable
+                columns={columns}
+                data={filteredData}
+                keyField="id"
+                emptyMessage="No assets found matching your search."
+              />
+            </div>
+          )}
       </div>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingAsset ? 'Edit Asset' : 'Add New Asset'}>
@@ -277,7 +310,7 @@ export default function AssetListPage() {
               </Select>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <Input name="brandModel" defaultValue={editingAsset?.brandModel || ""} label="Brand & Model" placeholder="e.g. MacBook Pro 16" required />
             <Input name="serialNumber" defaultValue={editingAsset?.serialNumber || ""} label="Serial/ID Number" required />
@@ -307,8 +340,8 @@ export default function AssetListPage() {
               </Select>
             </div>
           </div>
-          
-          
+
+
           {editingAsset && (
             <div className="flex flex-col">
               <label htmlFor="asset-status" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
@@ -332,7 +365,7 @@ export default function AssetListPage() {
         </form>
       </Modal>
 
-      <ConfirmDialog 
+      <ConfirmDialog
         isOpen={returnConfirmOpen}
         title="Return Asset"
         message="Are you sure you want to return this asset? This will notify IT and unassign it from your profile."

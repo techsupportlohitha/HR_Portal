@@ -1,3 +1,4 @@
+import { formatDate, formatDateTime } from '@/utils/dateFormat';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/api/client';
@@ -9,6 +10,7 @@ import { Input } from '@/components/ui/Input';
 import { Search, Shield, Users, Lock, CheckCircle, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { useDebounce } from '@/hooks/useDebounce';
 
 const ROLES = ['ADMIN', 'HR', 'HR_EXECUTIVE', 'MANAGER', 'EMPLOYEE'];
 const ROLE_LABELS: Record<string, string> = {
@@ -34,13 +36,13 @@ function PermissionToggle({ checked, disabled, onChange }: { checked: boolean; d
       disabled={disabled}
       className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
         disabled
-          ? 'bg-green-100 border-green-300 cursor-not-allowed'
+          ? 'bg-primary-100 border-primary-300 dark:bg-primary-900/50 dark:border-primary-800 cursor-not-allowed'
           : checked
           ? 'bg-primary-500 border-primary-500 hover:bg-primary-600'
           : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-primary-400'
       }`}
     >
-      {(checked || disabled) && <CheckCircle className="w-3 h-3 text-white" />}
+      {(checked || disabled) && <CheckCircle className={`w-3 h-3 ${disabled ? 'text-primary-500 dark:text-primary-400' : 'text-white'}`} />}
     </button>
   );
 }
@@ -91,7 +93,7 @@ function PermissionsMatrix() {
             {ROLES.map(role => (
               <th key={role} colSpan={PERMISSION_FLAGS.length} className="py-3 px-2 text-center font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 border-l border-slate-200 dark:border-slate-700">
                 <div className="flex items-center justify-center gap-1">
-                  {role === 'ADMIN' && <Lock className="w-3 h-3 text-green-500" />}
+                  {role === 'ADMIN' && <Lock className="w-3 h-3 text-primary-500" />}
                   {ROLE_LABELS[role]}
                 </div>
               </th>
@@ -110,7 +112,7 @@ function PermissionsMatrix() {
         </thead>
         <tbody>
           {modules.map((mod: any, idx: number) => (
-            <tr key={mod.key} className={idx % 2 === 0 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-gray-50/80 dark:bg-gray-800/80/50'}>
+            <tr key={mod.key} className={idx % 2 === 0 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-gray-50/80 dark:bg-gray-800/50'}>
               <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200 sticky left-0 bg-inherit border-r border-slate-200 dark:border-slate-700">
                 {mod.label}
               </td>
@@ -138,15 +140,16 @@ function PermissionsMatrix() {
 function UserAccountsTab() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 500);
   const [roleFilter, setRoleFilter] = useState('');
   const [resetModal, setResetModal] = useState<any>(null);
   const [newPassword, setNewPassword] = useState('');
 
   const { data: users, isLoading } = useQuery({
-    queryKey: ['all-users', search, roleFilter],
+    queryKey: ['all-users', debouncedSearch, roleFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (search) params.set('search', search);
+      if (debouncedSearch) params.set('search', debouncedSearch);
       if (roleFilter) params.set('role', roleFilter);
       const { data } = await apiClient.get(`/users?${params}`);
       return data.data as any[];
@@ -186,7 +189,7 @@ function UserAccountsTab() {
             placeholder="Search users..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-gray-900 border border-slate-300 dark:border-slate-600 shadow-sm rounded-lg text-sm focus:outline-none"
           />
         </div>
         <select
@@ -258,7 +261,7 @@ function UserAccountsTab() {
                     </button>
                   </td>
                   <td className="hidden px-4 py-3 text-xs text-gray-500 md:table-cell">
-                    {u.lastLogin ? new Date(u.lastLogin).toLocaleString() : 'Never'}
+                    {u.lastLogin ? formatDateTime(u.lastLogin) : 'Never'}
                   </td>
                   <td className="px-4 py-3">
                     <button

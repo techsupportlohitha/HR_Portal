@@ -1,151 +1,226 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from 'next-themes';
 import { 
   LayoutDashboard, Users, Laptop, Plane, Briefcase, 
   Target, ClipboardList, GraduationCap, Files, UserMinus, 
   Shield, History, ChevronRight, ChevronDown, Building2, CreditCard,
-  ClipboardCheck
+  ClipboardCheck, Calendar, ChevronsLeft, ChevronsRight, Settings, HelpCircle
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export function Sidebar() {
+type SidebarNavItem = {
+  name: string;
+  path?: string;
+  icon: LucideIcon;
+  badge?: number;
+  children?: SidebarNavItem[];
+};
+
+interface SidebarProps {
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+}
+
+export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
   const { user } = useAuth();
   const location = useLocation();
   const isAdminOrHR = user?.role === 'ADMIN' || user?.role === 'HR';
   
-  // By default, open the section that contains the current path
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    workspace: true,
-    employees: true,
-    expenses: true,
-    auth: true,
+  const [openNavGroups, setOpenNavGroups] = useState<Record<string, boolean>>({
+    'nav-group-leave-requests': true,
   });
 
-  const toggleSection = (id: string) => {
-    setOpenSections(prev => ({ ...prev, [id]: !prev[id] }));
+  const toggleNavGroup = (id: string) => {
+    setOpenNavGroups(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const workspaceNav = [
-    ...(isAdminOrHR ? [{ name: 'Recruitment', path: '/recruitment', icon: Briefcase }] : []),
-    { name: 'Assets', path: '/assets', icon: Laptop },
-    ...(isAdminOrHR ? [{ name: 'Attrition', path: '/attrition', icon: UserMinus }] : []),
-    { name: 'Documents', path: '/documents', icon: Files },
-    { name: 'Helpdesk', path: '/requests', icon: ClipboardList },
-  ];
-
-  const employeesNav = [
+  const mainNav: SidebarNavItem[] = [
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    ...(isAdminOrHR ? [{ name: 'Attrition', path: '/dashboard/attrition', icon: UserMinus }] : []),
     { name: 'Employees', path: '/employees', icon: Users },
-    { name: 'Training', path: '/training', icon: GraduationCap },
     { name: 'Performance', path: '/performance', icon: Target },
-  ];
-
-  const expensesNav = [
+    {
+      name: 'Leave Requests',
+      icon: Calendar,
+      children: [
+        { name: 'Apply for leave', path: '/leaves', icon: Calendar },
+        ...(isAdminOrHR ? [{ name: 'Leave approvals', path: '/leaves/approvals', icon: ClipboardList }] : []),
+      ],
+    },
+    ...(isAdminOrHR ? [{ name: 'Recruitment', path: '/recruitment', icon: Briefcase }] : []),
+    { name: 'Training', path: '/training', icon: GraduationCap },
+    { name: 'Assets', path: '/assets', icon: Laptop },
     { name: 'Travel', path: '/travel', icon: Plane },
-    { name: 'Office Expenses', path: '/office-expenses', icon: Building2 },
+    { name: 'Expenses', path: '/office-expenses', icon: CreditCard },
+    { name: 'Documents', path: '/documents', icon: Files },
+    { name: 'Helpdesk', path: '/requests', icon: HelpCircle },
   ];
 
-  const authNav = isAdminOrHR ? [
-    { name: 'Role Management', path: '/roles', icon: Shield },
-    { name: 'Audit Log', path: '/audit', icon: History }
-  ] : [];
-
-  const sections = [
-    { id: 'employees', title: 'Employees', items: employeesNav, icon: Users },
-    { id: 'workspace', title: 'Workspace', items: workspaceNav, icon: LayoutDashboard },
-    { id: 'expenses', title: 'Expenses', items: expensesNav, icon: CreditCard },
-    ...(authNav.length > 0 ? [{ id: 'auth', title: 'Authorization', items: authNav, icon: Shield }] : []),
+  const accountNav: SidebarNavItem[] = [
+    ...(isAdminOrHR ? [
+      { name: 'Role Management', path: '/roles', icon: Shield },
+      { name: 'Audit Log', path: '/audit', icon: History },
+    ] : [])
   ];
 
-  // Check if any child item is active
-  const isSectionActive = (items: any[]) => {
-    return items.some(item => 
-      location.pathname === item.path || 
-      (item.path !== '/dashboard' && item.path !== '#' && location.pathname.startsWith(item.path))
-    );
-  };
+  const isNavItemActive = (path: string) => (
+    location.pathname === path ||
+    (path !== '/dashboard' && path !== '#' && location.pathname.startsWith(`${path}/`))
+  );
+
+  const isItemActive = (item: SidebarNavItem): boolean => (
+    (item.path ? isNavItemActive(item.path) : false) ||
+    Boolean(item.children?.some(isItemActive))
+  );
 
   return (
-    <aside id="primary-sidebar" aria-label="Primary navigation" className="bg-sidebar text-white w-64 flex flex-col shadow-xl z-50 h-[calc(100vh-1rem)] m-2 rounded-xl shrink-0 overflow-hidden lg:h-[calc(100vh-2rem)] lg:m-4">
+    <aside aria-label="Primary navigation" className={cn(
+      "bg-white dark:bg-[#09090b] text-slate-700 dark:text-slate-300 flex flex-col h-full w-full border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out font-sans overflow-hidden"
+    )}>
       {/* Brand */}
-      <div className="h-20 flex items-center px-6 shrink-0 pt-2">
-        <NavLink to="/dashboard" className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-white rounded-full flex items-center justify-center shrink-0">
-            <ClipboardCheck className="h-6 w-6 text-sidebar" />
+      <div className={cn("h-[72px] flex items-center shrink-0 border-b border-slate-100 dark:border-slate-800", collapsed ? "justify-center" : "px-6")}>
+        <NavLink to="/dashboard" className="flex items-center gap-3 w-full" title={collapsed ? 'HR Portal' : undefined}>
+          <div className="h-9 w-9 bg-blue-600 rounded-lg flex items-center justify-center shrink-0 text-white shadow-sm">
+            <ClipboardCheck className="h-5 w-5" />
           </div>
-          <span className="text-xl font-bold tracking-wide">HR Portal</span>
+          <div className={cn("flex flex-col min-w-0 transition-opacity duration-300", collapsed ? "opacity-0 w-0 hidden" : "opacity-100")}>
+            <span className="text-base font-bold tracking-tight text-slate-900 dark:text-white truncate">HR Portal</span>
+          </div>
         </NavLink>
       </div>
 
       {/* Navigation */}
-      <div className="flex-1 overflow-y-auto py-2 px-3 flex flex-col gap-2 custom-scrollbar">
-        <NavLink
-          to="/dashboard"
+      <div className="flex-1 overflow-y-auto py-4 flex flex-col gap-6 custom-scrollbar px-3">
+        {/* Main Section */}
+        <div className="flex flex-col gap-1">
+          {mainNav.map((item) => renderNavItem(item, collapsed, toggleNavGroup, openNavGroups, isItemActive, isNavItemActive))}
+        </div>
+
+        {/* Account Section */}
+        <div className="flex flex-col gap-1 mt-auto">
+          {!collapsed && (
+            <div className="px-3 pb-2 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+              Account
+            </div>
+          )}
+          {accountNav.map((item) => renderNavItem(item, collapsed, toggleNavGroup, openNavGroups, isItemActive, isNavItemActive))}
+        </div>
+      </div>
+
+    </aside>
+  );
+}
+
+function renderNavItem(
+  item: SidebarNavItem, 
+  collapsed: boolean, 
+  toggleNavGroup: (id: string) => void, 
+  openNavGroups: Record<string, boolean>, 
+  isItemActive: (item: SidebarNavItem) => boolean, 
+  isNavItemActive: (path: string) => boolean
+) {
+  const isActive = isItemActive(item);
+
+  if (item.children) {
+    const groupId = `nav-group-${item.name.toLowerCase().replace(/\s+/g, '-')}`;
+    const isGroupOpen = openNavGroups[groupId] ?? isActive;
+
+    return (
+      <div key={item.name}>
+        <button
+          type="button"
+          onClick={() => toggleNavGroup(groupId)}
+          title={collapsed ? item.name : undefined}
           className={cn(
-            "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors",
-            location.pathname === '/dashboard' ? "text-accent-400 bg-white/5" : "text-white/80 hover:text-accent-400"
+            "flex w-full items-center rounded-lg h-10 text-sm font-medium transition-all duration-200 group border-l-[3px]",
+            collapsed ? "justify-center px-0" : "px-3",
+            isActive
+              ? "text-blue-600 bg-blue-50 border-blue-600 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-500"
+              : "text-slate-600 dark:text-slate-400 border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
           )}
         >
-          <LayoutDashboard className="h-5 w-5" />
-          <span>Dashboard</span>
-        </NavLink>
-
-        {sections.map((section) => {
-          const isOpen = openSections[section.id];
-          const hasActiveChild = isSectionActive(section.items);
-          
-          return (
-            <div key={section.id} className="flex flex-col">
-              <button
-                onClick={() => toggleSection(section.id)}
-                aria-expanded={isOpen}
-                aria-controls={`sidebar-section-${section.id}`}
-                className={cn(
-                  "flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-colors",
-                  "hover:text-accent-400",
-                  hasActiveChild ? "text-[#EAE0CF]" : "text-white/80"
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <section.icon className="h-5 w-5" />
-                  <span>{section.title}</span>
-                </div>
-                {isOpen ? (
-                  <ChevronDown className="h-4 w-4 opacity-50" />
-                ) : (
-                  <ChevronRight className="h-4 w-4 opacity-50" />
-                )}
-              </button>
-              
-              {isOpen && (
-                <div id={`sidebar-section-${section.id}`} className="mt-1 mb-2 ml-4 flex flex-col gap-1 border-l border-white/10 pl-3">
-                  {section.items.map((item) => {
-                    const isActive = location.pathname === item.path || 
-                      (item.path !== '/dashboard' && item.path !== '#' && location.pathname.startsWith(item.path));
-                    return (
-                      <NavLink
-                        key={item.name}
-                        to={item.path}
-                        onClick={(e) => item.path === '#' && e.preventDefault()}
-                        className={cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200",
-                          isActive
-                            ? "text-[#EAE0CF] bg-white/5 font-semibold"
-                            : "text-white/60 hover:text-accent-400 hover:bg-white/5"
-                        )}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.name}</span>
-                      </NavLink>
-                    );
-                  })}
-                </div>
+          <div className={cn("flex min-w-0 items-center gap-3", collapsed && "justify-center")}>
+            <item.icon className={cn("h-5 w-5 shrink-0", isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300")} />
+            {!collapsed && <span className="truncate">{item.name}</span>}
+          </div>
+          {!collapsed && (
+            <div className="ml-auto flex items-center gap-2">
+              {item.badge && (
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
+                  {item.badge}
+                </span>
+              )}
+              {isGroupOpen ? (
+                <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+              ) : (
+                <ChevronRight className="h-4 w-4 shrink-0 opacity-50" />
               )}
             </div>
-          );
-        })}
+          )}
+        </button>
+
+        {isGroupOpen && (
+          <div className={cn(
+            "mt-1 flex flex-col gap-1",
+            !collapsed && "ml-9"
+          )}>
+            {item.children.map((child) => {
+              const childIsActive = child.path ? isNavItemActive(child.path) : false;
+              return (
+                <NavLink
+                  key={child.name}
+                  to={child.path || '#'}
+                  title={collapsed ? child.name : undefined}
+                  onClick={(e) => {
+                    if (!child.path) e.preventDefault();
+                  }}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg h-9 text-sm transition-all duration-200 border-l-[3px]",
+                    collapsed ? "justify-center px-0" : "px-3",
+                    childIsActive
+                      ? "text-blue-600 font-semibold border-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-500"
+                      : "text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                  )}
+                >
+                  {collapsed ? <child.icon className="h-5 w-5 shrink-0" /> : <div className="w-1.5 h-1.5 rounded-full bg-current opacity-40 shrink-0" />}
+                  {!collapsed && <span className="truncate">{child.name}</span>}
+                </NavLink>
+              );
+            })}
+          </div>
+        )}
       </div>
-    </aside>
+    );
+  }
+
+  return (
+    <NavLink
+      key={item.name}
+      to={item.path || '#'}
+      title={collapsed ? item.name : undefined}
+      onClick={(e) => {
+        if (!item.path) e.preventDefault();
+      }}
+      className={cn(
+        "flex items-center rounded-lg h-10 text-sm font-medium transition-all duration-200 group relative border-l-[3px]",
+        collapsed ? "justify-center px-0" : "px-3",
+        isActive
+          ? "text-blue-600 bg-blue-50 border-blue-600 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-500"
+          : "text-slate-600 dark:text-slate-400 border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+      )}
+    >
+      <item.icon className={cn("h-5 w-5 shrink-0", collapsed ? "" : "mr-3", isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300")} />
+      {!collapsed && <span className="truncate">{item.name}</span>}
+      {!collapsed && item.badge && (
+        <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
+          {item.badge}
+        </span>
+      )}
+      {collapsed && item.badge && (
+        <span className="absolute top-1.5 right-1.5 flex h-2 w-2 rounded-full bg-blue-600"></span>
+      )}
+    </NavLink>
   );
 }

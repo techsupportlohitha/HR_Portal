@@ -1,3 +1,4 @@
+import { formatDate, formatDateTime } from '@/utils/dateFormat';
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { travelApi } from '@/api/travel';
@@ -123,7 +124,7 @@ export default function TravelListPage() {
     },
     { 
       header: 'Dates', 
-      accessor: (row: any) => `${new Date(row.startDate).toLocaleDateString()} - ${new Date(row.endDate).toLocaleDateString()}`,
+      accessor: (row: any) => `${formatDate(row.startDate)} - ${formatDate(row.endDate)}`,
       className: 'text-gray-600 dark:text-gray-400 text-sm'
     },
     { 

@@ -1,3 +1,4 @@
+import { formatDate, formatDateTime } from '@/utils/dateFormat';
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
@@ -130,7 +131,7 @@ export default function PolicyListPage() {
     { header: 'Version', accessor: 'versionNumber', className: 'text-gray-600 dark:text-gray-400' },
     { 
       header: 'Published On', 
-      accessor: (row: any) => new Date(row.uploadDate).toLocaleDateString(),
+      accessor: (row: any) => formatDate(row.uploadDate),
       className: 'text-gray-600 dark:text-gray-400' 
     },
     {
@@ -174,7 +175,7 @@ export default function PolicyListPage() {
 
   const recordsColumns = [
     { header: 'Employee Name', accessor: (row: any) => `${row.employee?.firstName} ${row.employee?.lastName}` },
-    { header: 'Date Acknowledged', accessor: (row: any) => row.acknowledgementDate ? new Date(row.acknowledgementDate).toLocaleString() : 'N/A' },
+    { header: 'Date Acknowledged', accessor: (row: any) => row.acknowledgementDate ? formatDateTime(row.acknowledgementDate) : 'N/A' },
     { header: 'Status', accessor: 'acknowledgementStatus' }
   ];
 
@@ -198,7 +199,7 @@ export default function PolicyListPage() {
             placeholder="Search documents..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-gray-900 border border-slate-300 dark:border-slate-600 shadow-sm rounded-lg text-sm focus:outline-none transition-all"
           />
         </div>
       </div>
@@ -245,7 +246,7 @@ export default function PolicyListPage() {
       {selectedPolicy && (
         <Modal isOpen={recordsModalOpen} onClose={() => setRecordsModalOpen(false)} title={`Acknowledgements: ${selectedPolicy.policyName} (${selectedPolicy.versionNumber})`}>
           <div className="mb-4">
-            <p className="text-sm text-gray-500">Date Published: {new Date(selectedPolicy.uploadDate).toLocaleDateString()}</p>
+            <p className="text-sm text-gray-500">Date Published: {formatDate(selectedPolicy.uploadDate)}</p>
           </div>
           {recordsLoading ? (
             <LoadingSpinner />

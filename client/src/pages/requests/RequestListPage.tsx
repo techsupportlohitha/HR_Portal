@@ -1,3 +1,4 @@
+import { formatDate, formatDateTime } from '@/utils/dateFormat';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { requestsApi } from '@/api/requests';
@@ -97,7 +98,7 @@ export default function RequestListPage() {
     { header: 'Ticket Number', accessor: 'id' },
     { header: 'Type', accessor: (row: any) => getReqTypeLabel(row.requestType) },
     { header: 'Description', accessor: 'description' },
-    { header: 'Date', accessor: (row: any) => new Date(row.createdAt).toLocaleDateString() },
+    { header: 'Date', accessor: (row: any) => formatDate(row.createdAt) },
     { header: 'Status', accessor: (row: any) => getStatusBadge(row.status) },
   ];
 

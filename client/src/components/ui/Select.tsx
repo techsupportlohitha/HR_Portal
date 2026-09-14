@@ -1,4 +1,4 @@
-﻿import React, { useId, useState, useRef, useImperativeHandle } from 'react';
+import React, { useId, useState, useRef, useImperativeHandle } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
@@ -55,8 +55,8 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         <select
           id={selectId}
           className={cn(
-            "flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600 focus:border-slate-300 dark:focus:border-slate-600",
-            displayError && "border-red-500 focus:ring-red-500",
+            "flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none",
+            displayError && "border-red-500",
             className
           )}
           ref={innerRef}

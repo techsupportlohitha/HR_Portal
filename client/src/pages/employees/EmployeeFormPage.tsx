@@ -1,3 +1,4 @@
+import { formatDate, formatDateTime } from '@/utils/dateFormat';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -468,7 +469,7 @@ export default function EmployeeFormPage() {
                         <div className="bg-blue-50 p-3 rounded-lg"><FileText className="text-blue-500 w-6 h-6" /></div>
                         <div className="flex-1">
                           <h4 className="font-semibold text-navy-900 dark:text-white">{doc.documentName}</h4>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">{doc.documentType.replace('_', ' ')} • {new Date(doc.uploadDate).toLocaleDateString()}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">{doc.documentType.replace('_', ' ')} • {formatDate(doc.uploadDate)}</p>
                           <div className="mt-2 flex items-center gap-2 text-sm text-accent-500 font-medium cursor-pointer">
                             <CheckCircle2 className="w-4 h-4" /> Verified
                           </div>

@@ -1,6 +1,8 @@
+import { formatDate, formatDateTime } from '@/utils/dateFormat';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { trainingApi } from '@/api/training';
+import { Timeline, type TimelineItem } from '@/components/ui/Timeline';
 import { DataTable } from '@/components/ui/DataTable';
 import {} from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -25,7 +27,7 @@ export default function TrainingListPage() {
   const [selectedTrainingForEdit, setSelectedTrainingForEdit] = useState<any>(null);
   const [editingParticipant, setEditingParticipant] = useState<any>(null);
   const [newParticipantId, setNewParticipantId] = useState('');
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'timeline'>('list');
   const isAdminOrHR = user?.role === 'ADMIN' || user?.role === 'HR';
 
   const { data: trainingData, isLoading } = useQuery({
@@ -123,11 +125,11 @@ export default function TrainingListPage() {
       const s = String(str).replace(/"/g, '""');
       return `"${s}"`;
     };
-    
-    const csvContent = "data:text/csv;charset=utf-8," 
+
+    const csvContent = "data:text/csv;charset=utf-8,"
       + "ID,Topic,Type,Status,Trainer,Date,Location,Hours,Cost\n"
-      + trainingData.data.map((t: any) => 
-          `${escapeCsv(t.id)},${escapeCsv(t.trainingTopic)},${escapeCsv(t.trainingType)},${escapeCsv(t.status || 'PENDING')},${escapeCsv(t.trainerName)},${escapeCsv(new Date(t.trainingDate).toLocaleDateString())},${escapeCsv(t.trainingLocation)},${t.trainingHours || 0},${t.trainingCost || 0}`
+      + trainingData.data.map((t: any) =>
+          `${escapeCsv(t.id)},${escapeCsv(t.trainingTopic)},${escapeCsv(t.trainingType)},${escapeCsv(t.status || 'PENDING')},${escapeCsv(t.trainerName)},${escapeCsv(formatDate(t.trainingDate))},${escapeCsv(t.trainingLocation)},${t.trainingHours || 0},${t.trainingCost || 0}`
         ).join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -147,11 +149,11 @@ export default function TrainingListPage() {
       </span>
     ) },
     { header: 'Trainer', accessor: 'trainerName' },
-    { header: 'Date', accessor: (row: any) => new Date(row.trainingDate).toLocaleDateString() },
+    { header: 'Date', accessor: (row: any) => formatDate(row.trainingDate) },
     { header: 'Location', accessor: 'trainingLocation' },
     { header: 'Hours', accessor: 'trainingHours' },
-    { 
-      header: 'Actions', 
+    {
+      header: 'Actions',
       accessor: (row: any) => (
         <div className="flex space-x-2">
           <Button variant="outline" size="sm" onClick={() => setSelectedTraining(row)}>
@@ -164,7 +166,7 @@ export default function TrainingListPage() {
             Edit
           </Button>
         </div>
-      ) 
+      )
     },
   ];
 
@@ -172,23 +174,23 @@ export default function TrainingListPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const payload = Object.fromEntries(formData.entries()) as any;
-    
+
     if (payload.trainingHours) {
       payload.trainingHours = Number(payload.trainingHours);
     } else {
       delete payload.trainingHours;
     }
-    
+
     if (payload.trainingCost) {
       payload.trainingCost = Number(payload.trainingCost);
     } else {
       delete payload.trainingCost;
     }
-    
+
     if (!payload.targetDepartmentId) {
       delete payload.targetDepartmentId;
     }
-    
+
     if (selectedTrainingForEdit) {
       updateMutation.mutate({ id: selectedTrainingForEdit.id, data: payload });
     } else {
@@ -203,7 +205,7 @@ export default function TrainingListPage() {
          {sorted.map((t: any) => (
            <div key={t.id} className="flex gap-6 items-start p-6 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
              <div className="w-24 text-center shrink-0 border-r border-gray-100 dark:border-gray-800 pr-6">
-               <div className="text-sm text-gray-500 font-bold uppercase">{new Date(t.trainingDate).toLocaleString('default', { month: 'short' })}</div>
+               <div className="text-sm text-gray-500 font-bold uppercase">{formatDateTime(t.trainingDate)}</div>
                <div className="text-4xl font-black text-primary-600">{new Date(t.trainingDate).getDate()}</div>
                <div className="text-xs text-gray-400 mt-1">{new Date(t.trainingDate).getFullYear()}</div>
              </div>
@@ -225,6 +227,39 @@ export default function TrainingListPage() {
     );
   };
 
+  const renderTimelineView = () => {
+    const sorted = [...(trainingData?.data || [])].sort((a, b) => new Date(b.trainingDate).getTime() - new Date(a.trainingDate).getTime());
+    const timelineItems: TimelineItem[] = sorted.map((t: any) => {
+      const date = new Date(t.trainingDate);
+      const isPast = date.getTime() < Date.now();
+
+      let status: 'completed' | 'current' | 'upcoming' = 'upcoming';
+      if (t.status === 'COMPLETED' || t.status === 'APPROVED') status = 'completed';
+      else if (isPast) status = 'completed';
+      else if (date.getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000) status = 'current';
+
+      return {
+        id: t.id,
+        title: t.trainingTopic,
+        description: `Trainer: ${t.trainerName || 'TBD'} • Location: ${t.trainingLocation || 'Remote'} • ${t.trainingHours} Hours`,
+        date: formatDate(date),
+        category: t.trainingType,
+        status,
+      };
+    });
+
+    return (
+      <div className="bg-white dark:bg-gray-900 rounded-xl p-8 shadow-sm border border-gray-100 dark:border-gray-800">
+        <h2 className="text-2xl font-bold mb-8 text-center">Training Journey</h2>
+        {timelineItems.length > 0 ? (
+          <Timeline items={timelineItems} className="max-w-4xl mx-auto" />
+        ) : (
+          <div className="text-center text-gray-500 py-12">No training sessions found.</div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="p-6">
       <PageHeader
@@ -234,6 +269,7 @@ export default function TrainingListPage() {
           <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
             <button onClick={() => setViewMode('list')} className={`px-4 py-1.5 rounded-md text-sm font-medium ${viewMode === 'list' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500'}`}>List</button>
             <button onClick={() => setViewMode('calendar')} className={`px-4 py-1.5 rounded-md text-sm font-medium ${viewMode === 'calendar' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500'}`}>Calendar</button>
+            <button onClick={() => setViewMode('timeline')} className={`px-4 py-1.5 rounded-md text-sm font-medium ${viewMode === 'timeline' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500'}`}>Timeline</button>
           </div>
                       {isAdminOrHR && (
               <>
@@ -338,6 +374,8 @@ export default function TrainingListPage() {
 
       {isLoading ? (
         <LoadingSpinner />
+      ) : viewMode === 'timeline' ? (
+        renderTimelineView()
       ) : viewMode === 'calendar' ? (
         renderCalendarView()
       ) : (
@@ -387,7 +425,7 @@ export default function TrainingListPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Date</p>
-                  <p className="font-medium">{new Date(selectedTraining.trainingDate).toLocaleDateString()}</p>
+                  <p className="font-medium">{formatDate(selectedTraining.trainingDate)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Type</p>
@@ -414,9 +452,9 @@ export default function TrainingListPage() {
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium">Participants & Feedback</h3>
                 <div className="flex gap-2">
-                  <select 
+                  <select
                     aria-label="Employee to add to training"
-                    className="p-1 border rounded-md text-sm dark:bg-gray-800 dark:border-gray-700" 
+                    className="p-1 border rounded-md text-sm dark:bg-gray-800 dark:border-gray-700"
                     value={newParticipantId}
                     onChange={(e) => setNewParticipantId(e.target.value)}
                   >
@@ -425,8 +463,8 @@ export default function TrainingListPage() {
                       <option key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName}</option>
                     ))}
                   </select>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     disabled={!newParticipantId || addParticipantMutation.isPending}
                     onClick={() => {
                       addParticipantMutation.mutate({ id: selectedTraining.id, employeeId: newParticipantId });
@@ -437,7 +475,7 @@ export default function TrainingListPage() {
                   </Button>
                 </div>
               </div>
-              
+
               {selectedTraining.participants?.length > 0 ? (
                 <div className="overflow-x-auto border dark:border-gray-800 rounded-lg">
                   <table className="w-full text-sm text-left">
@@ -487,7 +525,7 @@ export default function TrainingListPage() {
                 </div>
               )}
             </div>
-            
+
             <div className="flex justify-end pt-4">
               <Button onClick={() => setSelectedTraining(null)}>Close</Button>
             </div>
@@ -501,7 +539,7 @@ export default function TrainingListPage() {
           <form onSubmit={(e) => {
             e.preventDefault();
             const formData = new FormData(e.currentTarget);
-            
+
             const assessmentData = {
               attendanceStatus: formData.get('attendanceStatus'),
               assessmentScore: formData.get('assessmentScore') ? Number(formData.get('assessmentScore')) : undefined,
@@ -532,7 +570,7 @@ export default function TrainingListPage() {
             <hr className="my-4 dark:border-gray-800" />
             <Input type="number" name="feedbackRating" label="Feedback Rating (1-5)" min="1" max="5" onKeyDown={(e) => e.key === '-' && e.preventDefault()} defaultValue={editingParticipant.feedbackRating} />
             <Input name="feedbackComments" label="Feedback Comments" defaultValue={editingParticipant.feedbackComments} />
-            
+
             <div className="flex justify-end space-x-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setEditingParticipant(null)}>Cancel</Button>
               <Button type="submit" disabled={updateParticipantMutation.isPending}>Save Changes</Button>

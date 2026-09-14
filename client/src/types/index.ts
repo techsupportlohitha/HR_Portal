@@ -92,6 +92,8 @@ export interface Employee {
   user?: { id: string; email: string; role: Role };
   documents?: EmployeeDocument[];
   assignedAssets?: Asset[];
+  trainingParticipations?: TrainingParticipant[];
+  performanceReviews?: PerformanceReview[];
   createdAt?: string;
   updatedAt?: string;
 }

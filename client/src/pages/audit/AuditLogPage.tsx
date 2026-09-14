@@ -1,3 +1,4 @@
+import { formatDate, formatDateTime } from '@/utils/dateFormat';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/api/client';
@@ -7,6 +8,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { Search, Download, Eye, Shield, AlertTriangle, Activity, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { useDebounce } from '@/hooks/useDebounce';
 
 const MODULES = [
   'employees', 'travel', 'assets', 'recruitment', 'performance',
@@ -82,6 +84,7 @@ export default function AuditLogPage() {
   const { canExport } = usePermissions();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 500);
   const [module, setModule] = useState('');
   const [action, setAction] = useState('');
   const [from, setFrom] = useState('');
@@ -91,7 +94,7 @@ export default function AuditLogPage() {
   const params = new URLSearchParams({
     page: String(page),
     limit: '50',
-    ...(search && { search }),
+    ...(debouncedSearch && { search: debouncedSearch }),
     ...(module && { module }),
     ...(action && { action }),
     ...(from && { from }),
@@ -107,7 +110,7 @@ export default function AuditLogPage() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ['audit-logs', page, search, module, action, from, to],
+    queryKey: ['audit-logs', page, debouncedSearch, module, action, from, to],
     queryFn: async () => {
       const { data } = await apiClient.get(`/audit?${params}`);
       return data.data;
@@ -122,7 +125,7 @@ export default function AuditLogPage() {
     const csv = 'data:text/csv;charset=utf-8,'
       + 'Timestamp,User,Action,Module,Record ID,IP Address,Old Value,New Value\n'
       + logs.map((l: any) =>
-          `"${new Date(l.createdAt).toLocaleString()}","${l.user?.email || ''}","${l.actionPerformed}","${l.moduleAffected}","${l.recordIdAffected || ''}","${l.ipAddress || ''}","${(l.oldValue || '').replace(/"/g, '""')}","${(l.newValue || '').replace(/"/g, '""')}"`
+          `"${formatDateTime(l.createdAt)}","${l.user?.email || ''}","${l.actionPerformed}","${l.moduleAffected}","${l.recordIdAffected || ''}","${l.ipAddress || ''}","${(l.oldValue || '').replace(/"/g, '""')}","${(l.newValue || '').replace(/"/g, '""')}"`
         ).join('\n');
     const link = document.createElement('a');
     link.setAttribute('href', encodeURI(csv));
@@ -196,7 +199,7 @@ export default function AuditLogPage() {
               placeholder="Search actions, records..."
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
-              className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full pl-9 pr-4 py-2 bg-white dark:bg-gray-900 border border-slate-300 dark:border-slate-600 shadow-sm rounded-lg text-sm focus:outline-none"
             />
           </div>
           <select
@@ -247,7 +250,7 @@ export default function AuditLogPage() {
                 {logs.map((log: any) => (
                   <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                     <td className="px-4 py-3 text-xs text-text-muted whitespace-nowrap">
-                      {new Date(log.createdAt).toLocaleString()}
+                      {formatDateTime(log.createdAt)}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">
                       {log.user?.email || '—'}
@@ -317,7 +320,7 @@ export default function AuditLogPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <p className="text-xs text-text-muted mb-1 font-medium">Timestamp</p>
-                <p className="font-medium">{new Date(selectedLog.createdAt).toLocaleString()}</p>
+                <p className="font-medium">{formatDateTime(selectedLog.createdAt)}</p>
               </div>
               <div>
                 <p className="text-xs text-text-muted mb-1 font-medium">User</p>

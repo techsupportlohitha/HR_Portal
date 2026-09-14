@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Menu, X, LogOut, User, Search, Sun, Moon, Bell, Settings } from 'lucide-react';
+import { Menu, X, LogOut, User, Search, Sun, Moon, Bell, Settings, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { CommandPalette } from '@/components/ui/CommandPalette';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -12,10 +12,13 @@ import { notificationsApi } from '@/api/notifications';
 interface HeaderProps {
   onMenuClick?: () => void;
   menuOpen?: boolean;
+  sidebarCollapsed?: boolean;
+  onSidebarCollapseToggle?: () => void;
 }
 
-export function Header({ onMenuClick, menuOpen = false }: HeaderProps) {
+export function Header({ onMenuClick, menuOpen = false, sidebarCollapsed = false, onSidebarCollapseToggle }: HeaderProps) {
   const { user, logout } = useAuth();
+  const isAdminOrHR = user?.role === 'ADMIN' || user?.role === 'HR';
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -56,7 +59,7 @@ export function Header({ onMenuClick, menuOpen = false }: HeaderProps) {
           <Button
             variant="ghost"
             size="sm"
-            className="mr-2 text-gray-500 hover:text-navy-900 dark:text-gray-400 dark:hover:text-white"
+            className="mr-2 text-gray-500 hover:text-navy-900 dark:text-gray-400 dark:hover:text-white lg:hidden"
             onClick={onMenuClick}
             aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
             aria-expanded={menuOpen}
@@ -66,6 +69,22 @@ export function Header({ onMenuClick, menuOpen = false }: HeaderProps) {
               <Menu className={`absolute h-5 w-5 transition-all duration-300 ${menuOpen ? "rotate-90 opacity-0 scale-50" : "rotate-0 opacity-100 scale-100"}`} aria-hidden="true" />
               <X className={`absolute h-5 w-5 transition-all duration-300 ${menuOpen ? "rotate-0 opacity-100 scale-100" : "-rotate-90 opacity-0 scale-50"}`} aria-hidden="true" />
             </div>
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mr-2 hidden text-gray-500 hover:text-navy-900 dark:text-gray-400 dark:hover:text-white lg:inline-flex"
+            onClick={onSidebarCollapseToggle}
+            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-controls="primary-sidebar"
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {sidebarCollapsed ? (
+              <PanelLeftOpen className="h-5 w-5" aria-hidden="true" />
+            ) : (
+              <PanelLeftClose className="h-5 w-5" aria-hidden="true" />
+            )}
           </Button>
           
           <button 
@@ -166,7 +185,7 @@ export function Header({ onMenuClick, menuOpen = false }: HeaderProps) {
               <div className="px-4 py-2 text-xs text-slate-500 dark:text-slate-400 border-b border-gray-200 dark:border-gray-700">
                 Signed in as {user?.role}
               </div>
-              <button 
+              <button
                 className="flex w-full items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-gray-700"
                 onClick={() => {
                   setDropdownOpen(false);
@@ -181,7 +200,7 @@ export function Header({ onMenuClick, menuOpen = false }: HeaderProps) {
               >
                 <User className="mr-2 h-4 w-4" /> Profile
               </button>
-              <button 
+              {isAdminOrHR && <button
                 className="flex w-full items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-gray-700"
                 onClick={() => {
                   setDropdownOpen(false);
@@ -189,7 +208,7 @@ export function Header({ onMenuClick, menuOpen = false }: HeaderProps) {
                 }} 
               >
                 <Settings className="mr-2 h-4 w-4" /> Settings
-              </button>
+              </button>}
               <button 
                 className="flex w-full items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-slate-100 dark:hover:bg-gray-700"
                 onClick={() => {
