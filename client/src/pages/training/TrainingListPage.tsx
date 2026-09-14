@@ -252,57 +252,58 @@ export default function TrainingListPage() {
       />
 
       {!isStatsLoading && statsData?.data && (
-        <div className="space-y-4 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="p-4 flex items-center space-x-4">
-                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                  <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+        <div className="space-y-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+                    <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-text-muted line-clamp-2 break-words">Upcoming / Completed</p>
+                    <h3 className="text-2xl font-bold text-text-heading">{statsData.data.upcomingTrainings} / {statsData.data.completedTrainings}</h3>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">Upcoming / Completed</p>
-                  <h3 className="text-xl font-bold">{statsData.data.upcomingTrainings} / {statsData.data.completedTrainings}</h3>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-4 flex items-center space-x-4">
-                <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
-                  <Users className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Total Participants</p>
-                  <h3 className="text-xl font-bold">{statsData.data.totalParticipants}</h3>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-4 flex items-center space-x-4">
-                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                  <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Effectiveness</p>
-                  <h3 className="text-xl font-bold">{statsData.data.averageFeedback.toFixed(1)} / 5.0</h3>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
 
-            <Card>
-              <CardContent className="p-4 flex items-center space-x-4">
-                <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                  <IndianRupee className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+              <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center shrink-0">
+                    <Users className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-text-muted line-clamp-2 break-words">Total Participants</p>
+                    <h3 className="text-2xl font-bold text-text-heading">{statsData.data.totalParticipants}</h3>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">Total Hours & Cost</p>
-                  <h3 className="text-xl font-bold">{statsData.data.totalTrainingHours}h / ₹{statsData.data.totalTrainingCost}</h3>
+              </div>
+
+              <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                    <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-text-muted line-clamp-2 break-words">Effectiveness</p>
+                    <h3 className="text-2xl font-bold text-text-heading">{statsData.data.averageFeedback.toFixed(1)} / 5.0</h3>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              </div>
+
+              <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center shrink-0">
+                    <IndianRupee className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-text-muted line-clamp-2 break-words">Total Hours & Cost</p>
+                    <h3 className="text-2xl font-bold text-text-heading leading-tight">{statsData.data.totalTrainingHours}h</h3>
+                    <p className="text-sm font-semibold text-text-muted mt-0.5">₹{statsData.data.totalTrainingCost?.toLocaleString?.() ?? statsData.data.totalTrainingCost}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
              <Card>
                <CardContent className="p-4">
                   <h3 className="text-sm font-bold text-gray-500 mb-3">Department-wise Training</h3>

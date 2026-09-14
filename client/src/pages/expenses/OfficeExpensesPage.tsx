@@ -69,7 +69,7 @@ export default function OfficeExpensesPage() {
              <Wallet className="w-4 h-4 text-teal-500" />
           </div>
           <div>
-            <div className="font-semibold text-navy-900 dark:text-white capitalize">{row.category.replace('_', ' ').toLowerCase()}</div>
+            <div className="font-semibold text-text-heading capitalize">{row.category.replace('_', ' ').toLowerCase()}</div>
             <div className="text-xs text-gray-500 max-w-[200px] truncate">{row.description}</div>
           </div>
         </div>
@@ -178,17 +178,17 @@ export default function OfficeExpensesPage() {
 
       {isAdminOrHR && data && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
-            <p className="text-sm text-gray-500 mb-1">Pending Approval</p>
-            <p className="text-2xl font-bold text-navy-900 dark:text-white">{data.filter((d:any) => d.status === 'PENDING').length}</p>
+          <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
+            <p className="text-sm text-text-muted mb-1 font-medium">Pending Approval</p>
+            <p className="text-2xl font-bold text-text-heading">{data.filter((d:any) => d.status === 'PENDING').length}</p>
           </div>
-          <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
-            <p className="text-sm text-gray-500 mb-1">Awaiting Payout</p>
-            <p className="text-2xl font-bold text-navy-900 dark:text-white">{data.filter((d:any) => d.status === 'APPROVED').length}</p>
+          <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
+            <p className="text-sm text-text-muted mb-1 font-medium">Awaiting Payout</p>
+            <p className="text-2xl font-bold text-text-heading">{data.filter((d:any) => d.status === 'APPROVED').length}</p>
           </div>
-          <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
-            <p className="text-sm text-gray-500 mb-1">Total Paid (All Time)</p>
-            <p className="text-2xl font-bold text-navy-900 dark:text-white">
+          <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
+            <p className="text-sm text-text-muted mb-1 font-medium">Total Paid (All Time)</p>
+            <p className="text-2xl font-bold text-text-heading">
               ₹{data.filter((d:any) => d.status === 'PAID').reduce((sum:number, d:any) => sum + Number(d.amount), 0)}
             </p>
           </div>
@@ -222,7 +222,7 @@ export default function OfficeExpensesPage() {
             <Input name="expenseDate" label="Date incurred" type="date" required defaultValue={new Date().toISOString().split('T')[0]} />
             <div className="flex flex-col">
               <label htmlFor="office-expense-category" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
-              <Select id="office-expense-category" name="category" className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-500">
+              <Select id="office-expense-category" name="category" className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600">
                 <option value="STATIONERY">Stationery</option>
                 <option value="FOOD_SNACKS">Food & Snacks</option>
                 <option value="MAINTENANCE">Maintenance</option>
@@ -234,7 +234,7 @@ export default function OfficeExpensesPage() {
           </div>
           
           <Input name="description" label="Description" placeholder="e.g. Printer ink cartridges" required />
-          <Input name="amount" label="Amount (₹)" type="number" step="0.01" required />
+          <Input name="amount" label="Amount (₹)" type="number" step="1" min="0" defaultValue={0} onKeyDown={(e) => { if(e.key === "-") e.preventDefault(); }} required />
           <FileUpload name="billUpload" label="Upload Receipt" />
           
           <div className="flex justify-end space-x-2 pt-4">

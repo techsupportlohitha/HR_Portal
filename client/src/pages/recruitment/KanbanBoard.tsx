@@ -53,7 +53,7 @@ function SortableItemCard({ item, onClick }: { item: KanbanItem; onClick?: () =>
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="mb-3 cursor-grab active:cursor-grabbing w-full">
-      <Card className="hover:border-accent-500 transition-colors w-full text-left shadow-sm">
+      <Card className="hover:border-slate-300 dark:hover:border-slate-600 transition-colors w-full text-left shadow-sm">
         <CardContent className="p-4 space-y-3">
           <div className="flex justify-between items-start">
              <div className="flex items-center gap-2">

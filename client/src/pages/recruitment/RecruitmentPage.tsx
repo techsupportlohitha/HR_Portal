@@ -146,7 +146,7 @@ export default function RecruitmentPage() {
              <Button variant="outline" onClick={() => setViewMode('list')}>Back to List</Button>
           )}
           {isAdminOrHR && viewMode === 'list' && (
-            <Button onClick={() => setIsReqModalOpen(true)} className="gap-2 bg-orange-600 hover:bg-orange-700 text-white border-none">
+            <Button onClick={() => setIsReqModalOpen(true)} className="gap-2">
               <Plus className="w-4 h-4" /> New Requisition
             </Button>
           )}
@@ -294,7 +294,7 @@ export default function RecruitmentPage() {
           <Input name="positionTitle" label="Job Title" placeholder="e.g. Senior Frontend Engineer" required />
           <div className="flex flex-col">
             <label htmlFor="requisition-department" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Department</label>
-            <Select id="requisition-department" name="departmentId" required className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-500">
+            <Select id="requisition-department" name="departmentId" required className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600">
               <option value="">Select Department...</option>
               {deptData?.data?.map((dept: any) => (
                 <option key={dept.id} value={dept.id}>{dept.name}</option>

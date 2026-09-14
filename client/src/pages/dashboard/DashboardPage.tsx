@@ -4,15 +4,26 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardApi } from '@/api/dashboard';
 import { recruitmentApi } from '@/api/recruitment';
-import { Users, CheckCircle, Clock, UserMinus, Laptop, Briefcase, PhoneCall, Plus } from 'lucide-react';
+import {  Users, CheckCircle, Clock, UserMinus, Laptop, Briefcase, PhoneCall, Plus , UserCheck, Award } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { CountUp } from '@/components/ui/CountUp';
+import { TeamCard } from './components/TeamCard';
+import { EmployeePerformanceCard } from './components/EmployeePerformanceCard';
 import { ScheduleInterviewModal } from './components/ScheduleInterviewModal';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { BoxReveal } from '@/components/ui/modern-animated-sign-in';
+
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [shouldAnimate] = useState(() => {
+    const hasAnimated = sessionStorage.getItem('dashboard_animated');
+    if (!hasAnimated) {
+      sessionStorage.setItem('dashboard_animated', 'true');
+      return true;
+    }
+    return false;
+  });
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['dashboard-stats'],
@@ -44,61 +55,63 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 p-0 sm:p-2">
-      <PageHeader
-        title="Dashboard"
-        description={`Welcome back, ${user?.employee?.firstName || user?.email || 'there'}. Here is what needs your attention.`}
-      />
+      <BoxReveal disabled={!shouldAnimate} boxColor="var(--skeleton)" duration={0.4} width="100%">
+        <PageHeader
+          title="Dashboard"
+          description={`Welcome back, ${user?.employee?.firstName || user?.email || 'there'}. Here is what needs your attention.`}
+        />
+      </BoxReveal>
 
+      <BoxReveal disabled={!shouldAnimate} boxColor="var(--skeleton)" duration={0.5} width="100%">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
           <div className="flex items-center gap-4">
-            <div className="h-10 w-10 rounded-full bg-accent-50 flex items-center justify-center">
-              <Users className="h-5 w-5 text-accent-600" />
+            <div className="h-10 w-10 rounded-full bg-orange-50 flex items-center justify-center">
+              <Users className="h-5 w-5 text-orange-600" />
             </div>
             <div>
               <p className="text-sm font-medium text-text-muted">Total Employees</p>
-              <h3 className="text-2xl font-bold text-text-heading"><CountUp end={stats.totalEmployees || 0} /></h3>
+              <h3 className="text-2xl font-bold text-text-heading">{stats.totalEmployees || 0}</h3>
             </div>
           </div>
         </div>
 
         <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-full bg-emerald-50 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-text-muted">Pending travel request</p>
-                <h3 className="text-2xl font-bold text-text-heading"><CountUp end={stats.pendingTravel || 0} /></h3>
-              </div>
+          <div className="flex items-center gap-4">
+            <div className="h-10 w-10 rounded-full bg-emerald-50 flex items-center justify-center">
+              <Clock className="h-5 w-5 text-emerald-600" />
             </div>
+            <div>
+              <p className="text-sm font-medium text-text-muted">Pending travel request</p>
+              <h3 className="text-2xl font-bold text-text-heading">{stats.pendingTravel || 0}</h3>
+            </div>
+          </div>
         </div>
 
         <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
           <div className="flex items-center gap-4">
             <div className="h-10 w-10 rounded-full bg-amber-50 flex items-center justify-center">
-              <CheckCircle className="h-5 w-5 text-amber-600" />
+              <Laptop className="h-5 w-5 text-amber-600" />
             </div>
             <div>
               <p className="text-sm font-medium text-text-muted">Assets Assigned</p>
-              <h3 className="text-2xl font-bold text-text-heading"><CountUp end={stats.totalAssets || 0} /></h3>
+              <h3 className="text-2xl font-bold text-text-heading">{stats.totalAssets || 0}</h3>
             </div>
           </div>
         </div>
-        
+
         <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
           <div className="flex items-center gap-4">
-            <div className="h-10 w-10 rounded-full bg-indigo-50 flex items-center justify-center">
-              <Briefcase className="h-5 w-5 text-indigo-600" />
+            <div className="h-10 w-10 rounded-full bg-purple-50 flex items-center justify-center">
+              <Briefcase className="h-5 w-5 text-purple-600" />
             </div>
             <div>
               <p className="text-sm font-medium text-text-muted">Open Requisitions</p>
-              <h3 className="text-2xl font-bold text-text-heading"><CountUp end={stats.openRequisitions || 0} /></h3>
+              <h3 className="text-2xl font-bold text-text-heading">{stats.openRequisitions || 0}</h3>
             </div>
           </div>
         </div>
       </div>
-
 
       {/* Recruitment Widget */}
       <div className="mt-8 border-t border-slate-border pt-8">
@@ -121,30 +134,30 @@ export default function DashboardPage() {
               <div className="bg-surface p-4 rounded-lg border border-blue-100">
                 <div className="text-blue-600 font-bold flex items-center gap-2 mb-1">
                   <Briefcase className="w-4 h-4" />
-                  <CountUp end={stats.openRequisitions || 0} />
+                  {stats.openRequisitions || 0}
                 </div>
                 <div className="text-xs font-medium text-text-muted">Job Openings</div>
               </div>
               <div className="bg-surface p-4 rounded-lg border border-green-100">
                 <div className="text-green-600 font-bold flex items-center gap-2 mb-1">
                   <CheckCircle className="w-4 h-4" />
-                  <CountUp end={stats.appliedForInterview || 0} />
-                </div>
-                <div className="text-xs font-medium text-text-muted">Applied for interview</div>
-              </div>
-              <div className="bg-surface p-4 rounded-lg border border-orange-100">
-                <div className="text-orange-600 font-bold flex items-center gap-2 mb-1">
-                  <PhoneCall className="w-4 h-4" />
-                  <CountUp end={stats.invitedForInterview || 0} />
+                  {stats.invitedForInterview || 0}
                 </div>
                 <div className="text-xs font-medium text-text-muted">Invited for interview</div>
               </div>
+              <div className="bg-surface p-4 rounded-lg border border-orange-100">
+                <div className="text-orange-600 font-bold flex items-center gap-2 mb-1">
+                  <UserCheck className="w-4 h-4" />
+                  {stats.selectedCandidates || 0}
+                </div>
+                <div className="text-xs font-medium text-text-muted">Selected Candidates</div>
+              </div>
               <div className="bg-surface p-4 rounded-lg border border-purple-100">
                 <div className="text-purple-600 font-bold flex items-center gap-2 mb-1">
-                  <Users className="w-4 h-4" />
-                  <CountUp end={stats.totalCandidates || 0} />
+                  <Award className="w-4 h-4" />
+                  {stats.offersAccepted || 0}
                 </div>
-                <div className="text-xs font-medium text-text-muted">Total candidates applied</div>
+                <div className="text-xs font-medium text-text-muted">Offers Accepted</div>
               </div>
             </div>
 
@@ -190,43 +203,10 @@ export default function DashboardPage() {
                   )}
                 </tbody>
               </table>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-6">
-            {/* Attrition */}
-            <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out flex flex-col">
-              <h3 className="font-bold text-text-heading mb-4 uppercase tracking-wider text-sm">ATTRITION</h3>
-              
-              <div className="flex-1 flex flex-col gap-4">
-                {/* Attrition Rate */}
-                <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-white dark:bg-slate-900/50 shadow-sm relative overflow-hidden flex-1">
-                  <h4 className="font-semibold text-xs mb-3 uppercase tracking-wide text-gray-800 dark:text-gray-200">ATTRITION RATE</h4>
-                  
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <p className="text-xs text-text-muted mb-0.5">Monthly Attrition Rate</p>
-                      <p className={`text-xl font-bold ${((attritionData?.attritionRate || 0) / 12) < 1.5 ? 'text-green-500' : 'text-orange-500'}`}>
-                        {((attritionData?.attritionRate || 0) / 12).toFixed(2)}%
-                      </p>
-                      <p className="text-[10px] text-text-muted mt-0.5">Target: Below 1.50%</p>
-                    </div>
-                    <div className="p-2 border-2 border-blue-600 rounded-lg text-blue-600 flex items-center justify-center">
-                      <UserMinus className="w-6 h-6" />
-                    </div>
-                  </div>
-
-                  <div className="mt-8">
-                    <p className="text-xs text-text-muted mb-0.5">Yearly Attrition Rate</p>
-                    <p className={`text-xl font-bold ${(attritionData?.attritionRate || 0) < 12 ? 'text-green-500' : 'text-red-500'}`}>
-                      {(attritionData?.attritionRate || 0).toFixed(2)}%
-                    </p>
-                    <p className="text-[10px] text-text-muted mt-0.5">Target: Below 12%</p>
-                  </div>
-                </div>
               </div>
             </div>
 
+          <div className="flex flex-col gap-6">
             {/* Upcoming Interviews */}
             <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
               <div className="flex items-center justify-between mb-4">
@@ -265,8 +245,55 @@ export default function DashboardPage() {
                   <div className="text-sm text-text-muted text-center py-4">No upcoming interviews</div>
                 )}
               </div>
+
+              </div>
+
+            {/* Attrition */}
+            <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out flex flex-col">
+              <h3 className="font-bold text-text-heading mb-4 uppercase tracking-wider text-sm">ATTRITION</h3>
+              
+              <div className="flex-1 flex flex-col gap-4">
+                {/* Attrition Rate */}
+                <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-white dark:bg-slate-900/50 shadow-sm relative overflow-hidden flex-1">
+                  <h4 className="font-semibold text-xs mb-3 uppercase tracking-wide text-gray-800 dark:text-gray-200">ATTRITION RATE</h4>
+                  
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <p className="text-xs text-text-muted mb-0.5">Monthly Attrition Rate</p>
+                      <p className={`text-xl font-bold ${((attritionData?.attritionRate || 0) / 12) < 1.5 ? 'text-green-500' : 'text-orange-500'}`}>
+                        {((attritionData?.attritionRate || 0) / 12).toFixed(2)}%
+                      </p>
+                      <p className="text-[10px] text-text-muted mt-0.5">Target: Below 1.50%</p>
+                    </div>
+                    <div className="p-2 border-2 border-blue-600 rounded-lg text-blue-600 flex items-center justify-center">
+                      <UserMinus className="w-6 h-6" />
+                    </div>
+                  </div>
+
+                  <div className="mt-8">
+                    <p className="text-xs text-text-muted mb-0.5">Yearly Attrition Rate</p>
+                    <p className={`text-xl font-bold ${(attritionData?.attritionRate || 0) < 12 ? 'text-green-500' : 'text-red-500'}`}>
+                      {(attritionData?.attritionRate || 0).toFixed(2)}%
+                    </p>
+                    <p className="text-[10px] text-text-muted mt-0.5">Target: Below 12%</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
+
+        </div>
+      </div>
+      </BoxReveal>
+      
+      {/* New Row: Team and Employee Performance */}
+      <BoxReveal disabled={!shouldAnimate} boxColor="var(--skeleton)" duration={0.8} width="100%">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1">
+          <TeamCard />
+        </div>
+        <div className="lg:col-span-2">
+          <EmployeePerformanceCard />
         </div>
       </div>
       
@@ -274,6 +301,7 @@ export default function DashboardPage() {
         isOpen={isScheduleModalOpen} 
         onClose={() => setIsScheduleModalOpen(false)} 
       />
+      </BoxReveal>
     </div>
   );
 }

@@ -124,7 +124,7 @@ export default function EmployeeDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Main Content Area */}
                   <div className="lg:col-span-3 space-y-8 pb-32">
             
@@ -418,28 +418,26 @@ export default function EmployeeDetailPage() {
 
           </div>
         {/* Right Sticky Navigation */}
-        <div className="hidden lg:block lg:col-span-1 sticky top-24">
-          <Card>
-            <CardContent className="p-2">
+          <div className="hidden lg:block lg:col-span-1">
+            <div className="sticky top-24 bg-sidebar text-white p-3 rounded-xl shadow-xl flex flex-col">
               <nav className="flex flex-col space-y-1">
                 {SECTIONS.map((section) => (
                   <button
                     key={section.id}
                     onClick={() => scrollToSection(section.id)}
                     className={cn(
-                      "px-4 py-2.5 text-sm font-medium rounded-lg text-left transition-colors",
+                      "px-4 py-3 text-sm rounded-lg text-left transition-all duration-200",
                       activeSection === section.id
-                        ? "bg-accent-50 dark:bg-accent-500/20 text-accent-600 dark:text-accent-400"
-                        : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
+                        ? "text-[#EAE0CF] bg-white/5 font-semibold"
+                        : "text-white/70 font-medium hover:text-[#EAE0CF] hover:bg-white/5"
                     )}
                   >
                     {section.label}
                   </button>
                 ))}
               </nav>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </div>
         <ConfirmDialog isOpen={isDeactivateOpen} title="Deactivate Employee" message="Are you sure you want to deactivate this employee? They will lose access to the system immediately." confirmLabel="Deactivate" cancelLabel="Cancel" isDestructive={true} onConfirm={() => deactivateMutation.mutate(id as string)} onCancel={() => setIsDeactivateOpen(false)} />
 </div>
     </div>

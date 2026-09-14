@@ -31,6 +31,16 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (props.type === 'number') {
+        if (e.target.value.includes('.')) {
+          e.target.value = e.target.value.split('.')[0];
+        }
+        if (props.min !== undefined && Number(props.min) >= 0) {
+          if (Number(e.target.value) < 0) {
+            e.target.value = props.min.toString();
+          }
+        }
+      }
       if (touched) validate(e.target);
       if (onChange) onChange(e);
     };
@@ -55,14 +65,50 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <input
           id={inputId}
           className={cn(
-            "flex h-10 w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500 disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
+            "flex h-10 w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600 focus:border-slate-300 dark:focus:border-slate-600 disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
             displayError && "border-red-500 focus:ring-red-500",
             className
           )}
           ref={innerRef}
           required={required}
-          onBlur={handleBlur}
-          onChange={handleChange}
+          onBlur={(e) => {
+            if (props.type === 'number') {
+              let changed = false;
+              if (e.target.value.includes('.')) {
+                e.target.value = e.target.value.split('.')[0];
+                changed = true;
+              }
+              if (props.min !== undefined && Number(props.min) >= 0 && Number(e.target.value) < 0) {
+                e.target.value = String(props.min);
+                changed = true;
+              }
+              if (changed && onChange) {
+                const event = Object.create(e);
+                event.target = e.target;
+                event.currentTarget = e.currentTarget;
+                onChange(event as unknown as React.ChangeEvent<HTMLInputElement>);
+              }
+            }
+            handleBlur(e);
+          }}
+          onKeyDown={(e) => {
+            if (props.type === 'number') {
+              if (e.key === '.') e.preventDefault();
+              if (props.min !== undefined && Number(props.min) >= 0 && e.key === '-') e.preventDefault();
+            }
+            if (props.onKeyDown) props.onKeyDown(e);
+          }}
+          onChange={(e) => {
+            if (props.type === 'number') {
+              if (e.target.value.includes('.')) {
+                e.target.value = e.target.value.split('.')[0];
+              }
+              if (props.min !== undefined && Number(props.min) >= 0 && Number(e.target.value) < 0) {
+                e.target.value = String(props.min);
+              }
+            }
+            handleChange(e);
+          }}
           onInvalid={handleInvalid}
           aria-invalid={Boolean(displayError)}
           aria-describedby={describedBy}

@@ -1,42 +1,39 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute';
 import MainLayout from '@/components/layout/MainLayout';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 // Auth
 import LoginPage from '@/pages/auth/LoginPage';
 
-// Dashboard
-import DashboardPage from '@/pages/dashboard/DashboardPage';
-
-// Employees
-import EmployeeListPage from '@/pages/employees/EmployeeListPage';
-import EmployeeFormPage from '@/pages/employees/EmployeeFormPage';
-import EmployeeDetailPage from '@/pages/employees/EmployeeDetailPage';
-
-// Departments
-import DepartmentListPage from '@/pages/departments/DepartmentListPage';
-import DepartmentFormPage from '@/pages/departments/DepartmentFormPage';
-
-// Modules
-import PerformanceListPage from '@/pages/performance/PerformanceListPage';
-import TrainingListPage from '@/pages/training/TrainingListPage';
-import RequestListPage from '@/pages/requests/RequestListPage';
-import PolicyListPage from '@/pages/policies/PolicyListPage';
-import AssetListPage from '@/pages/assets/AssetListPage';
-import TravelListPage from '@/pages/travel/TravelListPage';
-import OfficeExpensesPage from '@/pages/expenses/OfficeExpensesPage';
-import RecruitmentPage from '@/pages/recruitment/RecruitmentPage';
-import NotificationListPage from '@/pages/notifications/NotificationListPage';
-import AttritionDashboardPage from '@/pages/attrition/AttritionDashboardPage';
-import SettingsPage from '@/pages/settings/SettingsPage';
-import AuditLogPage from '@/pages/audit/AuditLogPage';
-import LoginHistoryPage from '@/pages/loginHistory/LoginHistoryPage';
-import RoleManagementPage from '@/pages/roles/RoleManagementPage';
-import NotFoundPage from '@/pages/NotFoundPage';
+// Authenticated pages load on demand so the login shell and first route stay small.
+const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
+const EmployeeListPage = lazy(() => import('@/pages/employees/EmployeeListPage'));
+const EmployeeFormPage = lazy(() => import('@/pages/employees/EmployeeFormPage'));
+const EmployeeDetailPage = lazy(() => import('@/pages/employees/EmployeeDetailPage'));
+const DepartmentListPage = lazy(() => import('@/pages/departments/DepartmentListPage'));
+const DepartmentFormPage = lazy(() => import('@/pages/departments/DepartmentFormPage'));
+const PerformanceListPage = lazy(() => import('@/pages/performance/PerformanceListPage'));
+const TrainingListPage = lazy(() => import('@/pages/training/TrainingListPage'));
+const RequestListPage = lazy(() => import('@/pages/requests/RequestListPage'));
+const PolicyListPage = lazy(() => import('@/pages/policies/PolicyListPage'));
+const AssetListPage = lazy(() => import('@/pages/assets/AssetListPage'));
+const TravelListPage = lazy(() => import('@/pages/travel/TravelListPage'));
+const OfficeExpensesPage = lazy(() => import('@/pages/expenses/OfficeExpensesPage'));
+const RecruitmentPage = lazy(() => import('@/pages/recruitment/RecruitmentPage'));
+const NotificationListPage = lazy(() => import('@/pages/notifications/NotificationListPage'));
+const AttritionDashboardPage = lazy(() => import('@/pages/attrition/AttritionDashboardPage'));
+const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
+const AuditLogPage = lazy(() => import('@/pages/audit/AuditLogPage'));
+const LoginHistoryPage = lazy(() => import('@/pages/loginHistory/LoginHistoryPage'));
+const RoleManagementPage = lazy(() => import('@/pages/roles/RoleManagementPage'));
+const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
 const AppRoutes = () => {
   return (
-    <Routes>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-900"><LoadingSpinner /></div>}>
+      <Routes>
       <Route path="/login" element={<LoginPage />} />
       
       <Route element={<ProtectedRoute />}>
@@ -54,7 +51,6 @@ const AppRoutes = () => {
           <Route path="/assets" element={<AssetListPage />} />
           <Route path="/travel" element={<TravelListPage />} />
           <Route path="/office-expenses" element={<OfficeExpensesPage />} />
-          <Route path="/recruitment" element={<RecruitmentPage />} />
           
           <Route path="/departments" element={<DepartmentListPage />} />
           <Route path="/departments/new" element={<DepartmentFormPage />} />
@@ -67,6 +63,7 @@ const AppRoutes = () => {
           <Route path="/notifications" element={<NotificationListPage />} />
 
           <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'HR']} />}>
+            <Route path="/recruitment" element={<RecruitmentPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/audit" element={<AuditLogPage />} />
             <Route path="/login-history" element={<LoginHistoryPage />} />
@@ -77,7 +74,8 @@ const AppRoutes = () => {
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Route>
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 };
 

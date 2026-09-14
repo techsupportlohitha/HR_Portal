@@ -35,6 +35,7 @@ export class TravelService {
       },
       select: { id: true },
     });
+
     if (overlappingRequest) {
       throw new Error('Travel request has overlapping dates with an existing request.');
     }

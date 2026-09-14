@@ -24,7 +24,7 @@ export default function EmployeeFormPage() {
     employmentType: 'PERMANENT', dateOfBirth: '', gender: '', address: '',
     city: '', state: '', zipCode: '', country: '', managerId: '',
     location: '', status: 'ACTIVE',
-    maritalStatus: '', alternateMobile: '', personalEmail: '', permanentAddress: '',
+    maritalStatus: '', bloodGroup: '', qualification: '', experience: '', alternateMobile: '', personalEmail: '', permanentAddress: '',
     emergencyContactName: '', emergencyContactRelation: '', emergencyContactNumber: '',
     grade: '', probationPeriod: '', confirmationDate: '', resignationDate: '',
     noticePeriod: '', lastWorkingDate: '', exitType: '', exitReason: '',
@@ -66,7 +66,7 @@ export default function EmployeeFormPage() {
         address: e.address || '', city: e.city || '', state: e.state || '',
         zipCode: e.zipCode || '', country: e.country || '',
         managerId: e.managerId || '', location: e.location || '', status: e.status || 'ACTIVE',
-        maritalStatus: e.maritalStatus || '', alternateMobile: e.alternateMobile || '',
+        maritalStatus: e.maritalStatus || '', bloodGroup: e.bloodGroup || '', qualification: e.qualification || '', experience: e.experience || '', alternateMobile: e.alternateMobile || '',
         personalEmail: e.personalEmail || '', permanentAddress: e.permanentAddress || '',
         emergencyContactName: e.emergencyContactName || '', emergencyContactRelation: e.emergencyContactRelation || '',
         emergencyContactNumber: e.emergencyContactNumber || '', grade: e.grade || '',
@@ -215,6 +215,23 @@ export default function EmployeeFormPage() {
               <Input label="Phone" name="phone" value={formData.phone} onChange={handleChange} required pattern="[0-9]{10}" minLength={10} maxLength={10} title="Phone number must be exactly 10 digits" />
               <Input label="Alternate Mobile" name="alternateMobile" value={formData.alternateMobile} onChange={handleChange} pattern="[0-9]{10}" minLength={10} maxLength={10} title="Mobile number must be exactly 10 digits" />
               <Input label="Personal Email" type="email" name="personalEmail" value={formData.personalEmail} onChange={handleChange} />
+              <Input label="Blood Group" name="bloodGroup" value={formData.bloodGroup} required onChange={handleChange} />
+              <Input label="Qualification" name="qualification" value={formData.qualification} onChange={handleChange} />
+              <div className="flex flex-col space-y-1 w-full">
+                  <label htmlFor="employee-marital" className="text-sm font-medium text-slate-700 dark:text-slate-300">Marital Status <span className="text-red-500">*</span></label>
+                  <Select 
+                    id="employee-marital"
+                    name="maritalStatus" required 
+                    value={formData.maritalStatus} 
+                    onChange={handleChange}
+                  >
+                    <option value="">Select Status</option>
+                    <option value="UNMARRIED">Unmarried</option>
+                    <option value="MARRIED">Married</option>
+                    <option value="DIVORCED">Divorced</option>
+                    <option value="WIDOWED">Widowed</option>
+                  </Select>
+                </div>
               
               <Input label="Emergency Contact Name" name="emergencyContactName" value={formData.emergencyContactName} onChange={handleChange} />
               <Input label="Emergency Contact Number" name="emergencyContactNumber" value={formData.emergencyContactNumber} onChange={handleChange} pattern="[0-9]{10}" minLength={10} maxLength={10} title="Contact number must be exactly 10 digits" />
@@ -222,13 +239,13 @@ export default function EmployeeFormPage() {
 
               <Input label="Date of Birth" type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange}  required />
               <div className="flex flex-col space-y-1 w-full">
-                <label htmlFor="employee-gender" className="text-sm font-medium text-slate-700 dark:text-slate-300">Gender</label>
+                <label htmlFor="employee-gender" className="text-sm font-medium text-slate-700 dark:text-slate-300">Gender <span className="text-red-500">*</span></label>
                 <Select 
                   id="employee-gender"
                   name="gender" required 
                   value={formData.gender} 
                   onChange={handleChange}
-                  className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600 focus:border-slate-300 dark:focus:border-slate-600"
                 >
                   <option value="">Select Gender</option>
                   <option value="MALE">Male</option>
@@ -264,13 +281,13 @@ export default function EmployeeFormPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col space-y-1 w-full">
-                <label htmlFor="employee-department" className="text-sm font-medium text-slate-700 dark:text-slate-300">Department</label>
+                <label htmlFor="employee-department" className="text-sm font-medium text-slate-700 dark:text-slate-300">Department <span className="text-red-500">*</span></label>
                 <Select 
                   id="employee-department"
                   name="departmentId"
                   value={formData.departmentId} 
                   onChange={handleChange}
-                  className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600 focus:border-slate-300 dark:focus:border-slate-600"
                   required
                 >
                   <option value="">Select Department</option>
@@ -281,6 +298,7 @@ export default function EmployeeFormPage() {
               </div>
               
               <Input label="Designation" name="designation" value={formData.designation} onChange={handleChange} required />
+                <Input label="Experience" name="experience" value={formData.experience} onChange={handleChange} />
               <Input label="Joining Date" type="date" name="joiningDate" value={formData.joiningDate} onChange={handleChange} required />
               
               <Input label="Confirmation Date" type="date" name="confirmationDate" value={formData.confirmationDate} onChange={handleChange} />
@@ -290,13 +308,13 @@ export default function EmployeeFormPage() {
               <Input label="Notice Period (Days)" type="number" min="0" name="noticePeriod" value={formData.noticePeriod} onChange={handleChange} />
               
               <div className="flex flex-col space-y-1 w-full">
-                <label htmlFor="employee-type" className="text-sm font-medium text-slate-700 dark:text-slate-300">Employment Type</label>
+                <label htmlFor="employee-type" className="text-sm font-medium text-slate-700 dark:text-slate-300">Employment Type <span className="text-red-500">*</span></label>
                 <Select 
                   id="employee-type"
-                  name="employmentType" 
+                  name="employmentType" required 
                   value={formData.employmentType} 
                   onChange={handleChange}
-                  className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600 focus:border-slate-300 dark:focus:border-slate-600"
                 >
                   <option value="PERMANENT">Full-time</option>
                   <option value="CONTRACT">Part-time / Contract</option>
@@ -311,7 +329,7 @@ export default function EmployeeFormPage() {
                   name="managerId" 
                   value={formData.managerId} 
                   onChange={handleChange}
-                  className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600 focus:border-slate-300 dark:focus:border-slate-600"
                 >
                   <option value="">Select Manager</option>
                   {employeesList?.data?.map((emp: any) => (
@@ -327,7 +345,7 @@ export default function EmployeeFormPage() {
                   name="location" 
                   value={formData.location} 
                   onChange={handleChange}
-                  className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600 focus:border-slate-300 dark:focus:border-slate-600"
                 >
                   <option value="">Select Office</option>
                   <option value="Hyd Office">Hyd Office</option>
@@ -336,13 +354,13 @@ export default function EmployeeFormPage() {
               </div>
               
               <div className="flex flex-col space-y-1 w-full">
-                <label htmlFor="employee-status" className="text-sm font-medium text-slate-700 dark:text-slate-300">Employee Status</label>
+                <label htmlFor="employee-status" className="text-sm font-medium text-slate-700 dark:text-slate-300">Employee Status <span className="text-red-500">*</span></label>
                 <Select 
                   id="employee-status"
-                  name="status" 
+                  name="status" required 
                   value={formData.status} 
                   onChange={handleChange}
-                  className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600 focus:border-slate-300 dark:focus:border-slate-600"
                 >
                   <option value="ACTIVE">Active</option>
                   <option value="INACTIVE">Inactive</option>

@@ -106,6 +106,7 @@ export function PerformanceReviewModal({ isOpen, onClose, review }: PerformanceR
                   <div>
                     <label htmlFor="review-period" className="block text-xs font-semibold uppercase text-gray-500 mb-1">Review Period</label>
                     <select id="review-period" name="reviewPeriod" value={formData.reviewPeriod || 'QUARTERLY'} onChange={handleChange} className="w-full rounded-md border border-gray-300 dark:border-gray-700 p-2 dark:bg-gray-900 text-sm">
+                      <option value="MONTHLY">Monthly</option>
                       <option value="QUARTERLY">Quarterly</option>
                       <option value="HALF_YEARLY">Half Yearly</option>
                       <option value="ANNUAL">Annual</option>
@@ -226,7 +227,7 @@ export function PerformanceReviewModal({ isOpen, onClose, review }: PerformanceR
                   <Input type="number" min="1" max="5" name="finalRating" label="Final Rating (1-5)" value={formData.finalRating || ''} onChange={handleChange} />
                   <div>
                     <label htmlFor="final-approval-status" className="block text-sm font-medium mb-1">Approval Status</label>
-                    <select id="final-approval-status" name="finalApprovalStatus" value={formData.finalApprovalStatus || 'APPROVAL_PENDING'} onChange={handleChange} className="flex h-10 w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-500">
+                    <select id="final-approval-status" name="finalApprovalStatus" value={formData.finalApprovalStatus || 'APPROVAL_PENDING'} onChange={handleChange} className="flex h-10 w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600">
                       <option value="APPROVAL_PENDING">Pending</option>
                       <option value="APPROVAL_APPROVED">Approved</option>
                       <option value="APPROVAL_REJECTED">Rejected</option>

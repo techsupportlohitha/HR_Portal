@@ -3,7 +3,7 @@ import { Command } from 'cmdk';
 import { 
   Search, User, Settings, LayoutDashboard, Briefcase, 
   Users, Laptop, Plane, UserSearch, Star, FileText, BarChart, Shield, History 
-} from 'lucide-react';
+, ClipboardList, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -64,7 +64,7 @@ export function CommandPalette({ open, setOpen }: CommandPaletteProps) {
             value={search}
             onValueChange={setSearch}
             placeholder="Search resources, people, settings..." 
-            className="flex-1 bg-transparent outline-none text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 font-medium"
+            className="flex-1 bg-transparent outline-none focus:outline-none focus-visible:outline-none text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 font-medium"
           />
         </div>
         
@@ -105,6 +105,13 @@ export function CommandPalette({ open, setOpen }: CommandPaletteProps) {
                   Travel
                 </Command.Item>
                 <Command.Item 
+                  onSelect={() => runCommand(() => navigate('/office-expenses'))}
+                  className="flex items-center px-3 py-2 mt-1 rounded-md cursor-pointer text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 aria-selected:bg-gray-100 dark:aria-selected:bg-gray-800 aria-selected:text-primary-600 dark:aria-selected:text-primary-400 transition-colors"
+                >
+                  <Building2 className="w-4 h-4 mr-3" />
+                  Office Expenses
+                </Command.Item>
+                <Command.Item 
                   onSelect={() => runCommand(() => navigate('/recruitment'))}
                   className="flex items-center px-3 py-2 mt-1 rounded-md cursor-pointer text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 aria-selected:bg-gray-100 dark:aria-selected:bg-gray-800 aria-selected:text-primary-600 dark:aria-selected:text-primary-400 transition-colors"
                 >
@@ -122,8 +129,8 @@ export function CommandPalette({ open, setOpen }: CommandPaletteProps) {
                   onSelect={() => runCommand(() => navigate('/requests'))}
                   className="flex items-center px-3 py-2 mt-1 rounded-md cursor-pointer text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 aria-selected:bg-gray-100 dark:aria-selected:bg-gray-800 aria-selected:text-primary-600 dark:aria-selected:text-primary-400 transition-colors"
                 >
-                  <FileText className="w-4 h-4 mr-3" />
-                  Requests
+                  <ClipboardList className="w-4 h-4 mr-3" />
+                  Helpdesk
                 </Command.Item>
                 
                 {/* More navigation items */}

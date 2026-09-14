@@ -89,7 +89,7 @@ function PermissionsMatrix() {
               Module
             </th>
             {ROLES.map(role => (
-              <th key={role} colSpan={PERMISSION_FLAGS.length} className="py-3 px-2 text-center font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700">
+              <th key={role} colSpan={PERMISSION_FLAGS.length} className="py-3 px-2 text-center font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 border-l border-slate-200 dark:border-slate-700">
                 <div className="flex items-center justify-center gap-1">
                   {role === 'ADMIN' && <Lock className="w-3 h-3 text-green-500" />}
                   {ROLE_LABELS[role]}
@@ -98,10 +98,10 @@ function PermissionsMatrix() {
             ))}
           </tr>
           <tr>
-            <th className="sticky left-0 z-10 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700" />
+            <th className="sticky left-0 z-10 bg-gray-50 dark:bg-gray-800 border-b border-slate-200 dark:border-slate-700" />
             {ROLES.flatMap(role =>
               PERMISSION_FLAGS.map(flag => (
-                <th key={`${role}-${flag.key}`} className="py-2 px-1 text-center text-gray-400 font-normal border-b border-gray-200 dark:border-gray-700 whitespace-nowrap">
+                <th key={`${role}-${flag.key}`} className="py-2 px-1 text-center text-gray-400 font-normal border-b border-slate-200 dark:border-slate-700 whitespace-nowrap">
                   {flag.label}
                 </th>
               ))
@@ -110,8 +110,8 @@ function PermissionsMatrix() {
         </thead>
         <tbody>
           {modules.map((mod: any, idx: number) => (
-            <tr key={mod.key} className={idx % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50/50 dark:bg-gray-800/30'}>
-              <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200 sticky left-0 bg-inherit border-r border-gray-200 dark:border-gray-700">
+            <tr key={mod.key} className={idx % 2 === 0 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-gray-50/80 dark:bg-gray-800/80/50'}>
+              <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200 sticky left-0 bg-inherit border-r border-slate-200 dark:border-slate-700">
                 {mod.label}
               </td>
               {ROLES.flatMap(role => {
@@ -186,14 +186,14 @@ function UserAccountsTab() {
             placeholder="Search users..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
         <select
           aria-label="Filter users by role"
           value={roleFilter}
           onChange={e => setRoleFilter(e.target.value)}
-          className="py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none"
+          className="py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none"
         >
           <option value="">All Roles</option>
           {ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
@@ -201,29 +201,29 @@ function UserAccountsTab() {
       </div>
 
       {isLoading ? <div className="py-12"><LoadingSpinner /></div> : (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
           <p className="border-b border-gray-100 px-4 py-2 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400 sm:hidden">
             Scroll horizontally to reach every account action.
           </p>
           <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent-500" tabIndex={0} role="region" aria-label="User role table. Scroll horizontally for more columns.">
-          <table className="min-w-[42rem] divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-800">
+          <table className="w-full min-w-[42rem] divide-y divide-slate-100 dark:divide-slate-700">
+            <thead className="bg-transparent dark:bg-transparent border-b border-slate-200 dark:border-slate-700">
               <tr>
                 {['User', 'Role', 'Status', 'Last Login', 'Actions'].map(h => (
                   <th key={h} className={`${h === 'Last Login' ? 'hidden md:table-cell ' : ''}px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider`}>{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
               {(users || []).map((u: any) => (
-                <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-xs font-bold text-primary-600">
                         {u.employee?.firstName?.[0] || u.email[0].toUpperCase()}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        <p className="text-sm font-medium text-navy-900 dark:text-white">
                           {u.employee ? `${u.employee.firstName} ${u.employee.lastName}` : 'No Employee Linked'}
                         </p>
                         <p className="text-xs text-gray-500">{u.email}</p>
@@ -263,7 +263,7 @@ function UserAccountsTab() {
                   <td className="px-4 py-3">
                     <button
                       onClick={() => setResetModal(u)}
-                      className="text-xs text-orange-600 hover:text-orange-800 font-medium flex items-center gap-1"
+                      className="text-xs text-gray-400 hover:text-navy-900 dark:text-gray-500 dark:hover:text-white transition-colors font-medium flex items-center gap-1"
                     >
                       <Lock className="w-3 h-3" /> Reset Password
                     </button>
@@ -319,7 +319,7 @@ export default function RoleManagementPage() {
           onClick={() => setActiveTab('users')}
           className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
             activeTab === 'users'
-              ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm'
+              ? 'bg-white dark:bg-gray-900 text-navy-900 dark:text-white shadow-sm'
               : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
           }`}
         >
@@ -329,7 +329,7 @@ export default function RoleManagementPage() {
           onClick={() => setActiveTab('permissions')}
           className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
             activeTab === 'permissions'
-              ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm'
+              ? 'bg-white dark:bg-gray-900 text-navy-900 dark:text-white shadow-sm'
               : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
           }`}
         >
@@ -343,8 +343,8 @@ export default function RoleManagementPage() {
             <Lock className="w-4 h-4 flex-shrink-0" />
             ADMIN role permissions are locked (always full access). Changes to other roles take effect on the user&apos;s next page load.
           </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
-            <PermissionsMatrix />
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <PermissionsMatrix />
           </div>
         </div>
       )}

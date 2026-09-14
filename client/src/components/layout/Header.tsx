@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Menu, LogOut, User, Search, Sun, Moon, Bell, Settings } from 'lucide-react';
+import { Menu, X, LogOut, User, Search, Sun, Moon, Bell, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { CommandPalette } from '@/components/ui/CommandPalette';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -62,7 +62,10 @@ export function Header({ onMenuClick, menuOpen = false }: HeaderProps) {
             aria-expanded={menuOpen}
             aria-controls="primary-sidebar"
           >
-            <Menu className="h-5 w-5" aria-hidden="true" />
+            <div className="relative w-5 h-5 flex items-center justify-center">
+              <Menu className={`absolute h-5 w-5 transition-all duration-300 ${menuOpen ? "rotate-90 opacity-0 scale-50" : "rotate-0 opacity-100 scale-100"}`} aria-hidden="true" />
+              <X className={`absolute h-5 w-5 transition-all duration-300 ${menuOpen ? "rotate-0 opacity-100 scale-100" : "-rotate-90 opacity-0 scale-50"}`} aria-hidden="true" />
+            </div>
           </Button>
           
           <button 
@@ -144,7 +147,7 @@ export function Header({ onMenuClick, menuOpen = false }: HeaderProps) {
 
           <button
             type="button"
-            className="flex items-center cursor-pointer space-x-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-500"
+            className="flex items-center cursor-pointer space-x-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600"
             onClick={() => { setDropdownOpen(!dropdownOpen); setNotifOpen(false); }}
             aria-label="Open user menu"
             aria-expanded={dropdownOpen}

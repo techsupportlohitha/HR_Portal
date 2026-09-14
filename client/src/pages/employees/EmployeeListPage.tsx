@@ -98,34 +98,40 @@ export default function EmployeeListPage() {
       />
 
       {/* Station Cards */}
-      {deptData?.data && deptData.data.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {deptData.data.map((dept: any) => (
-            <div 
-              key={dept.id} 
-              role="button"
-              tabIndex={0}
-              aria-pressed={departmentId === dept.id}
-              aria-label={`Filter employees by ${dept.name}`}
-              className={`p-4 rounded-xl border shadow-sm hover:shadow-md transition-shadow cursor-pointer ${
-                departmentId === dept.id ? 'bg-accent-50 dark:bg-accent-900/20 border-accent-200 dark:border-accent-800' : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700'
-              }`}
-              onClick={() => setDepartmentId(dept.id === departmentId ? '' : dept.id)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  setDepartmentId(dept.id === departmentId ? '' : dept.id);
-                }
-              }}
-            >
-              <div className="flex justify-between items-start mb-2">
-                <h3 className={`font-semibold line-clamp-1 ${departmentId === dept.id ? 'text-accent-700 dark:text-accent-400' : 'text-navy-900 dark:text-white'}`} title={dept.name}>{dept.name}</h3>
-                <UsersRound className={`h-5 w-5 ${departmentId === dept.id ? 'text-accent-500' : 'text-gray-400'}`} />
+      {(user?.role === 'ADMIN' || user?.role === 'HR') && deptData?.data && deptData.data.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          {deptData.data.map((dept: any) => {
+            const isSelected = departmentId === dept.id;
+            return (
+              <div 
+                key={dept.id} 
+                role="button"
+                tabIndex={0}
+                aria-pressed={isSelected}
+                aria-label={`Filter employees by ${dept.name}`}
+                className={`bg-surface rounded-xl shadow-sm border ${isSelected ? 'border-accent-500 ring-1 ring-accent-500' : 'border-slate-border'} p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer`}
+                onClick={() => setDepartmentId(dept.id === departmentId ? '' : dept.id)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    setDepartmentId(dept.id === departmentId ? '' : dept.id);
+                  }
+                }}
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${isSelected ? 'bg-accent-600 text-white' : 'bg-accent-50 dark:bg-accent-900/30 text-accent-600 dark:text-accent-400'}`}>
+                    <UsersRound className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-text-muted line-clamp-2 break-words" title={dept.name}>{dept.name}</p>
+                    <div className="flex items-end gap-2">
+                      <h3 className="text-2xl font-bold text-text-heading">{dept._count?.employees || 0}</h3>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <p className={`text-2xl font-bold ${departmentId === dept.id ? 'text-accent-700 dark:text-accent-400' : 'text-gray-700 dark:text-gray-300'}`}>{dept._count?.employees || 0}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Employees</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -138,7 +144,7 @@ export default function EmployeeListPage() {
             <input 
               aria-label="Search employees"
               placeholder="Search..." 
-              className="w-full pl-9 pr-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-500 transition-all"
+              className="w-full pl-9 pr-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600 transition-all"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -146,7 +152,7 @@ export default function EmployeeListPage() {
           
           <select 
             aria-label="Filter employees by office"
-            className="px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500"
+            className="px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
           >
@@ -157,7 +163,7 @@ export default function EmployeeListPage() {
           
           <select 
             aria-label="Filter employees by status"
-            className="px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500"
+            className="px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
           >

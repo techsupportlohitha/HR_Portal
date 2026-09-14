@@ -28,7 +28,7 @@ export function Sidebar() {
   };
 
   const workspaceNav = [
-    { name: 'Recruitment', path: '/recruitment', icon: Briefcase },
+    ...(isAdminOrHR ? [{ name: 'Recruitment', path: '/recruitment', icon: Briefcase }] : []),
     { name: 'Assets', path: '/assets', icon: Laptop },
     ...(isAdminOrHR ? [{ name: 'Attrition', path: '/attrition', icon: UserMinus }] : []),
     { name: 'Documents', path: '/documents', icon: Files },
@@ -74,7 +74,7 @@ export function Sidebar() {
           <div className="h-10 w-10 bg-white rounded-full flex items-center justify-center shrink-0">
             <ClipboardCheck className="h-6 w-6 text-sidebar" />
           </div>
-          <span className="text-xl font-bold tracking-wide">HR Management</span>
+          <span className="text-xl font-bold tracking-wide">HR Portal</span>
         </NavLink>
       </div>
 
@@ -104,7 +104,7 @@ export function Sidebar() {
                 className={cn(
                   "flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-colors",
                   "hover:text-accent-400",
-                  hasActiveChild ? "text-accent-400" : "text-white/80"
+                  hasActiveChild ? "text-[#EAE0CF]" : "text-white/80"
                 )}
               >
                 <div className="flex items-center gap-3">
@@ -131,7 +131,7 @@ export function Sidebar() {
                         className={cn(
                           "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200",
                           isActive
-                            ? "text-accent-400 bg-white/5 font-semibold"
+                            ? "text-[#EAE0CF] bg-white/5 font-semibold"
                             : "text-white/60 hover:text-accent-400 hover:bg-white/5"
                         )}
                       >

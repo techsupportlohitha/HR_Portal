@@ -1,16 +1,18 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { notificationsApi } from '@/api/notifications';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Badge } from '@/components/ui/Badge';
 import toast from 'react-hot-toast';
-import { Trash2, CheckCheck } from 'lucide-react';
+import { Trash2, CheckCheck, ArrowLeft } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 
 export default function NotificationListPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: notifs, isLoading } = useQuery({
     queryKey: ['notifications'],
@@ -39,6 +41,12 @@ export default function NotificationListPage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
+      <button
+        onClick={() => navigate(-1)}
+        className="flex items-center gap-2 text-sm text-gray-500 hover:text-navy-900 dark:text-gray-400 dark:hover:text-white mb-4 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" /> Back
+      </button>
       <PageHeader
         title="Notifications"
         description="Review alerts and keep important updates moving."

@@ -146,40 +146,40 @@ export default function AuditLogPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-3">
+        <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
             <Activity className="w-5 h-5 text-blue-500" />
           </div>
           <div>
-            <p className="text-xs text-gray-500">Actions Today</p>
-            <p className="text-xl font-bold text-navy-900 dark:text-white">{statsData?.totalToday ?? '—'}</p>
+            <p className="text-xs text-text-muted">Actions Today</p>
+            <p className="text-xl font-bold text-text-heading">{statsData?.totalToday ?? '—'}</p>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-3">
+        <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
             <TrendingUp className="w-5 h-5 text-green-500" />
           </div>
           <div>
-            <p className="text-xs text-gray-500">This Month</p>
-            <p className="text-xl font-bold text-navy-900 dark:text-white">{statsData?.totalMonth ?? '—'}</p>
+            <p className="text-xs text-text-muted">This Month</p>
+            <p className="text-xl font-bold text-text-heading">{statsData?.totalMonth ?? '—'}</p>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-3">
+        <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center">
             <AlertTriangle className="w-5 h-5 text-orange-500" />
           </div>
           <div>
-            <p className="text-xs text-gray-500">Failed Logins</p>
-            <p className="text-xl font-bold text-navy-900 dark:text-white">{statsData?.failedLogins ?? '—'}</p>
+            <p className="text-xs text-text-muted">Failed Logins</p>
+            <p className="text-xl font-bold text-text-heading">{statsData?.failedLogins ?? '—'}</p>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-3">
+        <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center">
             <Shield className="w-5 h-5 text-purple-500" />
           </div>
           <div>
-            <p className="text-xs text-gray-500">Top Module</p>
-            <p className="text-sm font-bold text-navy-900 dark:text-white capitalize">
+            <p className="text-xs text-text-muted">Top Module</p>
+            <p className="text-sm font-bold text-text-heading capitalize">
               {statsData?.moduleBreakdown?.[0]?.moduleAffected ?? '—'}
             </p>
           </div>
@@ -187,7 +187,7 @@ export default function AuditLogPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4">
+      <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <div className="relative lg:col-span-2">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -246,7 +246,7 @@ export default function AuditLogPage() {
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {logs.map((log: any) => (
                   <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                    <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                    <td className="px-4 py-3 text-xs text-text-muted whitespace-nowrap">
                       {new Date(log.createdAt).toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">
@@ -263,7 +263,7 @@ export default function AuditLogPage() {
                     <td className="px-4 py-3 text-xs font-mono text-gray-500 max-w-[120px] truncate">
                       {log.recordIdAffected || '—'}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                    <td className="px-4 py-3 text-xs text-text-muted whitespace-nowrap">
                       {log.ipAddress || '—'}
                     </td>
                     <td className="px-4 py-3 text-xs whitespace-nowrap">
@@ -316,23 +316,23 @@ export default function AuditLogPage() {
           <div className="space-y-4 text-sm">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-xs text-gray-500 mb-1">Timestamp</p>
+                <p className="text-xs text-text-muted mb-1 font-medium">Timestamp</p>
                 <p className="font-medium">{new Date(selectedLog.createdAt).toLocaleString()}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 mb-1">User</p>
+                <p className="text-xs text-text-muted mb-1 font-medium">User</p>
                 <p className="font-medium">{selectedLog.user?.email || '—'}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 mb-1">Module</p>
+                <p className="text-xs text-text-muted mb-1 font-medium">Module</p>
                 <p className="font-medium capitalize">{selectedLog.moduleAffected}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 mb-1">IP Address</p>
+                <p className="text-xs text-text-muted mb-1 font-medium">IP Address</p>
                 <p className="font-medium">{selectedLog.ipAddress || '—'}</p>
               </div>
               <div className="col-span-2">
-                <p className="text-xs text-gray-500 mb-1">Record ID</p>
+                <p className="text-xs text-text-muted mb-1 font-medium">Record ID</p>
                 <p className="font-mono text-xs break-all">{selectedLog.recordIdAffected || '—'}</p>
               </div>
             </div>

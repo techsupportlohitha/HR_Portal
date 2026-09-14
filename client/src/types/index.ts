@@ -19,7 +19,7 @@ export type RequisitionStatus = 'OPEN' | 'IN_PROGRESS' | 'CLOSED' | 'ON_HOLD';
 export type ScreeningStatus = 'SCREENING_PENDING' | 'SHORTLISTED' | 'SCREENING_REJECTED';
 export type SelectionStatus = 'SELECTED' | 'SELECTION_REJECTED' | 'SELECTION_ON_HOLD';
 export type OfferStatus = 'NOT_RELEASED' | 'RELEASED' | 'OFFER_ACCEPTED' | 'OFFER_DECLINED';
-export type ReviewPeriod = 'QUARTERLY' | 'HALF_YEARLY' | 'ANNUAL';
+export type ReviewPeriod = 'MONTHLY' | 'QUARTERLY' | 'HALF_YEARLY' | 'ANNUAL';
 export type TrainingType = 'INTERNAL' | 'EXTERNAL';
 export type RequestType = 'LEAVE_QUERY' | 'SALARY_QUERY' | 'DOCUMENT_REQUEST' | 'EXPERIENCE_LETTER' | 'PAYSLIP' | 'JOINING_DOCUMENTS' | 'GENERAL';
 export type TicketStatus = 'SUBMITTED' | 'ASSIGNED' | 'IN_PROGRESS' | 'RESOLVED' | 'TICKET_CLOSED';
@@ -48,6 +48,9 @@ export interface Employee {
   zipCode?: string;
   country?: string;
   maritalStatus?: MaritalStatus;
+  bloodGroup?: string;
+  qualification?: string;
+  experience?: string;
   alternateMobile?: string;
   personalEmail?: string;
   permanentAddress?: string;

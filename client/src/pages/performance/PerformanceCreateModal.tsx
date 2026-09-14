@@ -26,7 +26,7 @@ export function PerformanceCreateModal({ isOpen, onClose }: PerformanceCreateMod
 
   const { data: employees } = useQuery({
     queryKey: ['employees'],
-    queryFn: () => employeesApi.getAll().then((res: any) => res.data)
+    queryFn: () => employeesApi.getAll()
   });
 
   const createMutation = useMutation({
@@ -61,12 +61,13 @@ export function PerformanceCreateModal({ isOpen, onClose }: PerformanceCreateMod
         <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
             <Select required name="employeeId" label="Employee" value={formData.employeeId} onChange={handleChange}>
               <option value="">Select Employee</option>
-              {employees?.map((emp: any) => (
+              {employees?.data?.map((emp: any) => (
                 <option key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName}</option>
               ))}
             </Select>
             <Select name="reviewPeriod" label="Review Period" value={formData.reviewPeriod} onChange={handleChange}>
-              <option value="QUARTERLY">Quarterly</option>
+              <option value="MONTHLY">Monthly</option>
+                <option value="QUARTERLY">Quarterly</option>
               <option value="HALF_YEARLY">Half Yearly</option>
               <option value="ANNUAL">Annual</option>
             </Select>
@@ -80,7 +81,7 @@ export function PerformanceCreateModal({ isOpen, onClose }: PerformanceCreateMod
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Input name="targetValue" label="Target Value" value={formData.targetValue} onChange={handleChange} />
-            <Input type="number" name="kpiWeightage" label="KPI Weightage (%)" value={formData.kpiWeightage} onChange={handleChange} />
+            <Input type="number" min="0" onKeyDown={(e) => { if(e.key === "-") e.preventDefault(); }} name="kpiWeightage" label="KPI Weightage (%)" value={formData.kpiWeightage} onChange={handleChange} />
           </div>
           
           <div className="sticky -bottom-4 z-10 -mx-4 -mb-4 flex justify-end gap-3 border-t border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-900">
