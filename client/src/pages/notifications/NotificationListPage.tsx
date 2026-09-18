@@ -75,7 +75,7 @@ export default function NotificationListPage() {
                     <h3 className="font-semibold">{notification.title}</h3>
                     {!notification.isRead && <Badge variant="info">New</Badge>}
                   </div>
-                  <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500 text-sm">{notification.message}</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">{notification.message}</p>
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
                     {formatDateTime(notification.createdAt)}
                   </p>
@@ -94,10 +94,11 @@ export default function NotificationListPage() {
             </Card>
           ))}
           {(!notifs || notifs.length === 0) && (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400 dark:text-gray-500">No notifications</div>
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">No notifications</div>
           )}
         </div>
       )}
     </div>
   );
 }
+

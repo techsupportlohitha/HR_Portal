@@ -28,7 +28,8 @@ export class TrainingService {
     let scopeQuery: Prisma.TrainingWhereInput = {};
     if (scope === 'TEAM') {
       const emp = await prisma.employee.findUnique({ where: { id: currentUser.employeeId! }, select: { departmentId: true } });
-      scopeQuery = { targetDepartmentId: emp?.departmentId || undefined };
+      const departmentId = emp?.departmentId || undefined;
+      scopeQuery = { targetDepartmentId: departmentId };
     } else if (scope === 'SELF') {
       scopeQuery = { participants: { some: { employeeId: currentUser.employeeId! } } };
     }
@@ -57,7 +58,8 @@ export class TrainingService {
       const training = await tx.training.create({
         data: {
           ...data,
-          trainingDate: new Date(data.trainingDate)
+          trainingDate: new Date(data.trainingDate),
+          ...(data.trainingEndDate && { trainingEndDate: new Date(data.trainingEndDate) })
         }
       });
       await tx.auditLog.create({
@@ -76,9 +78,8 @@ export class TrainingService {
   async updateTraining(id: string, data: any, userId: string, reqContext: { ipAddress?: string } = {}) {
     return prisma.$transaction(async (tx) => {
       const updateData = { ...data };
-      if (updateData.trainingDate) {
-        updateData.trainingDate = new Date(updateData.trainingDate);
-      }
+      if (updateData.trainingDate) { updateData.trainingDate = new Date(updateData.trainingDate); }
+      if (updateData.trainingEndDate) { updateData.trainingEndDate = new Date(updateData.trainingEndDate); }
       const training = await tx.training.update({ where: { id }, data: updateData });
       await tx.auditLog.create({
         data: {
@@ -149,8 +150,15 @@ export class TrainingService {
   }
 
   async submitFeedback(trainingId: string, employeeId: string, data: any, currentUser: CurrentUser, reqContext: { ipAddress?: string } = {}) {
-    if (currentUser.employeeId !== employeeId) {
+    const isAdminOrHR = currentUser.role === 'ADMIN' || currentUser.role === 'HR';
+    const includesTraineeFeedback = data.feedbackRating !== undefined || data.feedbackComments !== undefined;
+    const includesTrainerFeedback = data.trainerFeedbackRating !== undefined || data.trainerFeedbackComments !== undefined;
+
+    if (includesTraineeFeedback && currentUser.employeeId !== employeeId) {
       throw new Error('You can only submit feedback for your own participation');
+    }
+    if (includesTrainerFeedback && !isAdminOrHR) {
+      throw new Error('Only HR or Admin can submit trainer feedback');
     }
 
     const participant = await prisma.trainingParticipant.findUnique({
@@ -163,7 +171,9 @@ export class TrainingService {
         where: { id: participant.id },
         data: {
           feedbackRating: data.feedbackRating,
-          feedbackComments: data.feedbackComments
+          feedbackComments: data.feedbackComments,
+          trainerFeedbackRating: data.trainerFeedbackRating,
+          trainerFeedbackComments: data.trainerFeedbackComments
         }
       });
       await tx.auditLog.create({
@@ -221,11 +231,15 @@ export class TrainingService {
     
     // Scoping for queries
     let scopeQuery: Prisma.TrainingWhereInput = {};
+    let participantScopeQuery: Prisma.TrainingParticipantWhereInput = {};
     if (scope === 'TEAM') {
       const emp = await prisma.employee.findUnique({ where: { id: currentUser.employeeId! }, select: { departmentId: true } });
-      scopeQuery = { targetDepartmentId: emp?.departmentId || undefined };
+      const departmentId = emp?.departmentId || undefined;
+      scopeQuery = { targetDepartmentId: departmentId };
+      participantScopeQuery = { training: { targetDepartmentId: departmentId } };
     } else if (scope === 'SELF') {
       scopeQuery = { participants: { some: { employeeId: currentUser.employeeId! } } };
+      participantScopeQuery = { employeeId: currentUser.employeeId! };
     }
 
     const upcoming = await prisma.training.count({ where: { ...scopeQuery, trainingDate: { gte: now } } });
@@ -240,7 +254,7 @@ export class TrainingService {
     });
 
     const participantAggregations = await prisma.trainingParticipant.aggregate({
-      where: scope === 'SELF' ? { employeeId: currentUser.employeeId! } : {},
+      where: participantScopeQuery,
       _avg: {
         feedbackRating: true
       },
@@ -252,7 +266,7 @@ export class TrainingService {
     // Employee-wise and department-wise could be complex groupBys. For simplicity, just get raw grouped data.
     const departmentWiseData = await prisma.training.groupBy({
       by: ['targetDepartmentId'],
-      where: { targetDepartmentId: { not: null } },
+      where: { ...scopeQuery, targetDepartmentId: { not: null } },
       _count: { _all: true }
     });
     
@@ -266,6 +280,7 @@ export class TrainingService {
     // Employee-wise training count
     const employeeWiseData = await prisma.trainingParticipant.groupBy({
       by: ['employeeId'],
+      where: participantScopeQuery,
       _count: { _all: true },
       orderBy: { _count: { employeeId: 'desc' } },
       take: 5
@@ -298,3 +313,4 @@ export class TrainingService {
 }
 
 export const trainingService = new TrainingService();
+

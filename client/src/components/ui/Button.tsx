@@ -14,25 +14,25 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', isLoading, children, disabled, ...props }, ref) => {
     
     // Base styles: rounded-lg, focus rings, disabled states, transitions for micro-interactions
-    const baseStyles = "inline-flex items-center justify-center rounded-lg font-semibold transition-all duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
+    const baseStyles = "inline-flex items-center justify-center rounded-lg font-semibold transition-all duration-150 ease-out focus-visible:outline-none   disabled:pointer-events-none disabled:opacity-50";
     
     const variants = {
       // 1. Brand Primary
-      primary: "bg-brand-primary text-white hover:bg-brand-hover hover:-translate-y-0.5 hover:shadow-[0_4px_6px_-1px_rgba(71,85,105,0.2)] active:translate-y-0 active:scale-[0.98] focus-visible:ring-brand-light",
+      primary: "bg-brand-primary text-white hover:bg-brand-hover hover:-translate-y-0.5 hover:shadow-[0_4px_6px_-1px_rgba(71,85,105,0.2)] active:translate-y-0 active:scale-[0.98] ",
       
       // 2. Dark Slate Navigation (also maps to 'approve' for backward compat)
-      dark: "bg-sidebar text-white hover:bg-[#1E293B] hover:-translate-y-0.5 hover:shadow active:translate-y-0 active:scale-[0.98] focus-visible:ring-sidebar",
-      approve: "bg-sidebar text-white hover:bg-[#1E293B] hover:-translate-y-0.5 hover:shadow active:translate-y-0 active:scale-[0.98] focus-visible:ring-sidebar",
+      dark: "bg-sidebar text-white hover:bg-[#1E293B] hover:-translate-y-0.5 hover:shadow active:translate-y-0 active:scale-[0.98] ",
+      approve: "bg-sidebar text-white hover:bg-[#1E293B] hover:-translate-y-0.5 hover:shadow active:translate-y-0 active:scale-[0.98] ",
       
       // 3. Soft Slate (Secondary)
-      secondary: "bg-tint text-text-heading border border-slate-border hover:bg-slate-200 dark:hover:bg-slate-800 active:scale-[0.98] focus-visible:ring-slate-border",
+      secondary: "bg-tint text-text-heading border border-slate-border hover:bg-slate-200 dark:hover:bg-slate-800 active:scale-[0.98] ",
       
       // 4. Ghost / Outline
-      outline: "bg-transparent border-2 border-slate-border text-text-body hover:bg-tint active:scale-[0.98] focus-visible:ring-slate-border",
-      ghost: "bg-transparent text-text-muted hover:bg-tint hover:text-text-heading active:scale-[0.98] focus-visible:ring-tint",
+      outline: "bg-transparent border-2 border-slate-border text-text-body hover:bg-tint active:scale-[0.98] ",
+      ghost: "bg-transparent text-text-muted hover:bg-tint hover:text-text-heading active:scale-[0.98] ",
       
       // Additional: Danger
-      danger: "bg-status-danger text-white hover:bg-red-600 hover:-translate-y-0.5 hover:shadow active:translate-y-0 active:scale-[0.98] focus-visible:ring-status-danger-bg",
+      danger: "bg-status-danger text-white hover:bg-red-600 hover:-translate-y-0.5 hover:shadow active:translate-y-0 active:scale-[0.98] ",
     };
 
     const sizes = {

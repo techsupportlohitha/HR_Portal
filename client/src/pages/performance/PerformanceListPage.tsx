@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { Search, Target } from 'lucide-react';
+import { Search, Target, ClipboardCheck, Clock3, ShieldCheck, CheckCircle2, CalendarDays, List, Milestone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type Tab = 'My Performance' | 'Team/Company Reviews';
@@ -15,6 +15,8 @@ import { PerformanceReviewModal } from './PerformanceReviewModal';
 import { PerformanceCreateModal } from './PerformanceCreateModal';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { DataTable } from '@/components/ui/DataTable';
+import { Select } from '@/components/ui/Select';
 
 export default function PerformanceListPage() {
   const { user } = useAuth();
@@ -26,8 +28,7 @@ export default function PerformanceListPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('All Types');
   const [statusFilter, setStatusFilter] = useState('All Status');
-  
-  const { data: rawReviews, isLoading } = useQuery({
+    const { data: rawReviews, isLoading } = useQuery({
     queryKey: ['performance', activeTab],
     queryFn: () => activeTab === 'My Performance' ? performanceApi.getMyReviews().then(res => res.data) : performanceApi.getAll().then(res => res.data)
   });
@@ -50,6 +51,38 @@ export default function PerformanceListPage() {
 
   const hasActiveFilters = Boolean(searchQuery || typeFilter !== 'All Types' || statusFilter !== 'All Status');
 
+  const actionableReviews = React.useMemo(() => {
+    if (!rawReviews) return [];
+    const actionableStatuses = user?.role === 'EMPLOYEE'
+      ? ['EMPLOYEE_REVIEW']
+      : user?.role === 'MANAGER'
+        ? ['MANAGER_REVIEW']
+        : ['HR_REVIEW', 'FINAL_APPROVAL'];
+    return rawReviews.filter((review: any) => actionableStatuses.includes(review.status)).slice(0, 4);
+  }, [rawReviews, user?.role]);
+
+  const actionLabel = (status: string) => {
+    switch (status) {
+      case 'EMPLOYEE_REVIEW': return 'Complete self-review';
+      case 'MANAGER_REVIEW': return 'Review employee';
+      case 'HR_REVIEW': return 'Complete HR review';
+      case 'FINAL_APPROVAL': return 'Finalize review';
+      default: return 'Open review';
+    }
+  };
+
+  const actionIcon = (status: string) => {
+    if (status === 'FINAL_APPROVAL') return <ShieldCheck className="h-4 w-4" />;
+    if (status === 'HR_REVIEW') return <ClipboardCheck className="h-4 w-4" />;
+    if (status === 'COMPLETED') return <CheckCircle2 className="h-4 w-4" />;
+    return <Clock3 className="h-4 w-4" />;
+  };
+
+  const formatReviewPeriod = (period?: string) => {
+    if (!period) return 'Review';
+    return period.toLowerCase().replace('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+  };
+
   const clearFilters = () => {
     setSearchQuery('');
     setTypeFilter('All Types');
@@ -67,6 +100,28 @@ export default function PerformanceListPage() {
     }
   };
 
+  const getReviewEmployee = (review: any) => review.employee ? `${review.employee.firstName} ${review.employee.lastName}` : 'My review';
+
+  const renderReviewList = () => (
+    <DataTable
+      caption="Performance reviews"
+      data={reviews}
+      keyField="id"
+      pageSize={8}
+      onRowClick={(review: any) => setSelectedReview(review)}
+      emptyMessage="No reviews match the selected filters."
+      columns={[
+        { header: 'Employee', accessor: (review: any) => <span className="font-medium text-navy-900 dark:text-white">{getReviewEmployee(review)}</span> },
+        { header: 'Review cycle', accessor: (review: any) => formatReviewPeriod(review.reviewPeriod), sortable: true },
+        { header: 'Stage', accessor: (review: any) => getStatusBadge(review.status) },
+        { header: 'Self', accessor: (review: any) => review.selfRating != null ? `${review.selfRating}/5` : 'Not rated' },
+        { header: 'Manager', accessor: (review: any) => review.managerRating != null ? `${review.managerRating}/5` : 'Not rated' },
+        { header: 'Final', accessor: (review: any) => review.finalRating != null ? `${review.finalRating}/5` : 'Pending' },
+        { header: 'Next action', accessor: (review: any) => <span className="font-medium text-accent-700 dark:text-accent-300">{actionLabel(review.status)}</span> }
+      ]}
+    />
+  );
+
   return (
     <div className="space-y-6">
       {/* Header & Tabs */}
@@ -79,7 +134,7 @@ export default function PerformanceListPage() {
               Initiate Review
             </Button>
           )}
-          <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-full w-full sm:w-auto">
+          <div className="flex bg-surface p-1 rounded-full w-full sm:w-auto">
           {(['My Performance', 'Team/Company Reviews'] as Tab[]).map((tab) => (
             <button
               key={tab}
@@ -87,8 +142,8 @@ export default function PerformanceListPage() {
               className={cn(
                 "px-4 py-1.5 text-sm font-medium rounded-full transition-colors flex-1 sm:flex-none text-center",
                 activeTab === tab 
-                  ? "bg-white dark:bg-gray-900 text-navy-900 dark:text-white shadow-sm" 
-                  : "text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300"
+                  ? "bg-surface text-navy-900 dark:text-white shadow-sm"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300"
               )}
             >
               {tab}
@@ -98,55 +153,46 @@ export default function PerformanceListPage() {
         </>}
       />
 
-      {/* Filter Bar */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400 dark:text-gray-500" />
-          <input 
-            placeholder="Search reviews..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-gray-900 border border-slate-300 dark:border-slate-600 shadow-sm rounded-lg text-sm focus:outline-none transition-all"
-          />
+      <section className="rounded-xl border border-slate-200 bg-surface p-5 shadow-sm dark:border-slate-700" aria-labelledby="action-needed-heading">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 id="action-needed-heading" className="text-lg font-semibold text-navy-900 dark:text-white">Action needed</h2>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Reviews waiting for your next step.</p>
+          </div>
+          <span className="rounded-full bg-accent-50 px-3 py-1 text-sm font-semibold text-accent-700 dark:bg-accent-900/30 dark:text-accent-300">{actionableReviews.length}</span>
         </div>
-        
-        <select 
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          className="px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600"
-        >
-          <option value="All Types">All Types</option>
-          <option value="Monthly">Monthly</option>
-          <option value="Quarterly">Quarterly</option>
-          <option value="Half Yearly">Half Yearly</option>
-          <option value="Annual">Annual</option>
-        </select>
-        
-        <select 
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600"
-        >
-          <option value="All Status">All Status</option>
-          <option value="EMPLOYEE_REVIEW">Self Review Pending</option>
-          <option value="MANAGER_REVIEW">Manager Review Pending</option>
-          <option value="HR_REVIEW">HR Review Pending</option>
-          <option value="FINAL_APPROVAL">Final Approval Pending</option>
-          <option value="COMPLETED">Completed</option>
-        </select>
-
-        {hasActiveFilters && (
-          <button 
-            onClick={clearFilters}
-            className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-navy-900 dark:text-white underline underline-offset-2"
-          >
-            Clear filters
-          </button>
+        {actionableReviews.length > 0 ? (
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {actionableReviews.map((review: any) => (
+              <button key={review.id} type="button" onClick={() => setSelectedReview(review)} className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 p-4 text-left transition-colors hover:border-accent-400 hover:bg-accent-50/40 dark:border-slate-700 dark:hover:bg-slate-800">
+                <span className="flex min-w-0 items-center gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-accent-50 text-accent-700 dark:bg-accent-900/30 dark:text-accent-300">{actionIcon(review.status)}</span>
+                  <span className="min-w-0"><span className="block truncate font-medium text-navy-900 dark:text-white">{review.employee ? `${review.employee.firstName} ${review.employee.lastName}` : 'My review'}</span><span className="block text-sm text-gray-500 dark:text-gray-400">{formatReviewPeriod(review.reviewPeriod)} · {actionLabel(review.status)}</span></span>
+                </span>
+                <span className="shrink-0 text-sm font-semibold text-accent-700 dark:text-accent-300">Open</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-4 flex items-center gap-2 rounded-lg bg-slate-50 px-4 py-3 text-sm text-gray-600 dark:bg-slate-800/60 dark:text-gray-300"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> You’re all caught up.</div>
         )}
-      </div>
+      </section>
 
-      {/* Timeline View */}
-      <div className="w-full pt-4 animate-in fade-in">
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-surface shadow-sm dark:border-slate-700" aria-labelledby="review-register-heading">
+        <div className="border-b border-slate-200 p-5 dark:border-slate-700">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div><h2 id="review-register-heading" className="text-lg font-semibold text-navy-900 dark:text-white">Review register</h2><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Browse review progress and open a record to take action.</p></div>
+            
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <div className="relative w-full sm:w-64"><Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400 dark:text-gray-500" /><input aria-label="Search reviews" placeholder="Search reviews..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-surface py-2 pl-9 pr-4 text-sm shadow-sm transition-all focus:outline-none dark:border-slate-600" /></div>
+            <Select aria-label="Filter by review cycle" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="rounded-lg border border-slate-border bg-surface px-3 py-2 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:text-gray-400 dark:focus:ring-slate-600"><option value="All Types">All cycles</option><option value="Monthly">Monthly</option><option value="Quarterly">Quarterly</option><option value="Half Yearly">Half-yearly</option><option value="Annual">Annual</option></Select>
+            <Select aria-label="Filter by review status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="rounded-lg border border-slate-border bg-surface px-3 py-2 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:text-gray-400 dark:focus:ring-slate-600"><option value="All Status">All stages</option><option value="EMPLOYEE_REVIEW">Self-review pending</option><option value="MANAGER_REVIEW">Manager review pending</option><option value="HR_REVIEW">HR review pending</option><option value="FINAL_APPROVAL">Final approval pending</option><option value="COMPLETED">Completed</option></Select>
+            {hasActiveFilters && <button onClick={clearFilters} className="text-sm text-gray-500 underline underline-offset-2 hover:text-navy-900 dark:text-gray-400 dark:hover:text-white">Clear filters</button>}
+          </div>
+        </div>
+
+        <div className="p-5">
         {isLoading ? (
           <LoadingSpinner />
         ) : !reviews || reviews.length === 0 ? (
@@ -163,53 +209,9 @@ export default function PerformanceListPage() {
             actionLabel={hasActiveFilters ? 'Clear filters' : isAdminOrHR ? 'Initiate review' : undefined}
             onAction={hasActiveFilters ? clearFilters : isAdminOrHR ? () => setIsCreateModalOpen(true) : undefined}
           />
-        ) : (
-          <div className="relative border-l-2 border-gray-100 dark:border-gray-800 ml-4 space-y-6 pl-12">
-            {reviews.map((review: any) => (
-              <Card key={review.id} className="hover:shadow-md transition-shadow relative cursor-pointer" onClick={() => setSelectedReview(review)}>
-                <div className="absolute top-8 -left-[3.5rem] w-6 border-t-2 border-gray-100 dark:border-gray-800 border-dashed"></div>
-                <div className="absolute top-7 -left-[3.8rem] h-3 w-3 rounded-full bg-gray-200 ring-4 ring-white"></div>
-                
-                <CardContent className="p-6">
-                  <div className="flex flex-col sm:flex-row gap-6">
-                    <div className="flex-shrink-0">
-                      <div className="w-12 h-12 bg-accent-50 dark:bg-accent-900/50 text-accent-600 dark:text-accent-400 rounded-xl flex items-center justify-center font-bold text-lg">
-                        {review.reviewPeriod === 'ANNUAL' ? 'A' : review.reviewPeriod === 'HALF_YEARLY' ? 'H' : 'Q'}
-                      </div>
-                    </div>
-                    
-                    <div className="flex-1 space-y-4">
-                      <div className="flex items-center gap-3">
-                        <h3 className="font-bold text-lg text-navy-900 dark:text-white">{review.reviewPeriod} Review</h3>
-                        {getStatusBadge(review.status)}
-                      </div>
-                      
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-0.5">Employee</p>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-navy-900 dark:text-white">
-                              {review.employee ? `${review.employee.firstName} ${review.employee.lastName}` : 'N/A'}
-                            </span>
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-0.5">Self Rating</p>
-                          <p className="font-medium text-navy-900 dark:text-white">{review.selfRating || '-'}/5</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-0.5">Manager Rating</p>
-                          <p className="font-medium text-navy-900 dark:text-white">{review.managerRating || '-'}/5</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
+        ) : renderReviewList()}
+        </div>
+      </section>
 
       {selectedReview && (
         <PerformanceReviewModal

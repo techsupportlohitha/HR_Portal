@@ -82,7 +82,7 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={cn("bg-white dark:bg-gray-900 rounded-lg shadow-lg w-full max-w-md max-h-[90vh] flex flex-col", className)}
+        className={cn("bg-surface rounded-lg shadow-lg w-full max-w-md max-h-[90vh] flex flex-col", className)}
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-4 border-b">
@@ -98,3 +98,4 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
     </div>
   );
 }
+

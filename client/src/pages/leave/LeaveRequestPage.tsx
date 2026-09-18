@@ -7,6 +7,8 @@ import { Modal } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Check, X, Plus, X as CloseIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Select } from '@/components/ui/Select';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 export default function LeaveRequestPage() {
   const queryClient = useQueryClient();
@@ -54,11 +56,11 @@ export default function LeaveRequestPage() {
 
   const handleApplySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    let mappedType = 'SICK';
-    if (formData.leaveType === 'Medical Leave') mappedType = 'SICK';
-    else if (formData.leaveType === 'Casual Leave') mappedType = 'CASUAL';
-    else if (formData.leaveType === 'Earned Leave') mappedType = 'EARNED';
-    else if (formData.leaveType === 'Unpaid Leave') mappedType = 'UNPAID';
+      let mappedType = 'SICK';
+      if (formData.leaveType === 'Medical Leave') mappedType = 'SICK';
+      else if (formData.leaveType === 'Personal Leave') mappedType = 'PERSONAL';
+      else if (formData.leaveType === 'On Duty') mappedType = 'ON_DUTY';
+    
 
     applyMutation.mutate({
       leaveType: mappedType as any,
@@ -70,9 +72,10 @@ export default function LeaveRequestPage() {
 
   const displayLeaveType = (type: string) => {
     if (type === 'SICK') return 'Medical Leave';
-    if (type === 'CASUAL') return 'Casual Leave';
-    if (type === 'EARNED') return 'Earned Leave';
-    if (type === 'UNPAID') return 'Unpaid Leave';
+    if (type === 'PERSONAL') return 'Personal Leave';
+    if (type === 'CASUAL') return 'Casual Leave'; // Keep casual for backward compatibility
+    if (type === 'ON_DUTY') return 'On Duty';
+    
     return type;
   };
 
@@ -91,10 +94,10 @@ export default function LeaveRequestPage() {
       {isLoading ? (
         <LoadingSpinner />
       ) : (
-        <div className="bg-white dark:bg-slate-900 rounded-lg shadow overflow-hidden border border-gray-100 dark:border-gray-800">
+        <div className="bg-surface rounded-lg shadow overflow-hidden border border-gray-100 dark:border-gray-800">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-700 uppercase tracking-wider">
+              <tr className="bg-surface border-b border-slate-border text-xs font-bold text-gray-700 uppercase tracking-wider">
                 <th className="py-4 px-6">EMPLOYEE ID</th>
                 <th className="py-4 px-6">EMPLOYEE ...</th>
                 <th className="py-4 px-6">LEAVE TYPE</th>
@@ -106,7 +109,7 @@ export default function LeaveRequestPage() {
             </thead>
             <tbody className="divide-y divide-white">
               {leavesData?.data?.map((leave: any, index: number) => (
-                <tr key={leave.id} className={index % 2 === 0 ? "bg-[#f5f5f5]" : "bg-white"}>
+                <tr key={leave.id} className={index % 2 === 0 ? "bg-[#f5f5f5]" : "bg-surface"}>
                   <td className="py-4 px-6 text-[#e68a00] font-bold">
                     #EMP : {leave.employee?.employeeCode || '00000'}
                   </td>
@@ -143,7 +146,7 @@ export default function LeaveRequestPage() {
                     <div className="flex items-center justify-center gap-3">
                       <button 
                         onClick={() => handleAction(leave.id, 'APPROVED')}
-                        className="w-7 h-7 flex items-center justify-center rounded-full border border-green-500 bg-white hover:bg-green-50 text-green-500 transition-colors"
+                        className="w-7 h-7 flex items-center justify-center rounded-full border border-green-500 bg-surface hover:bg-green-50 text-green-500 transition-colors"
                         disabled={statusMutation.isPending}
                         title="Approve"
                       >
@@ -151,7 +154,7 @@ export default function LeaveRequestPage() {
                       </button>
                       <button 
                         onClick={() => handleAction(leave.id, 'REJECTED')}
-                        className="w-7 h-7 flex items-center justify-center rounded-full border border-red-500 bg-white hover:bg-red-50 text-red-500 transition-colors"
+                        className="w-7 h-7 flex items-center justify-center rounded-full border border-red-500 bg-surface hover:bg-red-50 text-red-500 transition-colors"
                         disabled={statusMutation.isPending}
                         title="Reject"
                       >
@@ -175,7 +178,7 @@ export default function LeaveRequestPage() {
 
       {isAddLeaveModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg overflow-hidden flex flex-col">
+          <div className="bg-surface rounded-lg shadow-xl w-full max-w-lg overflow-hidden flex flex-col">
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
               <h2 className="text-2xl font-bold text-slate-800">Add Leave</h2>
               <button 
@@ -189,7 +192,7 @@ export default function LeaveRequestPage() {
             <form onSubmit={handleApplySubmit} className="p-6 space-y-6">
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">Select Leave type</label>
-                <select 
+                <Select 
                   name="leaveType" 
                   value={formData.leaveType} 
                   onChange={handleApplyChange}
@@ -197,17 +200,14 @@ export default function LeaveRequestPage() {
                   required
                 >
                   <option value="Medical Leave">Medical Leave</option>
-                  <option value="Casual Leave">Casual Leave</option>
-                  <option value="Earned Leave">Earned Leave</option>
-                  <option value="Unpaid Leave">Unpaid Leave</option>
-                </select>
+                  <option value="Personal Leave">Personal Leave</option>
+                  <option value="On Duty">On Duty</option>                </Select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">Leave From Date</label>
-                  <input 
-                    type="date" 
+                  <DatePicker type="date" 
                     name="startDate" 
                     value={formData.startDate} 
                     onChange={handleApplyChange}
@@ -217,8 +217,7 @@ export default function LeaveRequestPage() {
                 </div>
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">Leave to Date</label>
-                  <input 
-                    type="date" 
+                  <DatePicker type="date" 
                     name="endDate" 
                     value={formData.endDate} 
                     onChange={handleApplyChange}
@@ -262,3 +261,6 @@ export default function LeaveRequestPage() {
     </div>
   );
 }
+
+
+

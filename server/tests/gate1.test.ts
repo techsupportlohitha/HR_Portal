@@ -6,6 +6,7 @@ describe('Gate 1 Core Employee Tests', () => {
   let adminToken: string;
   let employeeId: string;
   let documentId: string;
+  let requestId: string;
 
   beforeAll(async () => {
     // 1. Get Admin token
@@ -37,7 +38,9 @@ describe('Gate 1 Core Employee Tests', () => {
     if (documentId) {
       await prisma.employeeDocument.deleteMany({ where: { id: documentId } });
     }
-    await prisma.employeeRequest.deleteMany({ where: { employeeId } });
+    if (requestId) {
+      await prisma.employeeRequest.deleteMany({ where: { id: requestId } });
+    }
     await prisma.$disconnect();
   });
 
@@ -51,6 +54,7 @@ describe('Gate 1 Core Employee Tests', () => {
       });
     
     if(res.status !== 200) console.log(res.body); expect(res.status).toBe(200);
+    requestId = res.body.data.id;
     expect(res.body.data.id).toMatch(/^HR-\d{4}-\d{6}$/);
   });
 

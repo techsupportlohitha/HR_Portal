@@ -81,7 +81,7 @@ export default function EmployeeDetailPage() {
 
   if (isLoading) return <div className="py-12"><LoadingSpinner /></div>;
   
-  if (!emp) return <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Employee not found</div>;
+  if (!emp) return <div className="text-gray-500 dark:text-gray-400">Employee not found</div>;
 
   const scrollToSection = (id: string) => {
     setActiveSection(id);
@@ -94,10 +94,10 @@ export default function EmployeeDetailPage() {
   return (
     <div className="space-y-6">
       {/* Top Header */}
-      <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-4">
+      <div className="flex items-center justify-between border-b border-slate-border pb-4">
         <div className="flex items-center gap-4">
           <button onClick={() => // @ts-ignore
-    navigate('/employees' as any)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full text-gray-500 dark:text-gray-400 dark:text-gray-500 transition-colors">
+    navigate('/employees' as any)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full text-gray-500 dark:text-gray-400 transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-4">
@@ -113,7 +113,7 @@ export default function EmployeeDetailPage() {
                 {emp.firstName} {emp.lastName}
                 <Badge variant={emp.status === 'ACTIVE' ? 'success' : 'default'}>{emp.status}</Badge>
               </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">{emp.designation}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{emp.designation}</p>
             </div>
           </div>
         </div>
@@ -347,7 +347,7 @@ export default function EmployeeDetailPage() {
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-sm">
                         <thead>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                          <tr className="border-b border-slate-border">
                             <th className="py-2 font-medium">Type</th>
                             <th className="py-2 font-medium">Brand & Model</th>
                             <th className="py-2 font-medium">Serial Number</th>
@@ -355,7 +355,7 @@ export default function EmployeeDetailPage() {
                             <th className="py-2 font-medium">Status</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                        <tbody className="divide-y divide-slate-border">
                           {emp.assignedAssets.map((asset: any) => (
                             <tr key={asset.id}>
                               <td className="py-3 text-navy-900 dark:text-white">{asset.assetType}</td>
@@ -383,10 +383,10 @@ export default function EmployeeDetailPage() {
                     <div className="space-y-4">
                       {emp.documents.map((doc: any) => (
                         <div key={doc.id} className="flex items-start gap-4 p-4 border border-gray-100 dark:border-gray-800 rounded-lg">
-                          <div className="bg-blue-50 p-3 rounded-lg"><FileText className="text-blue-500 w-6 h-6" /></div>
+                          <div className="bg-accent-50 p-3 rounded-lg"><FileText className="text-accent-500 w-6 h-6" /></div>
                           <div className="flex-1">
                             <h4 className="font-semibold text-navy-900 dark:text-white">{doc.documentName}</h4>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">{doc.documentType.replace('_', ' ')} • Uploaded on {formatDate(doc.uploadDate)}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">{doc.documentType.replace('_', ' ')} • Uploaded on {formatDate(doc.uploadDate)}</p>
                             <div className="mt-2 flex items-center gap-2 text-sm text-accent-500 font-medium">
                               <CheckCircle2 className="w-4 h-4" /> 
                               {doc.verificationStatus === 'VERIFIED' ? (
@@ -429,7 +429,7 @@ export default function EmployeeDetailPage() {
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-sm">
                         <thead>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                          <tr className="border-b border-slate-border">
                             <th className="py-2 font-medium">Topic</th>
                             <th className="py-2 font-medium">Type</th>
                             <th className="py-2 font-medium">Date</th>
@@ -437,7 +437,7 @@ export default function EmployeeDetailPage() {
                             <th className="py-2 font-medium">Score</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                        <tbody className="divide-y divide-slate-border">
                           {emp.trainingParticipations.map((part: any) => (
                             <tr key={part.id}>
                               <td className="py-3 text-navy-900 dark:text-white">{part.training?.trainingTopic}</td>
@@ -467,7 +467,7 @@ export default function EmployeeDetailPage() {
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-sm">
                         <thead>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                          <tr className="border-b border-slate-border">
                             <th className="py-2 font-medium">Period</th>
                             <th className="py-2 font-medium">Status</th>
                             <th className="py-2 font-medium">Goal</th>
@@ -476,7 +476,7 @@ export default function EmployeeDetailPage() {
                             <th className="py-2 font-medium">Final Rating</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                        <tbody className="divide-y divide-slate-border">
                           {emp.performanceReviews.map((review: any) => (
                             <tr key={review.id}>
                               <td className="py-3 text-navy-900 dark:text-white">{review.reviewPeriod}</td>
@@ -500,7 +500,7 @@ export default function EmployeeDetailPage() {
           </div>
         {/* Right Sticky Navigation */}
           <div className="hidden lg:block lg:col-span-1">
-            <div className="sticky top-24 bg-white dark:bg-[#09090b] border border-gray-200 dark:border-gray-800 p-3 rounded-xl shadow-sm flex flex-col">
+            <div className="sticky top-24 bg-surface border border-slate-border p-3 rounded-xl shadow-sm flex flex-col">
               <nav className="flex flex-col space-y-1">
                 {SECTIONS.map((section) => (
                   <button
@@ -509,7 +509,7 @@ export default function EmployeeDetailPage() {
                     className={cn(
                       "px-4 py-3 text-sm rounded-lg text-left transition-all duration-200",
                       activeSection === section.id
-                        ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 font-semibold"
+                        ? "bg-accent-50 text-accent-700 dark:bg-accent-900/30 dark:text-accent-400 font-semibold"
                         : "text-gray-600 dark:text-gray-400 font-medium hover:bg-gray-50 hover:text-navy-900 dark:hover:bg-gray-800/50 dark:hover:text-white"
                     )}
                   >
@@ -524,3 +524,7 @@ export default function EmployeeDetailPage() {
     </div>
   );
 }
+
+
+
+

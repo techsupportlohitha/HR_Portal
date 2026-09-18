@@ -163,7 +163,7 @@ export default function RequestListPage() {
       {/* Manage Request Modal (Admin/HR) */}
       {selectedReq && (
         <Modal isOpen={manageModalOpen} onClose={() => setManageModalOpen(false)} title={`Manage Ticket: ${selectedReq.id}`}>
-          <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+          <div className="mb-6 p-4 bg-surface/50 rounded-lg">
             <p className="text-sm"><strong>Employee:</strong> {selectedReq.employee?.firstName} {selectedReq.employee?.lastName}</p>
             <p className="text-sm mt-2"><strong>Query:</strong> {selectedReq.description}</p>
           </div>
@@ -180,7 +180,7 @@ export default function RequestListPage() {
                 ))}
             </Select>
 
-            <form onSubmit={handleUpdateStatus} className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-800">
+            <form onSubmit={handleUpdateStatus} className="space-y-4 pt-4 border-t border-slate-border">
               <Select name="status" label="Update Status" defaultValue={selectedReq.status} required>
                   <option value="SUBMITTED">Submitted</option>
                   <option value="ASSIGNED">Assigned</option>
@@ -201,3 +201,6 @@ export default function RequestListPage() {
     </div>
   );
 }
+
+
+

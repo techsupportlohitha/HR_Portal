@@ -89,13 +89,13 @@ export function Header({ onMenuClick, menuOpen = false, sidebarCollapsed = false
           
           <button 
             onClick={() => setCmdOpen(true)}
-            className="hidden md:flex items-center text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-transparent w-64 justify-between"
+            className="hidden md:flex items-center text-sm text-gray-500 dark:text-gray-400 bg-surface px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-transparent w-64 justify-between"
           >
             <div className="flex items-center">
               <Search className="h-4 w-4 mr-2" />
               <span>Search...</span>
             </div>
-            <kbd className="hidden sm:inline-block text-xs font-semibold px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-900">Ctrl K</kbd>
+            <kbd className="hidden sm:inline-block text-xs font-semibold px-1.5 py-0.5 rounded bg-gray-200 bg-surface">Ctrl K</kbd>
           </button>
         </div>
 
@@ -127,8 +127,8 @@ export function Header({ onMenuClick, menuOpen = false, sidebarCollapsed = false
             </Button>
             
             {notifOpen && (
-              <div id="notifications-panel" className="absolute right-0 top-10 mt-2 w-80 rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 z-50 border border-gray-200 dark:border-gray-700">
-                <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 font-semibold text-sm text-navy-900 dark:text-white flex justify-between">
+              <div id="notifications-panel" className="absolute right-0 top-10 mt-2 w-80 rounded-md bg-surface shadow-lg ring-1 ring-black ring-opacity-5 z-50 border border-slate-border">
+                <div className="px-4 py-3 border-b border-slate-border font-semibold text-sm text-navy-900 dark:text-white flex justify-between">
                   Notifications
                   <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{unreadCount} new</span>
                 </div>
@@ -143,16 +143,16 @@ export function Header({ onMenuClick, menuOpen = false, sidebarCollapsed = false
                         }}
                       >
                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{n.title || n.notificationType}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1 line-clamp-2">{n.message}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{n.message}</p>
                       </div>
                     ))
                   ) : (
-                    <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">No notifications</div>
+                    <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">No notifications</div>
                   )}
                 </div>
                 <button
                   type="button"
-                  className="w-full px-4 py-2 border-t border-gray-200 dark:border-gray-700 text-center text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
+                  className="w-full px-4 py-2 border-t border-slate-border text-center text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
                   onClick={() => {
                     setNotifOpen(false);
                     navigate('/notifications');
@@ -181,8 +181,8 @@ export function Header({ onMenuClick, menuOpen = false, sidebarCollapsed = false
           </button>
 
           {dropdownOpen && (
-            <div id="user-menu" className="absolute right-0 top-10 mt-2 w-48 rounded-md bg-white dark:bg-gray-800 py-1 shadow-lg ring-1 ring-black ring-opacity-5 z-50 border border-gray-200 dark:border-gray-700">
-              <div className="px-4 py-2 text-xs text-slate-500 dark:text-slate-400 border-b border-gray-200 dark:border-gray-700">
+            <div id="user-menu" className="absolute right-0 top-10 mt-2 w-48 rounded-md bg-surface py-1 shadow-lg ring-1 ring-black ring-opacity-5 z-50 border border-slate-border">
+              <div className="px-4 py-2 text-xs text-slate-500 dark:text-slate-400 border-b border-slate-border">
                 Signed in as {user?.role}
               </div>
               <button
@@ -235,3 +235,9 @@ export function Header({ onMenuClick, menuOpen = false, sidebarCollapsed = false
     </>
   );
 }
+
+
+
+
+
+

@@ -62,7 +62,7 @@ function SortableItemCard({ item, onClick }: { item: KanbanItem; onClick?: () =>
                </div>
                <div>
                   <div className="font-semibold text-navy-900 dark:text-white text-sm">{item.title}</div>
-                  <div className="flex items-center text-[10px] text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-0.5">
+                  <div className="flex items-center text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
                     {item.subtitle}
                   </div>
                </div>
@@ -92,7 +92,7 @@ function KanbanColumn({ col, items, onItemClick }: { col: typeof COLUMNS[0]; ite
 
   return (
     <div className={`flex flex-col rounded-2xl shadow-sm p-4 min-w-[240px] w-[260px] border shrink-0 items-center transition-colors ${
-      isOver ? 'bg-gray-50 dark:bg-gray-800/80 border-accent-300 dark:border-accent-700' : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800'
+      isOver ? 'bg-surface/80 border-accent-300 dark:border-accent-700' : 'bg-surface border-gray-100 dark:border-gray-800'
     }`}>
       
       {/* Header Row */}
@@ -104,7 +104,7 @@ function KanbanColumn({ col, items, onItemClick }: { col: typeof COLUMNS[0]; ite
       </div>
       
       {/* Divider */}
-      <div className="w-full h-px bg-gray-100 dark:bg-gray-800 mb-4" />
+      <div className="w-full h-px bg-surface mb-4" />
       
       {/* Items Area */}
       <div ref={setNodeRef} className="flex-1 w-full min-h-[100px] flex flex-col items-center">
@@ -225,3 +225,7 @@ export function KanbanBoard({ items, onStatusChange, onItemClick }: KanbanBoardP
     </DndContext>
   );
 }
+
+
+
+

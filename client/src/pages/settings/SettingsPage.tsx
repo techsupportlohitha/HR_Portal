@@ -4,7 +4,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="System Settings" description="Manage security defaults for the portal." />
-      <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
+      <div className="bg-surface p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
         <h2 className="text-lg font-semibold text-navy-900 dark:text-white mb-4">Password Policy</h2>
         <div className="space-y-4">
           <div>
@@ -33,3 +33,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+

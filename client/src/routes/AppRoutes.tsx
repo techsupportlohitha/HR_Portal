@@ -28,6 +28,8 @@ const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
 const AuditLogPage = lazy(() => import('@/pages/audit/AuditLogPage'));
 const LoginHistoryPage = lazy(() => import('@/pages/loginHistory/LoginHistoryPage'));
 const RoleManagementPage = lazy(() => import('@/pages/roles/RoleManagementPage'));
+const DesignSystemPage = lazy(() => import('@/pages/design/DesignSystemPage'));
+
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
 // Leaves
@@ -37,7 +39,7 @@ const LeaveApprovalsPage = lazy(() => import('@/pages/leave/LeaveApprovalsPage')
 
 const AppRoutes = () => {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-900"><LoadingSpinner /></div>}>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-surface"><LoadingSpinner /></div>}>
       <Routes>
       <Route path="/login" element={<LoginPage />} />
       
@@ -89,3 +91,5 @@ const AppRoutes = () => {
 };
 
 export default AppRoutes;
+
+

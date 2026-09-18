@@ -15,7 +15,14 @@ export class DashboardController {
 
   getAttritionStats = async (req: AuthRequest, res: Response) => {
     try {
-      const result = await dashboardService.getAttritionStats(req.user!);
+      const requestedPeriod = Number(req.query.periodMonths);
+      const periodMonths = [3, 6, 12].includes(requestedPeriod) ? requestedPeriod : 12;
+      const result = await dashboardService.getAttritionStats(req.user!, {
+        periodMonths,
+        department: typeof req.query.department === 'string' ? req.query.department : undefined,
+        location: typeof req.query.location === 'string' ? req.query.location : undefined,
+        employmentType: typeof req.query.employmentType === 'string' ? req.query.employmentType : undefined,
+      });
       return sendSuccess(res, result, 'Attrition stats retrieved');
     } catch (error: any) {
       return sendError(res, error.message, 403);

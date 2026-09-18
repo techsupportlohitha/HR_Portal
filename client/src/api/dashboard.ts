@@ -6,8 +6,8 @@ export const dashboardApi = {
     const { data } = await apiClient.get<ApiResponse<any>>('/dashboard/stats');
     return data;
   },
-  getAttrition: async () => {
-    const { data } = await apiClient.get<ApiResponse<any>>('/dashboard/attrition');
+  getAttrition: async (params?: { periodMonths?: number; department?: string; location?: string; employmentType?: string }) => {
+    const { data } = await apiClient.get<ApiResponse<any>>('/dashboard/attrition', { params });
     return data;
   },
   getReports: async (type: string) => {

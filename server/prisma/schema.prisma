@@ -3,12 +3,10 @@
 generator client {
   provider = "prisma-client-js"
 }
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
 // ============================================================
 // Enums
 // ============================================================
@@ -45,6 +43,8 @@ enum AttendanceStatus {
 }
 
 enum LeaveType {
+  PERSONAL
+  ON_DUTY
   CASUAL
   SICK
   EARNED
@@ -655,6 +655,9 @@ model PerformanceReview {
   managerRating                Decimal?
   hrRating                     Decimal?
   finalRating                  Decimal?
+  selfMetricRatings            Json?
+  managerMetricRatings         Json?
+  hrMetricRatings              Json?
   managerComments              String?
   employeeComments             String?
   hrComments                   String?
@@ -686,6 +689,7 @@ model Training {
   trainingType     TrainingType
   trainerName      String?
   trainingDate     DateTime     @db.Date
+    trainingEndDate  DateTime?    @db.Date
   trainingLocation String?
   trainingCost     Decimal?
   trainingHours    Decimal?
@@ -708,6 +712,8 @@ model TrainingParticipant {
   attendanceStatus  TrainingAttendanceStatus @default(TRAINING_PRESENT)
   feedbackRating    Decimal?
   feedbackComments  String?
+  trainerFeedbackRating Decimal?
+  trainerFeedbackComments String?
   assessmentScore   Decimal?
   certificateIssued Boolean                  @default(false)
   certificateFile   String?
@@ -912,3 +918,4 @@ model OfficeExpense {
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 }
+

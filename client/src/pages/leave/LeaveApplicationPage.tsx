@@ -7,13 +7,15 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import toast from 'react-hot-toast';
+import { Select } from '@/components/ui/Select';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 export default function LeaveApplicationPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
-    leaveType: 'CASUAL',
+    leaveType: 'PERSONAL',
     startDate: '',
     endDate: '',
     reason: '',
@@ -42,7 +44,7 @@ export default function LeaveApplicationPage() {
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
       <PageHeader
-        title="Time Off"
+        title="Apply for Leave"
         description="Request time away from work."
       />
 
@@ -54,23 +56,22 @@ export default function LeaveApplicationPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="flex flex-col space-y-1 w-full">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Leave Type</label>
-              <select
-                name="leaveType"
-                value={formData.leaveType}
-                onChange={handleChange}
-                className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                required
-              >
-                <option value="CASUAL">Casual Leave</option>
-                <option value="SICK">Sick Leave</option>
-                <option value="EARNED">Earned Leave</option>
-                <option value="UNPAID">Unpaid Leave</option>
-              </select>
+                <Select
+                  name="leaveType"
+                  value={formData.leaveType}
+                  onChange={handleChange}
+                  className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-surface text-slate-900 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  required
+                >
+                  <option value="PERSONAL">Personal Leave</option>
+                  <option value="SICK">Sick Leave</option>
+                  <option value="ON_DUTY">On Duty</option>
+                </Select>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Input label="Start Date" type="date" name="startDate" value={formData.startDate} onChange={handleChange} required />
-              <Input label="End Date" type="date" name="endDate" value={formData.endDate} onChange={handleChange} required />
+              <DatePicker label="Start Date" type="date" name="startDate" value={formData.startDate} onChange={handleChange} required />
+              <DatePicker label="End Date" type="date" name="endDate" value={formData.endDate} onChange={handleChange} required />
             </div>
 
             <div className="flex flex-col space-y-1 w-full">
@@ -79,7 +80,7 @@ export default function LeaveApplicationPage() {
                 name="reason"
                 value={formData.reason}
                 onChange={handleChange}
-                className="flex min-h-[100px] w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="flex min-h-[100px] w-full rounded-md border border-slate-300 dark:border-slate-600 bg-surface text-slate-900 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 required
               />
             </div>
@@ -93,3 +94,4 @@ export default function LeaveApplicationPage() {
     </div>
   );
 }
+

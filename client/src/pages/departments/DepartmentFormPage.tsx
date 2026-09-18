@@ -93,7 +93,7 @@ export default function DepartmentFormPage() {
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                className="flex min-h-[100px] w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="flex min-h-[100px] w-full rounded-md border border-slate-300 dark:border-slate-600 bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="Optional description"
               />
             </div>
@@ -105,7 +105,7 @@ export default function DepartmentFormPage() {
                 name="headId" 
                 value={formData.headId} 
                 onChange={handleChange}
-                className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">None</option>
                 {empData?.data?.map(emp => (
@@ -124,3 +124,4 @@ export default function DepartmentFormPage() {
     </div>
   );
 }
+

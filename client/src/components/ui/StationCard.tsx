@@ -26,7 +26,7 @@ export function StationCard({
   return (
     <div className={cn(
       "bg-surface rounded-xl border border-slate-border p-5",
-      "hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out",
+      "",
       className
     )}>
       <div className="flex justify-between items-start mb-4">

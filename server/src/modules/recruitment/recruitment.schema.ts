@@ -26,6 +26,7 @@ export const createCandidateSchema = z.object({
   requisitionId: z.string(),
   interviewDate: z.string().optional(),
   screeningStatus: z.string().optional(),
+  interviewerId: z.string().optional(),
 });
 
 export const screenCandidateSchema = z.object({

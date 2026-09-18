@@ -1,6 +1,7 @@
 import { formatDate, formatDateTime } from '@/utils/dateFormat';
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 import { leavesApi } from '@/api/leaves';
 import { DataTable } from '@/components/ui/DataTable';
 import { Badge } from '@/components/ui/Badge';
@@ -12,6 +13,7 @@ import { Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function LeaveApprovalsPage() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedLeave, setSelectedLeave] = useState<any>(null);
   const [remarks, setRemarks] = useState('');
@@ -90,7 +92,7 @@ export default function LeaveApprovalsPage() {
     }
   };
 
-  const columns = [
+  const baseColumns = [
     {
       header: 'Employee',
       accessor: (row: any) => `${row.employee?.firstName} ${row.employee?.lastName}`
@@ -109,22 +111,14 @@ export default function LeaveApprovalsPage() {
       header: 'Status',
       accessor: (row: any) => getStatusBadge(row.status)
     },
-    {
-      header: 'Actions',
-      accessor: (row: any) => row.status === 'PENDING' ? (
-        <div className="flex gap-2">
-          <Button variant="primary" size="sm" onClick={() => handleAction(row, 'APPROVED')}>Approve</Button>
-          <Button variant="danger" size="sm" onClick={() => handleAction(row, 'REJECTED')}>Reject</Button>
-        </div>
-      ) : <span className="text-slate-400 text-sm">Processed</span>,
-    },
   ];
+  const columns = user?.role === 'EMPLOYEE' ? baseColumns : [...baseColumns, { header: 'Actions', accessor: (row: any) => row.status === 'PENDING' ? (<div className="flex gap-2"><Button variant="primary" size="sm" onClick={() => handleAction(row, 'APPROVED')}>Approve</Button><Button variant="danger" size="sm" onClick={() => handleAction(row, 'REJECTED')}>Reject</Button></div>) : <span className="text-slate-400 text-sm">Processed</span> }];
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Time Off Approvals"
-        description="Review and action pending leave requests from your team."
+        title={user?.role === 'EMPLOYEE' ? 'Leave Approval History' : 'Leave Approvals'}
+        description={user?.role === 'EMPLOYEE' ? 'View your past and present leave applications.' : 'Review and action pending leave requests from your team.'}
         actions={
           <Button variant="outline" onClick={exportToCSV}>
             <Download className="w-4 h-4 mr-2" />
@@ -155,7 +149,7 @@ export default function LeaveApprovalsPage() {
             <textarea
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
-              className="flex min-h-[100px] w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="flex min-h-[100px] w-full rounded-md border border-slate-300 dark:border-slate-600 bg-surface text-slate-900 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="Add any remarks here..."
             />
           </div>
@@ -175,3 +169,4 @@ export default function LeaveApprovalsPage() {
     </div>
   );
 }
+

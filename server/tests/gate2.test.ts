@@ -27,7 +27,7 @@ describe('Gate 2 Travel and Assets Tests', () => {
     const prisma = new PrismaClient();
     
     if (travelRequestId) {
-      await prisma.travelRequest.deleteMany({ where: { employeeId } });
+      await prisma.travelRequest.deleteMany({ where: { id: travelRequestId } });
     }
     if (assetId) {
       await prisma.asset.deleteMany({ where: { id: assetId } });

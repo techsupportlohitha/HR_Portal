@@ -73,18 +73,18 @@ export function PerformanceCreateModal({ isOpen, onClose }: PerformanceCreateMod
             </Select>
           <div>
             <label htmlFor="kra-description" className="block text-sm font-medium mb-1">KRA Description</label>
-            <textarea id="kra-description" name="kraDescription" value={formData.kraDescription} onChange={handleChange} className="w-full rounded-md border border-gray-300 dark:border-gray-700 p-2 dark:bg-gray-900" rows={2} />
+            <textarea id="kra-description" name="kraDescription" value={formData.kraDescription} onChange={handleChange} className="w-full rounded-md border border-gray-300 dark:border-gray-700 p-2 bg-surface" rows={2} />
           </div>
           <div>
             <label htmlFor="goal-description" className="block text-sm font-medium mb-1">Goal Description</label>
-            <textarea id="goal-description" name="goalDescription" value={formData.goalDescription} onChange={handleChange} className="w-full rounded-md border border-gray-300 dark:border-gray-700 p-2 dark:bg-gray-900" rows={2} />
+            <textarea id="goal-description" name="goalDescription" value={formData.goalDescription} onChange={handleChange} className="w-full rounded-md border border-gray-300 dark:border-gray-700 p-2 bg-surface" rows={2} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Input name="targetValue" label="Target Value" value={formData.targetValue} onChange={handleChange} />
             <Input type="number" min="0" onKeyDown={(e) => { if(e.key === "-") e.preventDefault(); }} name="kpiWeightage" label="KPI Weightage (%)" value={formData.kpiWeightage} onChange={handleChange} />
           </div>
           
-          <div className="sticky -bottom-4 z-10 -mx-4 -mb-4 flex justify-end gap-3 border-t border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-900">
+          <div className="sticky -bottom-4 z-10 -mx-4 -mb-4 flex justify-end gap-3 border-t border-gray-200 bg-surface px-4 py-3 dark:border-gray-700 ">
             <Button variant="outline" type="button" onClick={onClose}>Cancel</Button>
             <Button type="submit" isLoading={createMutation.isPending}>Initiate Review</Button>
           </div>

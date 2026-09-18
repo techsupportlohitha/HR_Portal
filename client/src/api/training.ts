@@ -24,7 +24,22 @@ export const trainingApi = {
   },
   getMyTrainings: async () => {
     const { data } = await apiClient.get<ApiResponse<any[]>>('/training/my-trainings');
-    return data;
+    return {
+      ...data,
+      data: (data.data || []).map((participant: any) => ({
+        ...participant.training,
+        participant: {
+          id: participant.id,
+          employeeId: participant.employeeId,
+          attendanceStatus: participant.attendanceStatus,
+          feedbackRating: participant.feedbackRating,
+          feedbackComments: participant.feedbackComments,
+          assessmentScore: participant.assessmentScore,
+          certificateIssued: participant.certificateIssued,
+          certificateFile: participant.certificateFile,
+        },
+      })),
+    };
   },
   getDashboardStats: async () => {
     const { data } = await apiClient.get<ApiResponse<any>>('/training/dashboard');

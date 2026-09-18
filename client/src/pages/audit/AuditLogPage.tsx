@@ -9,6 +9,8 @@ import { Search, Download, Eye, Shield, AlertTriangle, Activity, TrendingUp } fr
 import { Button } from '@/components/ui/Button';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useDebounce } from '@/hooks/useDebounce';
+import { Select } from '@/components/ui/Select';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 const MODULES = [
   'employees', 'travel', 'assets', 'recruitment', 'performance',
@@ -56,7 +58,7 @@ function DiffViewer({ oldVal, newVal }: { oldVal?: string | null; newVal?: strin
     <div className="overflow-x-auto">
       <table className="w-full text-sm border-collapse">
         <thead>
-          <tr className="border-b border-gray-200 dark:border-gray-700">
+          <tr className="border-b border-slate-border">
             <th className="text-left py-2 pr-4 font-medium text-gray-500 w-1/3">Field</th>
             <th className="text-left py-2 pr-4 font-medium text-red-500">Old Value</th>
             <th className="text-left py-2 font-medium text-green-500">New Value</th>
@@ -149,7 +151,7 @@ export default function AuditLogPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out flex items-center gap-3">
+        <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
             <Activity className="w-5 h-5 text-blue-500" />
           </div>
@@ -158,7 +160,7 @@ export default function AuditLogPage() {
             <p className="text-xl font-bold text-text-heading">{statsData?.totalToday ?? '—'}</p>
           </div>
         </div>
-        <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out flex items-center gap-3">
+        <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
             <TrendingUp className="w-5 h-5 text-green-500" />
           </div>
@@ -167,7 +169,7 @@ export default function AuditLogPage() {
             <p className="text-xl font-bold text-text-heading">{statsData?.totalMonth ?? '—'}</p>
           </div>
         </div>
-        <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out flex items-center gap-3">
+        <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center">
             <AlertTriangle className="w-5 h-5 text-orange-500" />
           </div>
@@ -176,7 +178,7 @@ export default function AuditLogPage() {
             <p className="text-xl font-bold text-text-heading">{statsData?.failedLogins ?? '—'}</p>
           </div>
         </div>
-        <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out flex items-center gap-3">
+        <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center">
             <Shield className="w-5 h-5 text-purple-500" />
           </div>
@@ -190,7 +192,7 @@ export default function AuditLogPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
+      <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <div className="relative lg:col-span-2">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -199,39 +201,37 @@ export default function AuditLogPage() {
               placeholder="Search actions, records..."
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
-              className="w-full pl-9 pr-4 py-2 bg-white dark:bg-gray-900 border border-slate-300 dark:border-slate-600 shadow-sm rounded-lg text-sm focus:outline-none"
+              className="w-full pl-9 pr-4 py-2 bg-surface border border-slate-300 dark:border-slate-600 shadow-sm rounded-lg text-sm focus:outline-none"
             />
           </div>
-          <select
+          <Select
             aria-label="Filter audit logs by module"
             value={module}
             onChange={e => { setModule(e.target.value); setPage(1); }}
-            className="py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="py-2 px-3 bg-surface border border-slate-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             <option value="">All Modules</option>
             {MODULES.map(m => <option key={m} value={m}>{m.charAt(0).toUpperCase() + m.slice(1)}</option>)}
-          </select>
-          <input
-            type="date"
+          </Select>
+          <DatePicker type="date"
             aria-label="Audit logs from date"
             value={from}
             onChange={e => { setFrom(e.target.value); setPage(1); }}
-            className="py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="py-2 px-3 bg-surface border border-slate-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             placeholder="From date"
           />
-          <input
-            type="date"
+          <DatePicker type="date"
             aria-label="Audit logs to date"
             value={to}
             onChange={e => { setTo(e.target.value); setPage(1); }}
-            className="py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="py-2 px-3 bg-surface border border-slate-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             placeholder="To date"
           />
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+      <div className="bg-surface rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
         {isLoading ? (
           <div className="py-16"><LoadingSpinner /></div>
         ) : logs.length === 0 ? (
@@ -239,7 +239,7 @@ export default function AuditLogPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-800">
+              <thead className="bg-surface">
                 <tr>
                   {['Timestamp', 'User', 'Action', 'Module', 'Record ID', 'IP Address', 'Changes', ''].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
@@ -340,7 +340,7 @@ export default function AuditLogPage() {
               </div>
             </div>
 
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <div className="border-t border-slate-border pt-4">
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Field Changes</p>
               <DiffViewer oldVal={selectedLog.oldValue} newVal={selectedLog.newValue} />
             </div>
@@ -350,3 +350,7 @@ export default function AuditLogPage() {
     </div>
   );
 }
+
+
+
+

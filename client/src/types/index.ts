@@ -273,6 +273,9 @@ export interface PerformanceReview {
   managerRating?: number;
   hrRating?: number;
   finalRating?: number;
+  selfMetricRatings?: Record<string, number>;
+  managerMetricRatings?: Record<string, number>;
+  hrMetricRatings?: Record<string, number>;
   managerComments?: string;
   employeeComments?: string;
   hrComments?: string;

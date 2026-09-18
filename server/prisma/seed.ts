@@ -15,34 +15,36 @@ async function main() {
 
   // Departments
   const engineering = await prisma.department.upsert({
-    where: { name: 'Engineering' },
+    where: { name: 'HR&ADMIN-IT' },
     update: {},
-    create: { name: 'Engineering', description: 'Software Development & Engineering' },
+    create: { name: 'HR&ADMIN-IT', description: 'HR & Admin IT' },
   });
 
   const hr = await prisma.department.upsert({
-    where: { name: 'Human Resources' },
+    where: { name: 'HR & ADMIN' },
     update: {},
-    create: { name: 'Human Resources', description: 'HR & People Operations' },
+    create: { name: 'HR & ADMIN', description: 'HR & Admin' },
   });
 
   const marketing = await prisma.department.upsert({
-    where: { name: 'Marketing' },
+    where: { name: 'PROCUREMENT' },
     update: {},
-    create: { name: 'Marketing', description: 'Marketing & Communications' },
+    create: { name: 'PROCUREMENT', description: 'Procurement' },
   });
 
   const finance = await prisma.department.upsert({
-    where: { name: 'Finance' },
+    where: { name: 'ACCOUNTS' },
     update: {},
-    create: { name: 'Finance', description: 'Finance & Accounting' },
+    create: { name: 'ACCOUNTS', description: 'Accounts' },
   });
 
   const operations = await prisma.department.upsert({
-    where: { name: 'Operations' },
+    where: { name: 'COMMERCIAL' },
     update: {},
-    create: { name: 'Operations', description: 'Business Operations' },
+    create: { name: 'COMMERCIAL', description: 'Commercial' },
   });
+
+
 
   console.log('✅ Departments upserted');
 

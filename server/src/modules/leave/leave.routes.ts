@@ -15,7 +15,7 @@ router.get('/balances', (req, res) => leaveController.getLeaveBalances(req, res)
 router.patch('/:id/cancel', (req, res) => leaveController.cancelLeave(req, res));
 
 // Admin/HR/Manager — approval workflow
-router.get('/all', authorize('ADMIN', 'HR', 'MANAGER'), (req, res) => leaveController.getPendingApprovals(req, res));
+router.get('/all', authorize('ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'), (req, res) => leaveController.getPendingApprovals(req, res));
 router.patch('/:id/status', authorize('ADMIN', 'HR', 'MANAGER'), validate(updateLeaveStatusSchema), (req, res) => leaveController.updateStatus(req, res));
 router.get('/balances/:employeeId', authorize('ADMIN', 'HR', 'MANAGER'), (req, res) => leaveController.getLeaveBalances(req, res));
 

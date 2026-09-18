@@ -14,9 +14,10 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
-import { Plus, Download, BookOpen, Clock, IndianRupee, Star, CheckCircle, Calendar, Users, TrendingUp } from 'lucide-react';
+import { Plus, Download, BookOpen, Clock, IndianRupee, Star, CheckCircle, Calendar, Users, TrendingUp, Search, SlidersHorizontal, X } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 import apiClient from '@/api/client';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 export default function TrainingListPage() {
   const { user } = useAuth();
@@ -27,7 +28,10 @@ export default function TrainingListPage() {
   const [selectedTrainingForEdit, setSelectedTrainingForEdit] = useState<any>(null);
   const [editingParticipant, setEditingParticipant] = useState<any>(null);
   const [newParticipantId, setNewParticipantId] = useState('');
-  const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'timeline'>('list');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [typeFilter, setTypeFilter] = useState('ALL');
+  const [departmentFilter, setDepartmentFilter] = useState('ALL');
   const isAdminOrHR = user?.role === 'ADMIN' || user?.role === 'HR';
 
   const { data: trainingData, isLoading } = useQuery({
@@ -149,7 +153,7 @@ export default function TrainingListPage() {
       </span>
     ) },
     { header: 'Trainer', accessor: 'trainerName' },
-    { header: 'Date', accessor: (row: any) => formatDate(row.trainingDate) },
+    { header: 'Date', accessor: (row: any) => row.trainingEndDate ? formatDate(row.trainingDate) + ' - ' + formatDate(row.trainingEndDate) : formatDate(row.trainingDate) },
     { header: 'Location', accessor: 'trainingLocation' },
     { header: 'Hours', accessor: 'trainingHours' },
     {
@@ -187,9 +191,9 @@ export default function TrainingListPage() {
       delete payload.trainingCost;
     }
 
-    if (!payload.targetDepartmentId) {
-      delete payload.targetDepartmentId;
-    }
+    if (!payload.targetDepartmentId) { delete payload.targetDepartmentId; }
+
+    if (!payload.trainingEndDate) { delete payload.trainingEndDate; }
 
     if (selectedTrainingForEdit) {
       updateMutation.mutate({ id: selectedTrainingForEdit.id, data: payload });
@@ -198,37 +202,48 @@ export default function TrainingListPage() {
     }
   };
 
+  const trainingRows = trainingData?.data || [];
+  const filteredTrainings = trainingRows.filter((t: any) => {
+    const matchesSearch = !searchTerm || 
+                          t.trainingTopic?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          t.trainerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          t.trainingLocation?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'ALL' || t.status === statusFilter;
+    const matchesType = typeFilter === 'ALL' || t.trainingType === typeFilter;
+    const matchesDepartment = departmentFilter === 'ALL' || t.targetDepartmentId === departmentFilter;
+    return matchesSearch && matchesStatus && matchesType && matchesDepartment;
+  });
+
   const renderCalendarView = () => {
     const sorted = [...(trainingData?.data || [])].sort((a, b) => new Date(a.trainingDate).getTime() - new Date(b.trainingDate).getTime());
-    return (
+  
+  return (
       <div className="space-y-4">
          {sorted.map((t: any) => (
-           <div key={t.id} className="flex gap-6 items-start p-6 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
-             <div className="w-24 text-center shrink-0 border-r border-gray-100 dark:border-gray-800 pr-6">
-               <div className="text-sm text-gray-500 font-bold uppercase">{formatDateTime(t.trainingDate)}</div>
-               <div className="text-4xl font-black text-primary-600">{new Date(t.trainingDate).getDate()}</div>
-               <div className="text-xs text-gray-400 mt-1">{new Date(t.trainingDate).getFullYear()}</div>
-             </div>
-             <div className="flex-1">
+           <div key={t.id} className="flex flex-col p-6 bg-surface rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
                <div className="flex justify-between items-start">
-                 <h4 className="text-xl font-bold">{t.trainingTopic}</h4>
+                 <div>
+                   <h4 className="text-xl font-bold text-navy-900 dark:text-white">{t.trainingTopic}</h4>
+                   <p className="text-sm text-gray-500 mt-1">
+                     {t.trainingEndDate ? `${formatDate(t.trainingDate)} to ${formatDate(t.trainingEndDate)}` : formatDateTime(t.trainingDate)}
+                   </p>
+                 </div>
                  <Button variant="outline" size="sm" onClick={() => setSelectedTraining(t)}>Manage</Button>
                </div>
                <div className="flex flex-wrap items-center gap-6 text-sm text-gray-600 dark:text-gray-400 mt-4">
                  <span className="flex items-center gap-1.5"><Users className="w-4 h-4"/> {t.trainerName || 'TBD'}</span>
                  <span className="flex items-center gap-1.5"><Clock className="w-4 h-4"/> {t.trainingHours} Hrs</span>
                  <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4"/> {t.trainingLocation || 'Remote'}</span>
-                 <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded-full text-xs font-semibold">{t.trainingType}</span>
+                 <span className="px-2 py-0.5 bg-surface rounded-full text-xs font-semibold">{t.trainingType}</span>
                </div>
              </div>
-           </div>
-         ))}
+           ))}
       </div>
     );
   };
 
   const renderTimelineView = () => {
-    const sorted = [...(trainingData?.data || [])].sort((a, b) => new Date(b.trainingDate).getTime() - new Date(a.trainingDate).getTime());
+    const sorted = [...(filteredTrainings || [])].sort((a, b) => new Date(a.trainingDate).getTime() - new Date(b.trainingDate).getTime());
     const timelineItems: TimelineItem[] = sorted.map((t: any) => {
       const date = new Date(t.trainingDate);
       const isPast = date.getTime() < Date.now();
@@ -249,7 +264,7 @@ export default function TrainingListPage() {
     });
 
     return (
-      <div className="bg-white dark:bg-gray-900 rounded-xl p-8 shadow-sm border border-gray-100 dark:border-gray-800">
+      <div className="bg-surface rounded-xl p-8 shadow-sm border border-gray-100 dark:border-gray-800">
         <h2 className="text-2xl font-bold mb-8 text-center">Training Journey</h2>
         {timelineItems.length > 0 ? (
           <Timeline items={timelineItems} className="max-w-4xl mx-auto" />
@@ -266,11 +281,6 @@ export default function TrainingListPage() {
         title="Training Sessions"
         description="Plan learning, track attendance, and measure outcomes."
         actions={<div className="flex gap-2">
-          <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-            <button onClick={() => setViewMode('list')} className={`px-4 py-1.5 rounded-md text-sm font-medium ${viewMode === 'list' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500'}`}>List</button>
-            <button onClick={() => setViewMode('calendar')} className={`px-4 py-1.5 rounded-md text-sm font-medium ${viewMode === 'calendar' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500'}`}>Calendar</button>
-            <button onClick={() => setViewMode('timeline')} className={`px-4 py-1.5 rounded-md text-sm font-medium ${viewMode === 'timeline' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500'}`}>Timeline</button>
-          </div>
                       {isAdminOrHR && (
               <>
                 {canExport('training') && <Button variant="outline" onClick={handleExport} className="gap-2">
@@ -287,10 +297,53 @@ export default function TrainingListPage() {
         </div>}
       />
 
+      <div className="mt-5 rounded-xl border border-slate-border bg-surface p-4 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+          <label className="min-w-0 flex-1">
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-text-muted">Search training</span>
+            <span className="relative block">
+              <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-text-muted" aria-hidden="true" />
+              <input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Topic, trainer, location..."
+                className="h-10 w-full rounded-lg border border-slate-300 bg-surface pl-9 pr-3 text-sm outline-none transition focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 dark:border-slate-600 "
+                aria-label="Search training sessions"
+              />
+            </span>
+          </label>
+          <label className="w-full lg:w-44">
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-text-muted">Type</span>
+            <Select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="h-10 w-full rounded-lg border border-slate-300 bg-surface px-3 text-sm dark:border-slate-600 " aria-label="Filter by training type">
+              <option value="ALL">All types</option>
+              <option value="INTERNAL">Internal</option>
+              <option value="EXTERNAL">External</option>
+            </Select>
+          </label>
+          {isAdminOrHR && <label className="w-full lg:w-52">
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-text-muted">Department</span>
+            <Select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="h-10 w-full rounded-lg border border-slate-300 bg-surface px-3 text-sm dark:border-slate-600 " aria-label="Filter by department">
+              <option value="ALL">All departments</option>
+              {departmentsData?.data?.map((department: any) => <option key={department.id} value={department.id}>{department.name}</option>)}
+            </Select>
+          </label>}
+          {(searchTerm || statusFilter !== 'ALL' || typeFilter !== 'ALL' || departmentFilter !== 'ALL') && (
+            <Button variant="ghost" onClick={() => {
+              setSearchTerm('');
+              setStatusFilter('ALL');
+              setTypeFilter('ALL');
+              setDepartmentFilter('ALL');
+            }} className="h-10 gap-2">
+              <X className="h-4 w-4" /> Clear
+            </Button>
+          )}
+        </div>
+      </div>
+
       {!isStatsLoading && statsData?.data && (
-        <div className="space-y-8 mb-8">
+        <div className="space-y-8 my-6 lg:my-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
+              <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5">
                 <div className="flex items-center gap-4">
                   <div className="h-10 w-10 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
                     <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -302,7 +355,7 @@ export default function TrainingListPage() {
                 </div>
               </div>
 
-              <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
+              <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5">
                 <div className="flex items-center gap-4">
                   <div className="h-10 w-10 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center shrink-0">
                     <Users className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
@@ -314,7 +367,7 @@ export default function TrainingListPage() {
                 </div>
               </div>
 
-              <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
+              <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5">
                 <div className="flex items-center gap-4">
                   <div className="h-10 w-10 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
                     <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
@@ -326,7 +379,7 @@ export default function TrainingListPage() {
                 </div>
               </div>
 
-              <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
+              <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5">
                 <div className="flex items-center gap-4">
                   <div className="h-10 w-10 rounded-full bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center shrink-0">
                     <IndianRupee className="h-5 w-5 text-orange-600 dark:text-orange-400" />
@@ -339,47 +392,78 @@ export default function TrainingListPage() {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-             <Card>
-               <CardContent className="p-4">
-                  <h3 className="text-sm font-bold text-gray-500 mb-3">Department-wise Training</h3>
-                  <div className="space-y-2">
-                    {statsData.data.departmentWise?.length === 0 ? <p className="text-sm text-gray-400">No data</p> : null}
-                    {statsData.data.departmentWise?.map((d: any) => (
-                      <div key={d.name} className="flex justify-between items-center text-sm">
-                        <span className="font-medium">{d.name}</span>
-                        <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">{d.value} Trainings</span>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
+              <div className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 bg-surface/50 px-5 py-4">
+                <h3 className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-accent-600" />
+                  Department-wise Training
+                </h3>
+              </div>
+              <CardContent className="p-0">
+                <div className="divide-y divide-slate-100 dark:divide-slate-800 h-64 overflow-y-auto custom-scrollbar">
+                  {statsData.data.departmentWise?.length === 0 ? (
+                    <div className="p-5 text-center text-sm text-slate-500">No data available</div>
+                  ) : (
+                    statsData.data.departmentWise?.map((d: any, i: number) => (
+                      <div key={d.name} className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                            ['bg-blue-100 text-blue-700', 'bg-emerald-100 text-emerald-700', 'bg-purple-100 text-purple-700', 'bg-amber-100 text-amber-700'][i % 4]
+                          }`}>
+                            {d.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          <span className="font-medium text-slate-700 dark:text-slate-300">{d.name}</span>
+                        </div>
+                        <span className="inline-flex items-center rounded-full bg-surface px-2.5 py-1 text-xs font-semibold text-slate-600 dark:text-slate-400">
+                          {d.value} {d.value === 1 ? 'Training' : 'Trainings'}
+                        </span>
                       </div>
-                    ))}
-                  </div>
-               </CardContent>
-             </Card>
-             <Card>
-               <CardContent className="p-4">
-                  <h3 className="text-sm font-bold text-gray-500 mb-3">Employee-wise Training</h3>
-                  <div className="space-y-2">
-                    {statsData.data.employeeWise?.length === 0 ? <p className="text-sm text-gray-400">No data</p> : null}
-                    {statsData.data.employeeWise?.map((e: any) => (
-                      <div key={e.name} className="flex justify-between items-center text-sm">
-                        <span className="font-medium">{e.name}</span>
-                        <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">{e.value} Sessions</span>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
+              <div className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 bg-surface/50 px-5 py-4">
+                <h3 className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-accent-600" />
+                  Employee-wise Training
+                </h3>
+              </div>
+              <CardContent className="p-0">
+                <div className="divide-y divide-slate-100 dark:divide-slate-800 h-64 overflow-y-auto custom-scrollbar">
+                  {statsData.data.employeeWise?.length === 0 ? (
+                    <div className="p-5 text-center text-sm text-slate-500">No data available</div>
+                  ) : (
+                    statsData.data.employeeWise?.map((e: any, i: number) => (
+                      <div key={e.name} className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                            ['bg-indigo-100 text-indigo-700', 'bg-rose-100 text-rose-700', 'bg-teal-100 text-teal-700', 'bg-cyan-100 text-cyan-700'][i % 4]
+                          }`}>
+                            {e.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          <span className="font-medium text-slate-700 dark:text-slate-300">{e.name}</span>
+                        </div>
+                        <span className="inline-flex items-center rounded-full bg-surface px-2.5 py-1 text-xs font-semibold text-slate-600 dark:text-slate-400">
+                          {e.value} {e.value === 1 ? 'Session' : 'Sessions'}
+                        </span>
                       </div>
-                    ))}
-                  </div>
-               </CardContent>
-             </Card>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       )}
 
       {isLoading ? (
         <LoadingSpinner />
-      ) : viewMode === 'timeline' ? (
-        renderTimelineView()
-      ) : viewMode === 'calendar' ? (
-        renderCalendarView()
       ) : (
-        <DataTable columns={columns} data={trainingData?.data || []} keyField="id" />
+        renderCalendarView()
       )}
 
       <Modal isOpen={isModalOpen} onClose={() => {
@@ -399,7 +483,10 @@ export default function TrainingListPage() {
               ))}
           </Select>
           <Input name="trainerName" label="Trainer Name" required defaultValue={selectedTrainingForEdit?.trainerName} />
-          <Input type="date" name="trainingDate" label="Training Date" required defaultValue={selectedTrainingForEdit?.trainingDate?.split('T')[0]} />
+          <div className="grid grid-cols-2 gap-4">
+              <DatePicker type="date" name="trainingDate" label="Start Date *" required defaultValue={selectedTrainingForEdit?.trainingDate?.split('T')[0]} />
+              <DatePicker type="date" name="trainingEndDate" label="End Date" defaultValue={selectedTrainingForEdit?.trainingEndDate?.split('T')[0]} />
+            </div>
           <Input name="trainingLocation" label="Location" required defaultValue={selectedTrainingForEdit?.trainingLocation} />
           <Input type="number" name="trainingHours" label="Duration (Hours)" required min="0" onKeyDown={(e) => e.key === '-' && e.preventDefault()} defaultValue={selectedTrainingForEdit?.trainingHours} />
           <Input type="number" name="trainingCost" label="Cost (₹)" min="0" onKeyDown={(e) => e.key === '-' && e.preventDefault()} defaultValue={selectedTrainingForEdit?.trainingCost} />
@@ -415,7 +502,12 @@ export default function TrainingListPage() {
 
       {/* Manage Training Details Modal */}
       {selectedTraining && (
-        <Modal isOpen={true} onClose={() => setSelectedTraining(null)} title={`Manage: ${selectedTraining.trainingTopic}`}>
+        <Modal 
+          isOpen={true} 
+          onClose={() => setSelectedTraining(null)} 
+          title={`Manage: ${selectedTraining.trainingTopic}`}
+          className="max-w-4xl w-full"
+        >
           <div className="space-y-6">
             <div className="flex justify-between items-center border-b dark:border-gray-800 pb-4">
               <div className="flex gap-4">
@@ -425,36 +517,24 @@ export default function TrainingListPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Date</p>
-                  <p className="font-medium">{formatDate(selectedTraining.trainingDate)}</p>
+                  <p className="font-medium">{selectedTraining.trainingEndDate ? formatDate(selectedTraining.trainingDate) + ' - ' + formatDate(selectedTraining.trainingEndDate) : formatDate(selectedTraining.trainingDate)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Type</p>
                   <p className="font-medium">{selectedTraining.trainingType}</p>
                 </div>
               </div>
-              {isAdminOrHR && selectedTraining.status === 'PENDING' && (
-                <div className="flex gap-2">
-                  <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" disabled={approveMutation.isPending} onClick={() => approveMutation.mutate({ id: selectedTraining.id, status: 'APPROVED' })}>Approve</Button>
-                  <Button size="sm" variant="danger" disabled={approveMutation.isPending} onClick={() => approveMutation.mutate({ id: selectedTraining.id, status: 'REJECTED' })}>Reject</Button>
-                </div>
-              )}
-              {selectedTraining.status !== 'PENDING' && (
-                <div>
-                  <p className="text-sm text-gray-500">Status</p>
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${selectedTraining.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                    {selectedTraining.status}
-                  </span>
-                </div>
-              )}
+              
+              
             </div>
 
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium">Participants & Feedback</h3>
                 <div className="flex gap-2">
-                  <select
+                  <Select
                     aria-label="Employee to add to training"
-                    className="p-1 border rounded-md text-sm dark:bg-gray-800 dark:border-gray-700"
+                    className="p-1 border rounded-md text-sm bg-surface dark:border-gray-700"
                     value={newParticipantId}
                     onChange={(e) => setNewParticipantId(e.target.value)}
                   >
@@ -462,7 +542,7 @@ export default function TrainingListPage() {
                     {employeesData?.data?.map((emp: any) => (
                       <option key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName}</option>
                     ))}
-                  </select>
+                  </Select>
                   <Button
                     size="sm"
                     disabled={!newParticipantId || addParticipantMutation.isPending}
@@ -479,14 +559,13 @@ export default function TrainingListPage() {
               {selectedTraining.participants?.length > 0 ? (
                 <div className="overflow-x-auto border dark:border-gray-800 rounded-lg">
                   <table className="w-full text-sm text-left">
-                    <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500 uppercase">
+                    <thead className="bg-surface text-gray-500 uppercase">
                       <tr>
                         <th className="px-4 py-3">Employee</th>
                         <th className="px-4 py-3">Department</th>
-                        <th className="px-4 py-3">Attendance</th>
-                        <th className="px-4 py-3">Assessment</th>
+                        
                         <th className="px-4 py-3">Feedback</th>
-                        <th className="px-4 py-3 text-center">Certificate</th>
+                        
                         <th className="px-4 py-3"></th>
                       </tr>
                     </thead>
@@ -495,12 +574,7 @@ export default function TrainingListPage() {
                         <tr key={p.id}>
                           <td className="px-4 py-3 font-medium">{p.employee?.firstName} {p.employee?.lastName}</td>
                           <td className="px-4 py-3 text-gray-500">{p.employee?.department?.name || 'N/A'}</td>
-                          <td className="px-4 py-3">
-                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${p.attendanceStatus === 'TRAINING_PRESENT' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                              {p.attendanceStatus === 'TRAINING_PRESENT' ? 'Present' : 'Absent'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">{p.assessmentScore ? `${p.assessmentScore}%` : '-'}</td>
+                          
                           <td className="px-4 py-3">
                             {p.feedbackRating ? (
                               <div className="flex items-center text-amber-500 text-xs">
@@ -508,9 +582,7 @@ export default function TrainingListPage() {
                               </div>
                             ) : '-'}
                           </td>
-                          <td className="px-4 py-3 text-center">
-                            {p.certificateIssued ? <CheckCircle className="w-4 h-4 text-green-500 mx-auto" /> : '-'}
-                          </td>
+                          
                           <td className="px-4 py-3">
                              <Button variant="ghost" size="sm" onClick={() => setEditingParticipant(p)}>Edit</Button>
                           </td>
@@ -520,7 +592,7 @@ export default function TrainingListPage() {
                   </table>
                 </div>
               ) : (
-                <div className="text-sm text-gray-500 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg text-center">
+                <div className="text-sm text-gray-500 bg-surface p-4 rounded-lg text-center">
                   No participants enrolled in this training yet.
                 </div>
               )}
@@ -537,47 +609,81 @@ export default function TrainingListPage() {
       {editingParticipant && (
         <Modal isOpen={true} onClose={() => setEditingParticipant(null)} title={`Update: ${editingParticipant.employee?.firstName || ''} ${editingParticipant.employee?.lastName || ''}`}>
           <form onSubmit={(e) => {
-            e.preventDefault();
-            const formData = new FormData(e.currentTarget);
-
-            const assessmentData = {
-              attendanceStatus: formData.get('attendanceStatus'),
-              assessmentScore: formData.get('assessmentScore') ? Number(formData.get('assessmentScore')) : undefined,
-              certificateIssued: formData.get('certificateIssued') === 'on'
-            };
-
-            const feedbackData = {
-              feedbackRating: formData.get('feedbackRating') ? Number(formData.get('feedbackRating')) : undefined,
-              feedbackComments: formData.get('feedbackComments') || undefined
-            };
-
-            updateParticipantMutation.mutate({
-              trainingId: selectedTraining.id,
-              employeeId: editingParticipant.employeeId,
-              assessmentData,
-              feedbackData
-            });
-          }} className="space-y-4">
-            <Select name="attendanceStatus" label="Attendance" defaultValue={editingParticipant.attendanceStatus}>
-                <option value="TRAINING_PRESENT">Present</option>
-                <option value="TRAINING_ABSENT">Absent</option>
-            </Select>
-            <Input type="number" name="assessmentScore" label="Assessment Score (%)" min="1" max="100" onKeyDown={(e) => e.key === '-' && e.preventDefault()} defaultValue={editingParticipant.assessmentScore} />
-            <div className="flex items-center gap-2">
-              <input type="checkbox" name="certificateIssued" id="certificateIssued" defaultChecked={editingParticipant.certificateIssued} />
-              <label htmlFor="certificateIssued" className="text-sm">Certificate Issued</label>
-            </div>
-            <hr className="my-4 dark:border-gray-800" />
-            <Input type="number" name="feedbackRating" label="Feedback Rating (1-5)" min="1" max="5" onKeyDown={(e) => e.key === '-' && e.preventDefault()} defaultValue={editingParticipant.feedbackRating} />
-            <Input name="feedbackComments" label="Feedback Comments" defaultValue={editingParticipant.feedbackComments} />
-
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setEditingParticipant(null)}>Cancel</Button>
-              <Button type="submit" disabled={updateParticipantMutation.isPending}>Save Changes</Button>
-            </div>
-          </form>
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const feedbackData: any = {};
+              
+              if (isAdminOrHR) {
+                const tr = formData.get('trainerFeedbackRating');
+                if (tr) feedbackData.trainerFeedbackRating = Number(tr);
+                feedbackData.trainerFeedbackComments = formData.get('trainerFeedbackComments') || undefined;
+              } else {
+                const fr = formData.get('feedbackRating');
+                if (fr) feedbackData.feedbackRating = Number(fr);
+                feedbackData.feedbackComments = formData.get('feedbackComments') || undefined;
+              }
+  
+              updateParticipantMutation.mutate({
+                trainingId: selectedTraining.id,
+                employeeId: editingParticipant.employeeId,
+                assessmentData: undefined,
+                feedbackData
+              });
+            }} className="space-y-4">
+              
+              {isAdminOrHR ? (
+                <>
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg space-y-4 mb-6">
+                    <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-200">Trainer Feedback (You)</h4>
+                    <Input type="number" name="trainerFeedbackRating" label="Trainer Feedback Rating (1-5)" min="1" max="5" onKeyDown={(e) => e.key === '-' && e.preventDefault()} defaultValue={editingParticipant.trainerFeedbackRating} />
+                    <Input name="trainerFeedbackComments" label="Trainer Feedback Comments" defaultValue={editingParticipant.trainerFeedbackComments} />
+                  </div>
+                  
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg space-y-4 opacity-70">
+                    <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-200">Trainee Feedback</h4>
+                    <Input type="number" disabled label="Trainee Feedback Rating (1-5)" defaultValue={editingParticipant.feedbackRating} />
+                    <Input disabled label="Trainee Feedback Comments" defaultValue={editingParticipant.feedbackComments} />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg space-y-4 mb-6">
+                    <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-200">Trainee Feedback (You)</h4>
+                    <Input type="number" name="feedbackRating" label="Feedback Rating (1-5)" min="1" max="5" onKeyDown={(e) => e.key === '-' && e.preventDefault()} defaultValue={editingParticipant.feedbackRating} />
+                    <Input name="feedbackComments" label="Feedback Comments" defaultValue={editingParticipant.feedbackComments} />
+                  </div>
+                  
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg space-y-4 opacity-70">
+                    <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-200">Trainer Feedback</h4>
+                    <Input type="number" disabled label="Trainer Feedback Rating (1-5)" defaultValue={editingParticipant.trainerFeedbackRating} />
+                    <Input disabled label="Trainer Feedback Comments" defaultValue={editingParticipant.trainerFeedbackComments} />
+                  </div>
+                </>
+              )}
+  
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => setEditingParticipant(null)}>Cancel</Button>
+                <Button type="submit" disabled={updateParticipantMutation.isPending}>Save Changes</Button>
+              </div>
+            </form>
         </Modal>
       )}
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -7,7 +7,7 @@ export default function NotFoundPage() {
 
   return (
     <section className="flex min-h-[60vh] items-center justify-center" aria-labelledby="not-found-title">
-      <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-slate-700 dark:bg-gray-900 sm:p-12">
+      <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-surface p-8 text-center shadow-sm dark:border-slate-700  sm:p-12">
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-accent-500">404</p>
         <h1 id="not-found-title" className="mt-3 text-3xl font-bold text-navy-900 dark:text-white">
           Page not found
@@ -29,3 +29,4 @@ export default function NotFoundPage() {
     </section>
   );
 }
+

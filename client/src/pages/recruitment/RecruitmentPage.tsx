@@ -10,7 +10,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { Plus, Briefcase, Users, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { Plus, Briefcase, Users, ChevronLeft, ChevronRight, Download, Search, PhoneCall, UserCheck, Award, TrendingUp, Calendar, Clock, MapPin, CheckCircle2, ArrowRight } from 'lucide-react';
 import { KanbanBoard } from './KanbanBoard';
 
 export default function RecruitmentPage() {
@@ -23,7 +23,7 @@ export default function RecruitmentPage() {
   const [selectedReq, setSelectedReq] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
   const [selectedBoardReqId, setSelectedBoardReqId] = useState<string | null>(null);
-
+  
   const { data: deptData } = useQuery({
     queryKey: ['departments'],
     queryFn: departmentsApi.getAll,
@@ -94,7 +94,7 @@ export default function RecruitmentPage() {
     if (status === 'SELECTED') return 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400';
     if (status === 'OFFER') return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
     if (status === 'JOINED_REJECTED') return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400';
-    return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+    return 'bg-gray-100 text-gray-800 bg-surface dark:text-gray-300';
   };
 
   const handleSubmitReq = (e: React.FormEvent<HTMLFormElement>) => {
@@ -128,6 +128,7 @@ export default function RecruitmentPage() {
 
       <div className="animate-in fade-in flex-1 min-h-0 h-full">
         {selectedReq ? (
+
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -148,16 +149,16 @@ export default function RecruitmentPage() {
             {isCandidatesLoading ? (
               <div className="py-12"><LoadingSpinner /></div>
             ) : (
-              <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
+              <div className="bg-surface rounded-xl shadow-sm border border-slate-border overflow-hidden">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500">
+                  <thead className="bg-surface text-gray-500">
                     <tr>
                       <th className="px-6 py-4 font-medium">Candidate Name</th>
                       <th className="px-6 py-4 font-medium">Email</th>
                       <th className="px-6 py-4 font-medium">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  <tbody className="divide-y divide-slate-border">
                     {candidatesData?.map((c: any) => (
                       <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                         <td className="px-6 py-4 font-medium text-navy-900 dark:text-white">{c.candidateName}</td>
@@ -181,7 +182,7 @@ export default function RecruitmentPage() {
               Tap a requisition to open its pipeline. Key status details stay visible on this screen.
             </p>
             {data.length === 0 ? (
-              <div className="flex min-h-48 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white px-6 text-center text-gray-600 dark:border-slate-700 dark:bg-gray-900 dark:text-gray-400">
+              <div className="flex min-h-48 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-surface px-6 text-center text-gray-600 dark:border-slate-700  dark:text-gray-400">
                 No requisitions found.
               </div>
             ) : data.map((req: any) => (
@@ -197,7 +198,7 @@ export default function RecruitmentPage() {
                     setViewMode('board');
                   }
                 }}
-                className="group flex cursor-pointer flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition duration-200 hover:border-slate-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:border-slate-700 dark:bg-gray-900 dark:hover:border-slate-600 md:grid md:grid-cols-[minmax(0,1fr)_15rem_auto] md:items-center md:gap-6 md:p-5"
+                className="group flex cursor-pointer flex-col gap-4 rounded-xl border border-slate-200 bg-surface p-4 shadow-sm transition duration-200 hover:border-slate-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:border-slate-700  dark:hover:border-slate-600 md:grid md:grid-cols-[minmax(0,1fr)_15rem_auto] md:items-center md:gap-6 md:p-5"
                 aria-label={`Open pipeline for ${req.positionTitle}`}
               >
                 <div className="flex min-w-0 items-start gap-4">
@@ -253,7 +254,7 @@ export default function RecruitmentPage() {
           <Input name="positionTitle" label="Job Title" placeholder="e.g. Senior Frontend Engineer" required />
           <div className="flex flex-col">
             <label htmlFor="requisition-department" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Department</label>
-            <Select id="requisition-department" name="departmentId" required className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600">
+            <Select id="requisition-department" name="departmentId" required className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-surface text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600">
               <option value="">Select Department...</option>
               {deptData?.data?.map((dept: any) => (
                 <option key={dept.id} value={dept.id}>{dept.name}</option>
@@ -282,17 +283,25 @@ export default function RecruitmentPage() {
             </div>
             
             <div className="grid grid-cols-2 gap-4 mt-6">
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+              <div className="bg-surface rounded-lg p-3">
                 <span className="text-xs text-gray-500 uppercase font-semibold">Vacancies</span>
                 <p className="text-lg font-bold text-navy-900 dark:text-white">{selectedReq?.numberOfVacancies}</p>
               </div>
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+              <div className="bg-surface rounded-lg p-3">
                 <span className="text-xs text-gray-500 uppercase font-semibold">Current Stage</span>
                 <p className="text-lg font-bold text-navy-900 dark:text-white">{selectedReq?.status?.replace('_', ' ')}</p>
               </div>
             </div>
          </div>
       </Modal>
+
+      
     </div>
   );
 }
+
+
+
+
+
+

@@ -1,8 +1,23 @@
 import { z } from 'zod';
 
+export const performanceMetricKeys = [
+  'WORK_QUALITY',
+  'PRODUCTIVITY_RELIABILITY',
+  'COMMUNICATION',
+  'COLLABORATION',
+  'OWNERSHIP_INITIATIVE',
+  'PROFESSIONAL_CONDUCT',
+  'LEARNING_ADAPTABILITY'
+] as const;
+
+const metricRatingsSchema = z.record(
+  z.enum(performanceMetricKeys),
+  z.coerce.number().min(1).max(5)
+);
+
 export const createPerformanceReviewSchema = z.object({
   employeeId: z.string(),
-  reviewPeriod: z.enum(['QUARTERLY', 'HALF_YEARLY', 'ANNUAL']),
+  reviewPeriod: z.enum(['MONTHLY', 'QUARTERLY', 'HALF_YEARLY', 'ANNUAL']),
   kraDescription: z.string().nullish(),
   kpiWeightage: z.coerce.number().nullish(),
   goalDescription: z.string().nullish(),
@@ -10,7 +25,7 @@ export const createPerformanceReviewSchema = z.object({
 });
 
 export const updatePerformanceReviewSchema = z.object({
-  reviewPeriod: z.enum(['QUARTERLY', 'HALF_YEARLY', 'ANNUAL']),
+  reviewPeriod: z.enum(['MONTHLY', 'QUARTERLY', 'HALF_YEARLY', 'ANNUAL']),
   kraDescription: z.string().nullish(),
   kpiWeightage: z.coerce.number().nullish(),
   goalDescription: z.string().nullish(),
@@ -19,6 +34,7 @@ export const updatePerformanceReviewSchema = z.object({
 
 export const selfAppraisalSchema = z.object({
   achievedValue: z.string().nullish(),
+  metricRatings: metricRatingsSchema,
   selfRating: z.coerce.number().min(1).max(5).nullish(),
   employeeComments: z.string().nullish(),
   strengths: z.string().nullish(),
@@ -27,6 +43,7 @@ export const selfAppraisalSchema = z.object({
 });
 
 export const managerAppraisalSchema = z.object({
+  metricRatings: metricRatingsSchema,
   managerRating: z.coerce.number().min(1).max(5).nullish(),
   managerComments: z.string().nullish(),
   promotionRecommendation: z.boolean().nullish(),
@@ -34,6 +51,7 @@ export const managerAppraisalSchema = z.object({
 });
 
 export const hrAppraisalSchema = z.object({
+  metricRatings: metricRatingsSchema,
   hrRating: z.coerce.number().min(1).max(5).nullish(),
   hrComments: z.string().nullish()
 });

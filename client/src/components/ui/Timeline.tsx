@@ -50,7 +50,7 @@ function TimelineItemCard({ item, index }: { item: TimelineItem; index: number }
       {/* Icon */}
       <div
         className={cn(
-          "flex items-center justify-center w-10 h-10 rounded-full border-4 border-white dark:border-gray-950 bg-white dark:bg-gray-900 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2",
+          "flex items-center justify-center w-10 h-10 rounded-full border-4 border-white dark:border-gray-950 bg-surface shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2",
           isCompleted ? "text-green-500 border-green-100 dark:border-green-900" : isCurrent ? "text-blue-500 border-blue-100 dark:border-blue-900" : "text-gray-400 border-gray-100 dark:border-gray-800"
         )}
       >
@@ -58,14 +58,14 @@ function TimelineItemCard({ item, index }: { item: TimelineItem; index: number }
       </div>
 
       {/* Content */}
-      <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-gray-900 shadow-sm transition-all hover:shadow-md">
+      <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-surface shadow-sm transition-all hover:shadow-md">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2">
           <div className="flex items-center gap-2">
             <h3 className={cn("font-bold text-lg", isCompleted ? "text-slate-900 dark:text-white" : "text-slate-700 dark:text-slate-300")}>
               {item.title}
             </h3>
             {item.category && (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-surface text-slate-500 dark:text-slate-400">
                 {item.category}
               </span>
             )}
@@ -90,3 +90,6 @@ function TimelineItemCard({ item, index }: { item: TimelineItem; index: number }
     </motion.div>
   );
 }
+
+
+

@@ -17,6 +17,7 @@ import { Select } from '@/components/ui/Select';
 import { Plane, Plus, FileText, CheckCircle2, Download, IndianRupee, Receipt } from 'lucide-react';
 import apiClient from '@/api/client'; // Need this for custom expense put
 import { PageHeader } from '@/components/ui/PageHeader';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 export default function TravelListPage() {
   const { user } = useAuth();
@@ -246,15 +247,15 @@ export default function TravelListPage() {
 
       {isAdminOrHR && data && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
+          <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5">
             <p className="text-sm text-text-muted mb-1 font-medium">Pending Approval</p>
             <p className="text-2xl font-bold text-text-heading">{data.filter((d:any) => d.approvalStatus === 'APPROVAL_PENDING').length}</p>
           </div>
-          <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
+          <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5">
             <p className="text-sm text-text-muted mb-1 font-medium">Awaiting Settlement</p>
             <p className="text-2xl font-bold text-text-heading">{data.filter((d:any) => d.settlementStatus === 'SUBMITTED').length}</p>
           </div>
-          <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
+          <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5">
             <p className="text-sm text-text-muted mb-1 font-medium">Total Settled Expenses</p>
             <p className="text-2xl font-bold text-text-heading">
               ₹{data.filter((d:any) => d.settlementStatus === 'SETTLED').reduce((sum:number, d:any) => sum + Number(d.totalExpenseClaimed || 0), 0)}
@@ -290,13 +291,13 @@ export default function TravelListPage() {
           <Input name="destination" label="Destination" placeholder="e.g. New York, NY" required />
           <Input name="travelPurpose" label="Business Purpose" required />
           <div className="grid grid-cols-2 gap-4">
-            <Input name="startDate" label="Start Date" type="date" required />
-            <Input name="endDate" label="End Date" type="date" required />
+            <DatePicker name="startDate" label="Start Date" type="date" required />
+            <DatePicker name="endDate" label="End Date" type="date" required />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col">
               <label htmlFor="travel-mode" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Travel Mode</label>
-              <Select id="travel-mode" name="travelMode" className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600">
+              <Select id="travel-mode" name="travelMode" className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600">
                 <option value="AIR">Flight (Air)</option>
                 <option value="TRAIN">Train</option>
                 <option value="ROAD">Bus / Cab (Road)</option>
@@ -321,7 +322,7 @@ export default function TravelListPage() {
         <div className="space-y-4">
           <p className="text-sm text-gray-600">Please review this travel request. Specify the approved advance amount if applicable.</p>
           
-          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+          <div className="bg-surface p-4 rounded-lg">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div><span className="text-gray-500">Employee:</span> <span className="font-medium text-text-heading">{selectedRequest?.employee?.firstName} {selectedRequest?.employee?.lastName}</span></div>
               <div><span className="text-gray-500">Destination:</span> <span className="font-medium text-text-heading">{selectedRequest?.destination}</span></div>
@@ -382,7 +383,7 @@ export default function TravelListPage() {
         <div className="space-y-4">
           <p className="text-sm text-gray-600">Verify the submitted expenses and bills. Finalize the settlement.</p>
           
-          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-3">
+          <div className="bg-surface p-4 rounded-lg space-y-3">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div><span className="text-gray-500">Employee:</span> <span className="font-medium text-text-heading">{selectedRequest?.employee?.firstName} {selectedRequest?.employee?.lastName}</span></div>
               <div><span className="text-gray-500 block mb-1">Attached Files:</span> 
@@ -396,10 +397,10 @@ export default function TravelListPage() {
               </div>
             </div>
             
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-3 grid grid-cols-2 gap-2 text-sm">
+            <div className="border-t border-slate-border pt-3 grid grid-cols-2 gap-2 text-sm">
               <div className="flex justify-between col-span-2"><span className="text-gray-500">Total Expenses Claimed:</span> <span className="font-medium">₹{selectedRequest?.totalExpenseClaimed || 0}</span></div>
               <div className="flex justify-between col-span-2"><span className="text-gray-500">Advance Approved:</span> <span className="font-medium">₹{selectedRequest?.advanceApproved || 0}</span></div>
-              <div className="flex justify-between col-span-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-base font-bold text-text-heading">
+              <div className="flex justify-between col-span-2 pt-2 border-t border-slate-border text-base font-bold text-text-heading">
                 <span>Net Amount (Payable/Recoverable):</span> 
                 <span>₹{(selectedRequest?.totalExpenseClaimed || 0) - (selectedRequest?.advanceApproved || 0)}</span>
               </div>
@@ -422,3 +423,7 @@ export default function TravelListPage() {
     </div>
   );
 }
+
+
+
+

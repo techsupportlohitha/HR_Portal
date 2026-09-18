@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const applyLeaveSchema = z.object({
-  leaveType: z.enum(['CASUAL', 'SICK', 'EARNED', 'UNPAID', 'MATERNITY', 'PATERNITY']),
+  leaveType: z.enum(['PERSONAL', 'ON_DUTY', 'CASUAL', 'SICK', 'EARNED', 'UNPAID', 'MATERNITY', 'PATERNITY']),
   startDate: z.string().min(1, 'Start date is required'),
   endDate: z.string().min(1, 'End date is required'),
   reason: z.string().min(1, 'Reason is required').max(500, 'Reason must be under 500 characters'),

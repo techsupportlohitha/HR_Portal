@@ -11,6 +11,7 @@ import { Search, Shield, Users, Lock, CheckCircle, XCircle } from 'lucide-react'
 import toast from 'react-hot-toast';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useDebounce } from '@/hooks/useDebounce';
+import { Select } from '@/components/ui/Select';
 
 const ROLES = ['ADMIN', 'HR', 'HR_EXECUTIVE', 'MANAGER', 'EMPLOYEE'];
 const ROLE_LABELS: Record<string, string> = {
@@ -39,7 +40,7 @@ function PermissionToggle({ checked, disabled, onChange }: { checked: boolean; d
           ? 'bg-primary-100 border-primary-300 dark:bg-primary-900/50 dark:border-primary-800 cursor-not-allowed'
           : checked
           ? 'bg-primary-500 border-primary-500 hover:bg-primary-600'
-          : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-primary-400'
+          : 'bg-surface border-gray-300 dark:border-gray-600 hover:border-primary-400'
       }`}
     >
       {(checked || disabled) && <CheckCircle className={`w-3 h-3 ${disabled ? 'text-primary-500 dark:text-primary-400' : 'text-white'}`} />}
@@ -87,11 +88,11 @@ function PermissionsMatrix() {
       <table className="w-full text-xs border-collapse">
         <thead>
           <tr>
-            <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 sticky left-0 z-10 min-w-[180px]">
+            <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 bg-surface sticky left-0 z-10 min-w-[180px]">
               Module
             </th>
             {ROLES.map(role => (
-              <th key={role} colSpan={PERMISSION_FLAGS.length} className="py-3 px-2 text-center font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 border-l border-slate-200 dark:border-slate-700">
+              <th key={role} colSpan={PERMISSION_FLAGS.length} className="py-3 px-2 text-center font-semibold text-gray-700 dark:text-gray-300 bg-surface border-l border-slate-border">
                 <div className="flex items-center justify-center gap-1">
                   {role === 'ADMIN' && <Lock className="w-3 h-3 text-primary-500" />}
                   {ROLE_LABELS[role]}
@@ -100,10 +101,10 @@ function PermissionsMatrix() {
             ))}
           </tr>
           <tr>
-            <th className="sticky left-0 z-10 bg-gray-50 dark:bg-gray-800 border-b border-slate-200 dark:border-slate-700" />
+            <th className="sticky left-0 z-10 bg-surface border-b border-slate-border" />
             {ROLES.flatMap(role =>
               PERMISSION_FLAGS.map(flag => (
-                <th key={`${role}-${flag.key}`} className="py-2 px-1 text-center text-gray-400 font-normal border-b border-slate-200 dark:border-slate-700 whitespace-nowrap">
+                <th key={`${role}-${flag.key}`} className="py-2 px-1 text-center text-gray-400 font-normal border-b border-slate-border whitespace-nowrap">
                   {flag.label}
                 </th>
               ))
@@ -112,8 +113,8 @@ function PermissionsMatrix() {
         </thead>
         <tbody>
           {modules.map((mod: any, idx: number) => (
-            <tr key={mod.key} className={idx % 2 === 0 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-gray-50/80 dark:bg-gray-800/50'}>
-              <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200 sticky left-0 bg-inherit border-r border-slate-200 dark:border-slate-700">
+            <tr key={mod.key} className={idx % 2 === 0 ? 'bg-surface' : 'bg-gray-50/80 bg-surface/50'}>
+              <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200 sticky left-0 bg-inherit border-r border-slate-border">
                 {mod.label}
               </td>
               {ROLES.flatMap(role => {
@@ -189,35 +190,35 @@ function UserAccountsTab() {
             placeholder="Search users..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-gray-900 border border-slate-300 dark:border-slate-600 shadow-sm rounded-lg text-sm focus:outline-none"
+            className="w-full pl-9 pr-4 py-2 bg-surface border border-slate-300 dark:border-slate-600 shadow-sm rounded-lg text-sm focus:outline-none"
           />
         </div>
-        <select
+        <Select
           aria-label="Filter users by role"
           value={roleFilter}
           onChange={e => setRoleFilter(e.target.value)}
-          className="py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none"
+          className="py-2 px-3 bg-surface border border-slate-border rounded-lg text-sm focus:outline-none"
         >
           <option value="">All Roles</option>
           {ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
-        </select>
+        </Select>
       </div>
 
       {isLoading ? <div className="py-12"><LoadingSpinner /></div> : (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="bg-surface rounded-xl border border-slate-border overflow-hidden">
           <p className="border-b border-gray-100 px-4 py-2 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400 sm:hidden">
             Scroll horizontally to reach every account action.
           </p>
           <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent-500" tabIndex={0} role="region" aria-label="User role table. Scroll horizontally for more columns.">
-          <table className="w-full min-w-[42rem] divide-y divide-slate-100 dark:divide-slate-700">
-            <thead className="bg-transparent dark:bg-transparent border-b border-slate-200 dark:border-slate-700">
+          <table className="w-full min-w-[42rem] divide-y divide-slate-border">
+            <thead className="bg-transparent dark:bg-transparent border-b border-slate-border">
               <tr>
                 {['User', 'Role', 'Status', 'Last Login', 'Actions'].map(h => (
                   <th key={h} className={`${h === 'Last Login' ? 'hidden md:table-cell ' : ''}px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider`}>{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+            <tbody className="divide-y divide-slate-border">
               {(users || []).map((u: any) => (
                 <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                   <td className="px-4 py-3">
@@ -237,15 +238,15 @@ function UserAccountsTab() {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <select
+                    <Select
                       aria-label={`Change role for ${u.email}`}
                       value={u.role}
                       onChange={e => roleMutation.mutate({ id: u.id, role: e.target.value })}
                       disabled={u.role === 'ADMIN'}
-                      className="text-xs py-1 px-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="text-xs py-1 px-2 rounded border border-gray-300 dark:border-gray-600 bg-surface focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       {ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
-                    </select>
+                    </Select>
                   </td>
                   <td className="px-4 py-3">
                     <button
@@ -317,12 +318,12 @@ export default function RoleManagementPage() {
       />
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-surface rounded-lg p-1 w-fit">
         <button
           onClick={() => setActiveTab('users')}
           className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
             activeTab === 'users'
-              ? 'bg-white dark:bg-gray-900 text-navy-900 dark:text-white shadow-sm'
+              ? 'bg-surface text-navy-900 dark:text-white shadow-sm'
               : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
           }`}
         >
@@ -332,7 +333,7 @@ export default function RoleManagementPage() {
           onClick={() => setActiveTab('permissions')}
           className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
             activeTab === 'permissions'
-              ? 'bg-white dark:bg-gray-900 text-navy-900 dark:text-white shadow-sm'
+              ? 'bg-surface text-navy-900 dark:text-white shadow-sm'
               : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
           }`}
         >
@@ -346,7 +347,7 @@ export default function RoleManagementPage() {
             <Lock className="w-4 h-4 flex-shrink-0" />
             ADMIN role permissions are locked (always full access). Changes to other roles take effect on the user&apos;s next page load.
           </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="bg-surface rounded-xl border border-slate-border overflow-hidden">
               <PermissionsMatrix />
           </div>
         </div>
@@ -354,3 +355,14 @@ export default function RoleManagementPage() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+

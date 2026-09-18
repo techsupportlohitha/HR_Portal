@@ -4,6 +4,16 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+const metricRatings = {
+  WORK_QUALITY: 4,
+  PRODUCTIVITY_RELIABILITY: 4,
+  COMMUNICATION: 4,
+  COLLABORATION: 4,
+  OWNERSHIP_INITIATIVE: 4,
+  PROFESSIONAL_CONDUCT: 4,
+  LEARNING_ADAPTABILITY: 4
+};
+
 describe('Gate 3 Talent Workflows', () => {
   let adminToken: string;
   let hrToken: string;
@@ -45,10 +55,10 @@ describe('Gate 3 Talent Workflows', () => {
 
   afterAll(async () => {
     // Cleanup generated data
-    await prisma.candidate.deleteMany({ where: { email: 'candidate@test.com' } });
+    if (candidateId) await prisma.candidate.deleteMany({ where: { id: candidateId } });
     if (requisitionId) await prisma.requisition.deleteMany({ where: { id: requisitionId } });
     if (reviewId) await prisma.performanceReview.deleteMany({ where: { id: reviewId } });
-    await prisma.trainingParticipant.deleteMany({});
+    if (trainingId) await prisma.trainingParticipant.deleteMany({ where: { trainingId } });
     if (trainingId) await prisma.training.deleteMany({ where: { id: trainingId } });
     
     await prisma.$disconnect();
@@ -130,7 +140,7 @@ describe('Gate 3 Talent Workflows', () => {
 
     it('Manager cannot self-appraise the employee', async () => {
       const res = await request(app).put(`/api/performance/${reviewId}/self-appraisal`).set('Authorization', `Bearer ${managerToken}`).send({
-        selfRating: 4
+        metricRatings
       });
       expect(res.status).toBe(400);
       expect(res.body.message).toMatch(/only submit self appraisal for your own review/i);
@@ -138,7 +148,7 @@ describe('Gate 3 Talent Workflows', () => {
 
     it('Employee submits self appraisal', async () => {
       const res = await request(app).put(`/api/performance/${reviewId}/self-appraisal`).set('Authorization', `Bearer ${empToken}`).send({
-        selfRating: 4,
+        metricRatings,
         employeeComments: 'I did great'
       });
       expect(res.status).toBe(200);
@@ -146,7 +156,7 @@ describe('Gate 3 Talent Workflows', () => {
 
     it('Employee cannot submit manager appraisal', async () => {
       const res = await request(app).put(`/api/performance/${reviewId}/manager-appraisal`).set('Authorization', `Bearer ${empToken}`).send({
-        managerRating: 5
+        metricRatings
       });
       expect(res.status).toBe(400);
       expect(res.body.message).toMatch(/Only the direct manager/i);
@@ -154,18 +164,28 @@ describe('Gate 3 Talent Workflows', () => {
 
     it('Manager submits manager appraisal', async () => {
       const res = await request(app).put(`/api/performance/${reviewId}/manager-appraisal`).set('Authorization', `Bearer ${managerToken}`).send({
-        managerRating: 5,
+        metricRatings,
         managerComments: 'Excellent work'
       });
       expect(res.status).toBe(200);
     });
 
-    it('HR finalizes the appraisal', async () => {
+    it('HR submits their appraisal', async () => {
       const res = await request(app).put(`/api/performance/${reviewId}/hr-appraisal`).set('Authorization', `Bearer ${hrToken}`).send({
-        finalApprovalStatus: 'APPROVAL_APPROVED',
-        finalRating: 5
+        metricRatings,
+        hrComments: 'Ready for final approval'
       });
       expect(res.status).toBe(200);
+      expect(res.body.data.status).toBe('FINAL_APPROVAL');
+    });
+
+    it('HR gives final approval', async () => {
+      const res = await request(app).put(`/api/performance/${reviewId}/final-approval`).set('Authorization', `Bearer ${hrToken}`).send({
+        finalApprovalStatus: 'APPROVAL_APPROVED'
+      });
+      expect(res.status).toBe(200);
+      expect(res.body.data.status).toBe('COMPLETED');
+      expect(Number(res.body.data.finalRating)).toBe(4);
     });
   });
 
@@ -193,11 +213,27 @@ describe('Gate 3 Talent Workflows', () => {
       expect(res.body.message).toMatch(/only submit feedback for your own participation/i);
     });
 
+    it('HR submits trainer feedback', async () => {
+      const res = await request(app).put(`/api/training/${trainingId}/participants/${empEmployeeId}/feedback`).set('Authorization', `Bearer ${hrToken}`).send({
+        trainerFeedbackRating: 5,
+        trainerFeedbackComments: 'Strong participation'
+      });
+      expect(res.status).toBe(200);
+    });
+
     it('Employee submits feedback', async () => {
       const res = await request(app).put(`/api/training/${trainingId}/participants/${empEmployeeId}/feedback`).set('Authorization', `Bearer ${empToken}`).send({
         feedbackRating: 4
       });
       expect(res.status).toBe(200);
+    });
+
+    it('Employee cannot submit trainer feedback', async () => {
+      const res = await request(app).put(`/api/training/${trainingId}/participants/${empEmployeeId}/feedback`).set('Authorization', `Bearer ${empToken}`).send({
+        trainerFeedbackRating: 5
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/only hr or admin can submit trainer feedback/i);
     });
 
     it('Employee cannot record their own assessment', async () => {

@@ -21,23 +21,24 @@ describe('Gate 4 Dashboard, Attrition, and Reports', () => {
     it('Admin can get dashboard stats', async () => {
       const res = await request(app).get('/api/dashboard/stats').set('Authorization', `Bearer ${adminToken}`);
       expect(res.status).toBe(200);
-      expect(res.body.data).toHaveProperty('totalEmployees');
-      expect(res.body.data).toHaveProperty('pendingTravel');
-      expect(res.body.data).toHaveProperty('totalAssets');
+      expect(res.body.data).toHaveProperty('headline.activeEmployees');
+      expect(res.body.data).toHaveProperty('moduleOverview.travel.pendingApprovals');
+      expect(res.body.data).toHaveProperty('moduleOverview.assets.total');
     });
 
     it('Employee can get their own scoped stats', async () => {
       const res = await request(app).get('/api/dashboard/stats').set('Authorization', `Bearer ${empToken}`);
       expect(res.status).toBe(200);
-      expect(res.body.data).toHaveProperty('totalEmployees');
+      expect(res.body.data).toHaveProperty('headline.activeEmployees');
+      expect(res.body.data).toHaveProperty('moduleOverview');
     });
 
     it('Dashboard totals are non-negative numbers', async () => {
       const res = await request(app).get('/api/dashboard/stats').set('Authorization', `Bearer ${adminToken}`);
       const data = res.body.data;
-      expect(data.totalEmployees).toBeGreaterThanOrEqual(0);
-      expect(data.pendingTravel).toBeGreaterThanOrEqual(0);
-      expect(data.pendingLeaves).toBeGreaterThanOrEqual(0);
+      expect(data.headline.activeEmployees).toBeGreaterThanOrEqual(0);
+      expect(data.moduleOverview.travel.pendingApprovals).toBeGreaterThanOrEqual(0);
+      expect(data.moduleOverview.leave.pendingApprovals).toBeGreaterThanOrEqual(0);
     });
   });
 

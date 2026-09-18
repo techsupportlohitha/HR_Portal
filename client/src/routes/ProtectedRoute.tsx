@@ -12,7 +12,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) 
   const { user, token, isLoading } = useAuth();
 
   if (isLoading) {
-    return <div className="h-screen w-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900"><LoadingSpinner /></div>;
+    return <div className="h-screen w-screen flex items-center justify-center bg-surface"><LoadingSpinner /></div>;
   }
 
   if (!token || !user) {
@@ -25,3 +25,5 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) 
 
   return <Outlet />;
 };
+
+

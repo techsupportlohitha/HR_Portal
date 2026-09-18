@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { recruitmentApi } from '@/api/recruitment';
+import { employeesApi } from '@/api/employees';
 
 interface ScheduleInterviewModalProps {
   isOpen: boolean;
@@ -16,6 +17,13 @@ export function ScheduleInterviewModal({ isOpen, onClose }: ScheduleInterviewMod
   const [candidateName, setCandidateName] = useState('');
   const [requisitionId, setRequisitionId] = useState('');
   const [interviewDate, setInterviewDate] = useState('');
+  const [interviewerId, setInterviewerId] = useState('');
+
+  const { data: empData } = useQuery({
+    queryKey: ['employees'],
+    queryFn: () => employeesApi.getAll(),
+    enabled: isOpen
+  });
 
   const { data: reqData } = useQuery({
     queryKey: ['requisitions'],
@@ -27,10 +35,12 @@ export function ScheduleInterviewModal({ isOpen, onClose }: ScheduleInterviewMod
     mutationFn: recruitmentApi.createCandidate,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['requisitions'] });
       onClose();
       setCandidateName('');
       setRequisitionId('');
       setInterviewDate('');
+      setInterviewerId('');
     },
   });
 
@@ -42,6 +52,7 @@ export function ScheduleInterviewModal({ isOpen, onClose }: ScheduleInterviewMod
       candidateName,
       requisitionId,
       interviewDate: new Date(interviewDate).toISOString(),
+      interviewerId: interviewerId || undefined,
       screeningStatus: 'SHORTLISTED', // Auto-shortlist for interview
     });
   };
@@ -66,6 +77,19 @@ export function ScheduleInterviewModal({ isOpen, onClose }: ScheduleInterviewMod
           {reqData?.data?.map((r: any) => (
             <option key={r.id} value={r.id}>
               {r.positionTitle}
+            </option>
+          ))}
+        </Select>
+        <Select
+          label="Interviewer"
+          value={interviewerId}
+          onChange={(e) => setInterviewerId(e.target.value)}
+          required
+        >
+          <option value="">Select an interviewer...</option>
+          {(empData as any)?.data?.filter((e: any) => e.isActive).map((emp: any) => (
+            <option key={emp.id} value={emp.id}>
+              {emp.firstName} {emp.lastName}
             </option>
           ))}
         </Select>

@@ -51,9 +51,9 @@ export class LeaveController {
     }
   }
 
-  async getPendingApprovals(_req: Request, res: Response): Promise<void> {
+  async getPendingApprovals(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const leaves = await leaveService.getPendingApprovals();
+      const leaves = await leaveService.getPendingApprovals(req.user);
       sendSuccess(res, leaves, 'Pending approvals retrieved');
     } catch (error: any) {
       sendError(res, error.message);

@@ -15,6 +15,7 @@ import { FileUpload } from '@/components/ui/FileUpload';
 import { Select } from '@/components/ui/Select';
 import { Wallet, Plus, CheckCircle2, Download, XCircle, IndianRupee } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 export default function OfficeExpensesPage() {
   const { user } = useAuth();
@@ -179,15 +180,15 @@ export default function OfficeExpensesPage() {
 
       {isAdminOrHR && data && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
+          <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5">
             <p className="text-sm text-text-muted mb-1 font-medium">Pending Approval</p>
             <p className="text-2xl font-bold text-text-heading">{data.filter((d:any) => d.status === 'PENDING').length}</p>
           </div>
-          <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
+          <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5">
             <p className="text-sm text-text-muted mb-1 font-medium">Awaiting Payout</p>
             <p className="text-2xl font-bold text-text-heading">{data.filter((d:any) => d.status === 'APPROVED').length}</p>
           </div>
-          <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
+          <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5">
             <p className="text-sm text-text-muted mb-1 font-medium">Total Paid (All Time)</p>
             <p className="text-2xl font-bold text-text-heading">
               ₹{data.filter((d:any) => d.status === 'PAID').reduce((sum:number, d:any) => sum + Number(d.amount), 0)}
@@ -220,10 +221,10 @@ export default function OfficeExpensesPage() {
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Submit Office Expense">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <Input name="expenseDate" label="Date incurred" type="date" required defaultValue={new Date().toISOString().split('T')[0]} />
+            <DatePicker name="expenseDate" label="Date incurred" type="date" required defaultValue={new Date().toISOString().split('T')[0]} />
             <div className="flex flex-col">
               <label htmlFor="office-expense-category" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
-              <Select id="office-expense-category" name="category" className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600">
+              <Select id="office-expense-category" name="category" className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600">
                 <option value="STATIONERY">Stationery</option>
                 <option value="FOOD_SNACKS">Food & Snacks</option>
                 <option value="MAINTENANCE">Maintenance</option>
@@ -250,3 +251,4 @@ export default function OfficeExpensesPage() {
     </div>
   );
 }
+
