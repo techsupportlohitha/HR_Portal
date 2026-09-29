@@ -21,7 +21,7 @@
   --canvas: #F7FAFB;
   --surface: #FFFFFF;
   --tint: #EEF3F5;
-  --border: #D9E3E7;
+  --border: #94a3b8;
 
   --sidebar-bg: #F7FAFB;
   
@@ -54,7 +54,7 @@
   --canvas: #09090b;
   --surface: #121826;
   --tint: #18181b;
-  --border: #27272a;
+  --border: #64748b;
   --sidebar-bg: #09090b;
   --brand-primary: #45A4AC;
   --brand-primary-hover: #70C1C6;
@@ -197,16 +197,23 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
 :root {
@@ -250,4 +257,6 @@ body {
   font-weight: 600;
   margin-bottom: 0.25rem;
 }
+
+
 

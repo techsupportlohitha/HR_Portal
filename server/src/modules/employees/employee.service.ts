@@ -136,33 +136,32 @@ export class EmployeeService {
   }
 
   async create(currentUser: CurrentUser, data: CreateEmployeeInput, reqContext: { ipAddress?: string } = {}) {
-    const employee = await prisma.employee.create({
-      data: {
-        employeeCode: data.employeeCode,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        phone: data.phone,
-        dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
-        gender: data.gender as any,
-        address: data.address,
-        city: data.city,
-        state: data.state,
-        zipCode: data.zipCode,
-        country: data.country,
-        joiningDate: new Date(data.joiningDate),
-        designation: data.designation,
-        salary: data.salary,
-        departmentId: data.departmentId,
-        managerId: data.managerId,
-        status: data.status ? (data.status as any) : undefined,
-        employmentType: data.employmentType as any,
-        location: data.location,
-      },
-      include: {
-        department: { select: { id: true, name: true } },
-      },
-    });
+    const { dateOfBirth, joiningDate, ...restData } = data;
+    
+    let employee;
+    try {
+      employee = await prisma.employee.create({
+        data: {
+          ...restData as any,
+          dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+          joiningDate: new Date(joiningDate),
+        },
+        include: {
+          department: { select: { id: true, name: true } },
+        },
+      });
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        const target = Array.isArray(error.meta?.target) ? error.meta.target.join(',') : (error.meta?.target || '');
+        if (target.includes('email')) {
+          throw new Error('This email address is already in use by another employee.');
+        }
+        if (target.includes('employeeCode')) {
+          throw new Error('This Employee ID is already in use.');
+        }
+      }
+      throw error;
+    }
 
 
     
@@ -232,12 +231,24 @@ export class EmployeeService {
       updateData.managerId = data.managerId || null;
     }
 
-    const employee = await prisma.employee.update({
-      where: { id },
-      data: updateData,
-      include: {
-        department: { select: { id: true, name: true } },
-      },
+    const employee = await prisma.$transaction(async (tx) => {
+      const updatedEmp = await tx.employee.update({
+        where: { id },
+        data: updateData,
+        include: {
+          department: { select: { id: true, name: true } },
+        },
+      });
+
+      // Sync email to user account if it was changed
+      if (data.email && beforeUpdate?.email !== data.email) {
+        await tx.user.updateMany({
+          where: { employeeId: id },
+          data: { email: data.email }
+        });
+      }
+
+      return updatedEmp;
     });
 
     

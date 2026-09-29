@@ -6,16 +6,16 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from 'next-themes';
 
 function App() {
-  return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <BrowserRouter>
-        <AuthProvider>
-          <AppRoutes />
-          <Toaster position="top-right" />
-        </AuthProvider>
-      </BrowserRouter>
-    </ThemeProvider>
-  );
+ return (
+ <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+ <BrowserRouter>
+ <AuthProvider>
+ <AppRoutes />
+ <Toaster position="top-right" />
+ </AuthProvider>
+ </BrowserRouter>
+ </ThemeProvider>
+ );
 }
 
 export default App;

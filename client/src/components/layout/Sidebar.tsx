@@ -3,273 +3,273 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import AnimatedRadio from '@/components/ui/animated-radio';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
-  LayoutDashboard, Users, Laptop, Plane, Briefcase, 
-  Target, ClipboardList, GraduationCap, Files, UserMinus, 
-  Shield, History, ChevronRight, ChevronDown, Building2, CreditCard,
-  ClipboardCheck, Calendar, ChevronsLeft, ChevronsRight, Settings, HelpCircle
+ LayoutDashboard, Users, Laptop, Plane, Briefcase, 
+ Target, ClipboardList, GraduationCap, Files, UserMinus, 
+ Shield, History, ChevronRight, ChevronDown, Building2, CreditCard,
+ ClipboardCheck, Calendar, ChevronsLeft, ChevronsRight, Settings, HelpCircle
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type SidebarNavItem = {
-  name: string;
-  path?: string;
-  icon: LucideIcon;
-  badge?: number;
-  children?: SidebarNavItem[];
+ name: string;
+ path?: string;
+ icon: LucideIcon;
+ badge?: number;
+ children?: SidebarNavItem[];
 };
 
 interface SidebarProps {
-  collapsed?: boolean;
-  onToggleCollapse?: () => void;
+ collapsed?: boolean;
+ onToggleCollapse?: () => void;
 }
 
 export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
-  const { user } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const isAdminOrHR = user?.role === 'ADMIN' || user?.role === 'HR';
-  
-  const [openNavGroups, setOpenNavGroups] = useState<Record<string, boolean>>({
-    'nav-group-leave-requests': true,
-  });
+ const { user } = useAuth();
+ const location = useLocation();
+ const navigate = useNavigate();
+ const isAdminOrHR = user?.role === 'ADMIN' || user?.role === 'HR';
+ 
+ const [openNavGroups, setOpenNavGroups] = useState<Record<string, boolean>>({
+ 'nav-group-leave-requests': true,
+ });
 
-  const toggleNavGroup = (id: string) => {
-    setOpenNavGroups(prev => ({ ...prev, [id]: !prev[id] }));
-  };
+ const toggleNavGroup = (id: string) => {
+ setOpenNavGroups(prev => ({ ...prev, [id]: !prev[id] }));
+ };
 
-  const mainNav: SidebarNavItem[] = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    ...(isAdminOrHR ? [{ name: 'Attrition', path: '/dashboard/attrition', icon: UserMinus }] : []),
-    { name: 'Employees', path: '/employees', icon: Users },
-    ...(isAdminOrHR ? [{ name: 'Recruitment', path: '/recruitment', icon: Briefcase }] : []),
-    {
-      name: 'Leave Requests',
-      icon: Calendar,
-      children: [
-        { name: 'Apply for leave', path: '/leaves', icon: Calendar },
-        { name: 'Leave approval history', path: '/leaves/approvals', icon: History },
-      ],
-    },
-    { name: 'Performance', path: '/performance', icon: Target },
-    { name: 'Training', path: '/training', icon: GraduationCap },
-    { name: 'Assets', path: '/assets', icon: Laptop },
-    { name: 'Travel', path: '/travel', icon: Plane },
-    { name: 'Expenses', path: '/office-expenses', icon: CreditCard },
-    { name: 'Documents', path: '/documents', icon: Files },
-    { name: 'Helpdesk', path: '/requests', icon: HelpCircle },
-  ];
+ const mainNav: SidebarNavItem[] = [
+ { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+ ...(isAdminOrHR ? [{ name: 'Attrition', path: '/dashboard/attrition', icon: UserMinus }] : []),
+ { name: 'Employees', path: '/employees', icon: Users },
+ ...(isAdminOrHR ? [{ name: 'Recruitment', path: '/recruitment', icon: Briefcase }] : []),
+ {
+ name: 'Leave Requests',
+ icon: Calendar,
+ children: [
+ { name: 'Apply for leave', path: '/leaves', icon: Calendar },
+ { name: 'Leave approval history', path: '/leaves/approvals', icon: History },
+ ],
+ },
+ { name: 'Performance', path: '/performance', icon: Target },
+ { name: 'Training', path: '/training', icon: GraduationCap },
+ { name: 'Assets', path: '/assets', icon: Laptop },
+ { name: 'Travel', path: '/travel', icon: Plane },
+ { name: 'Expenses', path: '/office-expenses', icon: CreditCard },
+ { name: 'Documents', path: '/documents', icon: Files },
+ { name: 'Helpdesk', path: '/requests', icon: HelpCircle },
+ ];
 
-  const accountNav: SidebarNavItem[] = [
-    ...(isAdminOrHR ? [
-      { name: 'Role Management', path: '/roles', icon: Shield },
-      { name: 'Audit Log', path: '/audit', icon: History },
-    ] : [])
-  ];
+ const accountNav: SidebarNavItem[] = [
+ ...(isAdminOrHR ? [
+ { name: 'Role Management', path: '/roles', icon: Shield },
+ { name: 'Audit Log', path: '/audit', icon: History },
+ ] : [])
+ ];
 
-  const isNavItemActive = (path: string) => (
-    location.pathname === path ||
-    (path !== '/dashboard' && path !== '#' && location.pathname.startsWith(`${path}/`))
-  );
+ const isNavItemActive = (path: string) => (
+ location.pathname === path ||
+ (path !== '/dashboard' && path !== '#' && location.pathname.startsWith(`${path}/`))
+ );
 
-  const isItemActive = (item: SidebarNavItem): boolean => (
-    (item.path ? isNavItemActive(item.path) : false) ||
-    Boolean(item.children?.some(isItemActive))
-  );
+ const isItemActive = (item: SidebarNavItem): boolean => (
+ (item.path ? isNavItemActive(item.path) : false) ||
+ Boolean(item.children?.some(isItemActive))
+ );
 
-  return (
-    <aside aria-label="Primary navigation" className={cn(
-      "bg-canvas text-slate-700 dark:text-slate-300 flex flex-col h-full w-full border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out font-sans overflow-hidden"
-    )}>
-      {/* Brand */}
-      <div className={cn("h-[72px] flex items-center shrink-0 border-b border-slate-100 dark:border-slate-800", collapsed ? "justify-center" : "px-6")}>
-        <NavLink to="/dashboard" className="flex items-center gap-3 w-full" title={collapsed ? 'HR Portal' : undefined}>
-          <div className="h-9 w-9 bg-accent-700 rounded-lg flex items-center justify-center shrink-0 text-white shadow-sm">
-            <ClipboardCheck className="h-5 w-5" />
+ return (
+ <aside aria-label="Primary navigation" className={cn(
+ "bg-canvas text-slate-700 dark:text-slate-300 flex flex-col h-full w-full  transition-all duration-300 ease-in-out font-sans overflow-hidden"
+ )}>
+ {/* Brand */}
+ <div className={cn("h-[72px] flex items-center shrink-0 ", collapsed ? "justify-center" : "px-6")}>
+ <NavLink to="/dashboard" className="flex items-center gap-3 w-full" title={collapsed ? 'HR Portal' : undefined}>
+          <div className={cn("flex items-center justify-center shrink-0 transition-all", collapsed ? "h-10 w-10" : "h-12 w-12")}>
+            <img src="/lohitha-logo-green.jpg" alt="Sri Lohitha Logo" className="w-full h-full object-contain rounded-full mix-blend-multiply" />
           </div>
           <div className={cn("flex flex-col min-w-0 transition-opacity duration-300", collapsed ? "opacity-0 w-0 hidden" : "opacity-100")}>
-            <span className="text-base font-bold tracking-tight text-slate-900 dark:text-white truncate">HR Portal</span>
+            <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white truncate">HR Portal</span>
           </div>
         </NavLink>
-      </div>
+ </div>
 
-      
-      {/* Navigation */}
-      <div className="flex-1 overflow-y-auto py-4 flex flex-col gap-6 custom-scrollbar pr-3">
-        {/* Main Section */}
-        <div className="flex flex-col gap-1">
-          {!collapsed && (
-            <div className="px-6 pb-2 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-              Workspace
-            </div>
-          )}
-          <AnimatedRadio
-            name="sidebar-main-nav"
-            className="w-full"
-            value={
-              [...mainNav.flatMap(i => i.children ? i.children : [i]), ...accountNav]
-                .slice().sort((a,b) => (b.path||'').length - (a.path||'').length)
-                .find(item => item.path && location.pathname.startsWith(item.path))?.path || '/dashboard'
-            }
-            onChange={(val) => navigate(val)}
-            options={mainNav.flatMap(i => i.children ? i.children : [i]).map(item => ({
-              id: `nav-${item.path}`,
-              value: item.path || '#',
-              label: (
-                <div className={cn("flex items-center gap-3", collapsed && "justify-center", "w-full")} title={collapsed ? item.name : undefined}>
-                  <item.icon className="h-5 w-5 shrink-0" />
-                  {!collapsed && <span className="truncate">{item.name}</span>}
-                </div>
-              )
-            }))}
-          />
-        </div>
+ 
+ {/* Navigation */}
+ <div className="flex-1 overflow-y-auto py-4 flex flex-col gap-6 custom-scrollbar pr-3">
+ {/* Main Section */}
+ <div className="flex flex-col gap-1">
+ {!collapsed && (
+ <div className="px-6 pb-2 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+ Workspace
+ </div>
+ )}
+ <AnimatedRadio
+ name="sidebar-main-nav"
+ className="w-full"
+ value={
+ [...mainNav.flatMap(i => i.children ? i.children : [i]), ...accountNav]
+ .slice().sort((a,b) => (b.path||'').length - (a.path||'').length)
+ .find(item => item.path && location.pathname.startsWith(item.path))?.path || '/dashboard'
+ }
+ onChange={(val) => navigate(val)}
+ options={mainNav.flatMap(i => i.children ? i.children : [i]).map(item => ({
+ id: `nav-${item.path}`,
+ value: item.path || '#',
+ label: (
+ <div className={cn("flex items-center gap-3", collapsed && "justify-center", "w-full")} title={collapsed ? item.name : undefined}>
+ <item.icon className="h-5 w-5 shrink-0" />
+ {!collapsed && <span className="truncate">{item.name}</span>}
+ </div>
+ )
+ }))}
+ />
+ </div>
 
-        {/* Account Section */}
-        {accountNav.length > 0 && (
-          <div className="flex flex-col gap-1 mt-auto">
-            {!collapsed && (
-              <div className="px-6 pb-2 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                Account
-              </div>
-            )}
-            <AnimatedRadio
-              name="sidebar-account-nav"
-              className="w-full"
-              value={
-                [...mainNav.flatMap(i => i.children ? i.children : [i]), ...accountNav]
-                  .slice().sort((a,b) => (b.path||'').length - (a.path||'').length)
-                  .find(item => item.path && location.pathname.startsWith(item.path))?.path || ''
-              }
-              onChange={(val) => navigate(val)}
-              options={accountNav.map(item => ({
-                id: `nav-acc-${item.path}`,
-                value: item.path || '#',
-                label: (
-                  <div className={cn("flex items-center gap-3", collapsed && "justify-center", "w-full")} title={collapsed ? item.name : undefined}>
-                    <item.icon className="h-5 w-5 shrink-0" />
-                    {!collapsed && <span className="truncate">{item.name}</span>}
-                  </div>
-                )
-              }))}
-            />
-          </div>
-        )}
-      </div>
+ {/* Account Section */}
+ {accountNav.length > 0 && (
+ <div className="flex flex-col gap-1 mt-auto">
+ {!collapsed && (
+ <div className="px-6 pb-2 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+ Account
+ </div>
+ )}
+ <AnimatedRadio
+ name="sidebar-account-nav"
+ className="w-full"
+ value={
+ [...mainNav.flatMap(i => i.children ? i.children : [i]), ...accountNav]
+ .slice().sort((a,b) => (b.path||'').length - (a.path||'').length)
+ .find(item => item.path && location.pathname.startsWith(item.path))?.path || ''
+ }
+ onChange={(val) => navigate(val)}
+ options={accountNav.map(item => ({
+ id: `nav-acc-${item.path}`,
+ value: item.path || '#',
+ label: (
+ <div className={cn("flex items-center gap-3", collapsed && "justify-center", "w-full")} title={collapsed ? item.name : undefined}>
+ <item.icon className="h-5 w-5 shrink-0" />
+ {!collapsed && <span className="truncate">{item.name}</span>}
+ </div>
+ )
+ }))}
+ />
+ </div>
+ )}
+ </div>
 
-    </aside>
-  );
+ </aside>
+ );
 }
 
 
 function renderNavItem(
-  item: SidebarNavItem, 
-  collapsed: boolean, 
-  toggleNavGroup: (id: string) => void, 
-  openNavGroups: Record<string, boolean>, 
-  isItemActive: (item: SidebarNavItem) => boolean, 
-  isNavItemActive: (path: string) => boolean
+ item: SidebarNavItem, 
+ collapsed: boolean, 
+ toggleNavGroup: (id: string) => void, 
+ openNavGroups: Record<string, boolean>, 
+ isItemActive: (item: SidebarNavItem) => boolean, 
+ isNavItemActive: (path: string) => boolean
 ) {
-  const isActive = isItemActive(item);
+ const isActive = isItemActive(item);
 
-  if (item.children) {
-    const groupId = `nav-group-${item.name.toLowerCase().replace(/\s+/g, '-')}`;
-    const isGroupOpen = openNavGroups[groupId] ?? isActive;
+ if (item.children) {
+ const groupId = `nav-group-${item.name.toLowerCase().replace(/\s+/g, '-')}`;
+ const isGroupOpen = openNavGroups[groupId] ?? isActive;
 
-    return (
-      <div key={item.name}>
-        <button
-          type="button"
-          onClick={() => toggleNavGroup(groupId)}
-          title={collapsed ? item.name : undefined}
-          className={cn(
-            "flex w-full items-center rounded-lg h-10 text-sm font-medium transition-all duration-200 group border-l-[3px]",
-            collapsed ? "justify-center px-0" : "px-3",
-            isActive
-              ? "text-accent-700 bg-accent-50 border-accent-700 dark:bg-accent-900/20 dark:text-accent-300 dark:border-accent-400"
-              : "text-slate-700 dark:text-slate-200 border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
-          )}
-        >
-          <div className={cn("flex min-w-0 items-center gap-3", collapsed && "justify-center")}>
-            <item.icon className={cn("h-5 w-5 shrink-0", isActive ? "text-accent-700 dark:text-accent-300" : "text-slate-500 dark:text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300")} />
-            {!collapsed && <span className="truncate">{item.name}</span>}
-          </div>
-          {!collapsed && (
-            <div className="ml-auto flex items-center gap-2">
-              {item.badge && (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent-700 text-[10px] font-bold text-white">
-                  {item.badge}
-                </span>
-              )}
-              {isGroupOpen ? (
-                <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
-              ) : (
-                <ChevronRight className="h-4 w-4 shrink-0 opacity-50" />
-              )}
-            </div>
-          )}
-        </button>
+ return (
+ <div key={item.name}>
+ <button
+ type="button"
+ onClick={() => toggleNavGroup(groupId)}
+ title={collapsed ? item.name : undefined}
+ className={cn(
+ "flex w-full items-center rounded-lg h-10 text-sm font-medium transition-all duration-200 group border-l-[3px]",
+ collapsed ? "justify-center px-0" : "px-3",
+ isActive
+ ? "text-accent-700 bg-accent-500/10 border-accent-700 dark:bg-accent-400/10 dark:text-accent-300 dark:border-accent-400"
+ : "text-slate-700 dark:text-slate-200 border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+ )}
+ >
+ <div className={cn("flex min-w-0 items-center gap-3", collapsed && "justify-center")}>
+ <item.icon className={cn("h-5 w-5 shrink-0", isActive ? "text-accent-700 dark:text-accent-300" : "text-slate-500 dark:text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300")} />
+ {!collapsed && <span className="truncate">{item.name}</span>}
+ </div>
+ {!collapsed && (
+ <div className="ml-auto flex items-center gap-2">
+ {item.badge && (
+ <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent-700 text-[10px] font-bold text-white">
+ {item.badge}
+ </span>
+ )}
+ {isGroupOpen ? (
+ <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+ ) : (
+ <ChevronRight className="h-4 w-4 shrink-0 opacity-50" />
+ )}
+ </div>
+ )}
+ </button>
 
-        {isGroupOpen && (
-          <div className={cn(
-            "mt-1 flex flex-col gap-1",
-            !collapsed && "ml-9"
-          )}>
-            {item.children.map((child) => {
-              const childIsActive = child.path ? isNavItemActive(child.path) : false;
-              return (
-                <NavLink
-                  key={child.name}
-                  to={child.path || '#'}
-                  title={collapsed ? child.name : undefined}
-                  onClick={(e) => {
-                    if (!child.path) e.preventDefault();
-                  }}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg h-9 text-sm transition-all duration-200 border-l-[3px]",
-                    collapsed ? "justify-center px-0" : "px-3",
-                    childIsActive
-                      ? "text-accent-700 font-semibold border-accent-700 bg-accent-50 dark:bg-accent-900/20 dark:text-accent-300 dark:border-accent-400"
-                      : "text-slate-700 dark:text-slate-200 border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
-                  )}
-                >
-                  {collapsed ? <child.icon className="h-5 w-5 shrink-0" /> : <div className="w-1.5 h-1.5 rounded-full bg-current opacity-40 shrink-0" />}
-                  {!collapsed && <span className="truncate">{child.name}</span>}
-                </NavLink>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  }
+ {isGroupOpen && (
+ <div className={cn(
+ "mt-1 flex flex-col gap-1",
+ !collapsed && "ml-9"
+ )}>
+ {item.children.map((child) => {
+ const childIsActive = child.path ? isNavItemActive(child.path) : false;
+ return (
+ <NavLink
+ key={child.name}
+ to={child.path || '#'}
+ title={collapsed ? child.name : undefined}
+ onClick={(e) => {
+ if (!child.path) e.preventDefault();
+ }}
+ className={cn(
+ "flex items-center gap-3 rounded-lg h-9 text-sm transition-all duration-200 border-l-[3px]",
+ collapsed ? "justify-center px-0" : "px-3",
+ childIsActive
+ ? "text-accent-700 font-semibold border-accent-700 bg-accent-500/10 dark:bg-accent-400/10 dark:text-accent-300 dark:border-accent-400"
+ : "text-slate-700 dark:text-slate-200 border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+ )}
+ >
+ {collapsed ? <child.icon className="h-5 w-5 shrink-0" /> : <div className="w-1.5 h-1.5 rounded-full bg-current opacity-40 shrink-0" />}
+ {!collapsed && <span className="truncate">{child.name}</span>}
+ </NavLink>
+ );
+ })}
+ </div>
+ )}
+ </div>
+ );
+ }
 
-  return (
-    <NavLink
-      key={item.name}
-      to={item.path || '#'}
-      title={collapsed ? item.name : undefined}
-      onClick={(e) => {
-        if (!item.path) e.preventDefault();
-      }}
-      className={cn(
-        "flex items-center rounded-lg h-10 text-sm font-medium transition-all duration-200 group relative border-l-[3px]",
-        collapsed ? "justify-center px-0" : "px-3",
-        isActive
-          ? "text-accent-700 bg-accent-50 border-accent-700 dark:bg-accent-900/20 dark:text-accent-300 dark:border-accent-400"
-          : "text-slate-700 dark:text-slate-200 border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
-      )}
-    >
-      <item.icon className={cn("h-5 w-5 shrink-0", collapsed ? "" : "mr-3", isActive ? "text-accent-700 dark:text-accent-300" : "text-slate-500 dark:text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300")} />
-      {!collapsed && <span className="truncate">{item.name}</span>}
-      {!collapsed && item.badge && (
-        <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-accent-700 text-[10px] font-bold text-white">
-          {item.badge}
-        </span>
-      )}
-      {collapsed && item.badge && (
-        <span className="absolute top-1.5 right-1.5 flex h-2 w-2 rounded-full bg-accent-700"></span>
-      )}
-    </NavLink>
-  );
+ return (
+ <NavLink
+ key={item.name}
+ to={item.path || '#'}
+ title={collapsed ? item.name : undefined}
+ onClick={(e) => {
+ if (!item.path) e.preventDefault();
+ }}
+ className={cn(
+ "flex items-center rounded-lg h-10 text-sm font-medium transition-all duration-200 group relative border-l-[3px]",
+ collapsed ? "justify-center px-0" : "px-3",
+ isActive
+ ? "text-accent-700 bg-accent-500/10 border-accent-700 dark:bg-accent-400/10 dark:text-accent-300 dark:border-accent-400"
+ : "text-slate-700 dark:text-slate-200 border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+ )}
+ >
+ <item.icon className={cn("h-5 w-5 shrink-0", collapsed ? "" : "mr-3", isActive ? "text-accent-700 dark:text-accent-300" : "text-slate-500 dark:text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300")} />
+ {!collapsed && <span className="truncate">{item.name}</span>}
+ {!collapsed && item.badge && (
+ <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-accent-700 text-[10px] font-bold text-white">
+ {item.badge}
+ </span>
+ )}
+ {collapsed && item.badge && (
+ <span className="absolute top-1.5 right-1.5 flex h-2 w-2 rounded-full bg-accent-700"></span>
+ )}
+ </NavLink>
+ );
 }

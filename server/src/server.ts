@@ -1,10 +1,12 @@
 import app from './app';
 import { config } from './config';
 import prisma from './config/database';
+import { cleanupDepartments } from './cleanup';
 
 const startServer = async () => {
   try {
     await prisma.$connect();
+    await cleanupDepartments();
     app.listen(config.port, () => {
       console.log(`
 🚀 HR Management API Server`);

@@ -16,6 +16,9 @@ export const createEmployeeSchema = z.object({
   
   maritalStatus: z.enum(['SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED']).optional(),
   alternateMobile: z.string().optional(),
+  bloodGroup: z.string().optional(),
+  qualification: z.string().optional(),
+  experience: z.string().optional(),
   personalEmail: z.string().email().optional().or(z.literal('')),
   permanentAddress: z.string().optional(),
   emergencyContactName: z.string().optional(),

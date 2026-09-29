@@ -4,15 +4,15 @@ import { describe, expect, it } from 'vitest';
 import NotFoundPage from './NotFoundPage';
 
 describe('NotFoundPage', () => {
-  it('offers clear recovery actions', () => {
-    render(
-      <MemoryRouter initialEntries={['/missing']}>
-        <NotFoundPage />
-      </MemoryRouter>
-    );
+ it('offers clear recovery actions', () => {
+ render(
+ <MemoryRouter initialEntries={['/missing']}>
+ <NotFoundPage />
+ </MemoryRouter>
+ );
 
-    expect(screen.getByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Go back' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Dashboard' })).toBeInTheDocument();
-  });
+ expect(screen.getByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
+ expect(screen.getByRole('button', { name: 'Go back' })).toBeInTheDocument();
+ expect(screen.getByRole('button', { name: 'Dashboard' })).toBeInTheDocument();
+ });
 });

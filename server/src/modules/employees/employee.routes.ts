@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { employeeController } from './employee.controller';
 import { authenticate, requirePermission } from '../../middleware/auth.middleware';
 import { validate } from '../../middleware/validate.middleware';
@@ -20,6 +21,26 @@ router.put('/:id', requirePermission('employees', 'edit'), validate(updateEmploy
   employeeController.update(req, res)
 );
 router.delete('/:id', requirePermission('employees', 'delete'), (req, res) => employeeController.delete(req, res));
+
+const upload = multer({ dest: 'uploads/' });
+
+router.post('/:id/photo', requirePermission('employees', 'edit'), upload.single('photo'), async (req, res) => {
+  try {
+    const employeeId = req.params.id as string;
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ success: false, message: 'No photo uploaded' });
+    }
+    const photoUrl = `/api/uploads/${file.filename}`;
+    const updatedEmployee = await prisma.employee.update({
+      where: { id: employeeId },
+      data: { profilePhoto: photoUrl }
+    });
+    res.json({ success: true, message: 'Profile photo updated', data: updatedEmployee });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 
 import prisma from '../../config/database';
