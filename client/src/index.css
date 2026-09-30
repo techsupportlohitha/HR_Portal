@@ -16,14 +16,14 @@
 }
 @custom-variant dark (&:where(.dark, .dark *));
 
-:root {
-  /* HR Portal: Slate Blue + Teal Blue design tokens */
-  --canvas: #F7FAFB;
-  --surface: #FFFFFF;
-  --tint: #EEF3F5;
-  --border: #94a3b8;
-
-  --sidebar-bg: #F7FAFB;
+  :root {
+    /* HR Portal: Slate Blue + Teal Blue design tokens */
+    --canvas: #EEF4F1; /* Slightly deeper green-grey off-white so white cards pop */
+    --surface: #FFFFFF;
+    --tint: #E2EBE5;
+    --border: #94a3b8;
+  
+    --sidebar-bg: #E8EFEA; /* Deeper pale green for the sidebar */
   
   --brand-primary: #1B7F86;
   --brand-primary-hover: #15646B;

@@ -48,7 +48,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
  icon: Calendar,
  children: [
  { name: 'Apply for leave', path: '/leaves', icon: Calendar },
- { name: 'Leave approval history', path: '/leaves/approvals', icon: History },
+ ...(user?.role !== 'EMPLOYEE' ? [{ name: 'Leave approval history', path: '/leaves/approvals', icon: History }] : []),
  ],
  },
  { name: 'Performance', path: '/performance', icon: Target },
@@ -85,7 +85,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
  <div className={cn("h-[72px] flex items-center shrink-0 ", collapsed ? "justify-center" : "px-6")}>
  <NavLink to="/dashboard" className="flex items-center gap-3 w-full" title={collapsed ? 'HR Portal' : undefined}>
           <div className={cn("flex items-center justify-center shrink-0 transition-all", collapsed ? "h-10 w-10" : "h-12 w-12")}>
-            <img src="/lohitha-logo-green.jpg" alt="Sri Lohitha Logo" className="w-full h-full object-contain rounded-full mix-blend-multiply" />
+            <img src="/lohitha-logo-green.jpg" alt="Sri Lohitha Logo" className="w-full h-full object-contain rounded-full mix-blend-multiply dark:mix-blend-normal dark:bg-white p-1" />
           </div>
           <div className={cn("flex flex-col min-w-0 transition-opacity duration-300", collapsed ? "opacity-0 w-0 hidden" : "opacity-100")}>
             <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white truncate">HR Portal</span>

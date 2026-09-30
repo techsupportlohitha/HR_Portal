@@ -10,33 +10,33 @@ async function main() {
 
   // Departments (Essential structure)
   const engineering = await prisma.department.upsert({
-    where: { name: 'HR&ADMIN-IT' },
+    where: { name: 'IT' },
     update: {},
-    create: { name: 'HR&ADMIN-IT', description: 'HR & Admin IT' },
+    create: { name: 'IT', description: 'IT Department' },
   });
 
   const hr = await prisma.department.upsert({
-    where: { name: 'HR & ADMIN' },
+    where: { name: 'HR' },
     update: {},
-    create: { name: 'HR & ADMIN', description: 'HR & Admin' },
+    create: { name: 'HR', description: 'Human Resources' },
   });
 
   const marketing = await prisma.department.upsert({
-    where: { name: 'PROCUREMENT' },
+    where: { name: 'Procurement' },
     update: {},
-    create: { name: 'PROCUREMENT', description: 'Procurement' },
+    create: { name: 'Procurement', description: 'Procurement' },
   });
 
   const finance = await prisma.department.upsert({
-    where: { name: 'ACCOUNTS' },
+    where: { name: 'Accounts' },
     update: {},
-    create: { name: 'ACCOUNTS', description: 'Accounts & Finance' },
+    create: { name: 'Accounts', description: 'Accounts & Finance' },
   });
 
   const operations = await prisma.department.upsert({
-    where: { name: 'COMMERCIAL' },
+    where: { name: 'Commercial' },
     update: {},
-    create: { name: 'COMMERCIAL', description: 'Commercial Operations' },
+    create: { name: 'Commercial', description: 'Commercial Operations' },
   });
 
   // Create only the foundational Admin Employee

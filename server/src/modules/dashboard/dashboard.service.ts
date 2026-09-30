@@ -163,19 +163,64 @@ export class DashboardService {
         total: totalReviews
       },
       leave: {
-        pendingApprovals: isAdmin || isManager ? await prisma.leave.count({ where: { status: 'PENDING', ...(isManager ? { employee: { managerId: currentUser.employeeId! } } : {}) } }) : 0
-      },
+          pendingApprovals: await prisma.leave.count({ where: { status: 'PENDING', ...(isAdmin ? {} : isManager ? { employee: { managerId: currentUser.employeeId! } } : { employeeId: currentUser.employeeId! }) } })
+        },
       travel: {
         pendingApprovals: await prisma.travelRequest.count({ where: { approvalStatus: 'APPROVAL_PENDING', ...(isAdmin ? {} : isManager ? { employee: { managerId: currentUser.employeeId! } } : { employeeId: currentUser.employeeId! }) } })
       },
       expenses: {
         pendingApprovals: await prisma.officeExpense.count({ where: { status: 'PENDING', ...(isAdmin ? {} : isManager ? { submittedBy: { managerId: currentUser.employeeId! } } : { submittedById: currentUser.employeeId! }) } })
       },
+        training: {
+          pendingApprovals: isAdmin || isManager ? await prisma.training.count({ where: { status: 'PENDING' } }) : 0
+        },
       assets: {
         assigned: isAdmin ? await prisma.asset.count({ where: { assignedEmployeeId: { not: null } } }) : await prisma.asset.count({ where: { assignedEmployeeId: currentUser.employeeId! } }),
         total: isAdmin ? await prisma.asset.count() : 0
       }
     };
+
+    // Calculate 7-day attendance trend
+    const trendDays = 7;
+    const trendStartDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - trendDays + 1);
+    const trendEndDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    
+    const recentLeaves = await prisma.leave.findMany({
+      where: {
+        ...leaveEmpWhere,
+        status: 'APPROVED',
+        startDate: { lte: trendEndDate },
+        endDate: { gte: trendStartDate }
+      }
+    });
+
+    const attendanceTrend = [];
+    for (let i = 0; i < trendDays; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (trendDays - 1 - i));
+      const dStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const dEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+      
+      let absentOnDay = 0;
+      recentLeaves.forEach(leave => {
+         if (leave.startDate <= dEnd && leave.endDate >= dStart) {
+            absentOnDay++;
+         }
+      });
+      
+      // Assume weekend is full absent or we just show active - absent
+      const dayOfWeek = d.getDay();
+      let presentOnDay = Math.max(0, activeEmployees - absentOnDay);
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+         presentOnDay = 0; // weekends typically 0
+         absentOnDay = 0;
+      }
+      
+      attendanceTrend.push({
+         date: d.toLocaleDateString('en-US', { weekday: 'short' }),
+         present: presentOnDay,
+         absent: absentOnDay
+      });
+    }
 
     return {
       headline: {
@@ -194,6 +239,7 @@ export class DashboardService {
       invitedForInterview,
       selectedCandidates,
       offersAccepted,
+      attendanceTrend,
       absentEmployeesList: absentEmployees.map(l => ({
         id: l.employee.id,
         name: `${l.employee.firstName} ${l.employee.lastName}`,

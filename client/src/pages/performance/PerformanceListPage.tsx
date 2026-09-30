@@ -55,7 +55,7 @@ export default function PerformanceListPage() {
  if (!rawReviews) return [];
  const actionableStatuses = user?.role === 'EMPLOYEE'
  ? ['EMPLOYEE_REVIEW']
- : user?.role === 'MANAGER'
+ : false
  ? ['MANAGER_REVIEW']
  : ['HR_REVIEW', 'FINAL_APPROVAL'];
  return rawReviews.filter((review: any) => actionableStatuses.includes(review.status)).slice(0, 4);

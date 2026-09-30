@@ -126,7 +126,7 @@ export function PerformanceReviewModal({ isOpen, onClose, review }: PerformanceR
 
  const status = review?.status;
  const canSubmitSelf = status === 'EMPLOYEE_REVIEW' && (user?.employeeId === review.employeeId || user?.role === 'ADMIN' || user?.role === 'HR');
- const canSubmitManager = status === 'MANAGER_REVIEW' && (user?.role === 'MANAGER' || user?.role === 'ADMIN' || user?.role === 'HR');
+ const canSubmitManager = status === 'MANAGER_REVIEW' && (false || user?.role === 'ADMIN' || user?.role === 'HR');
  const canSubmitHR = status === 'HR_REVIEW' && (user?.role === 'HR' || user?.role === 'ADMIN');
  const canSubmitFinal = status === 'FINAL_APPROVAL' && (user?.role === 'HR' || user?.role === 'ADMIN');
  const canEditCore = user?.role === 'ADMIN' || user?.role === 'HR';

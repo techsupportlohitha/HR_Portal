@@ -71,7 +71,7 @@ export default function LoginPage() {
  
  <div className="text-center mb-8 relative z-10">
  <div className="mx-auto w-16 h-16 flex items-center justify-center mb-6">
-              <img src="/lohitha-logo-green.jpg" alt="Sri Lohitha Logo" className="w-full h-full object-contain rounded-full mix-blend-multiply" />
+              <img src="/lohitha-logo-green.jpg" alt="Sri Lohitha Logo" className="w-full h-full object-contain rounded-full mix-blend-multiply dark:mix-blend-normal dark:bg-white p-1" />
             </div>
  </div>
  <div className="relative z-10">

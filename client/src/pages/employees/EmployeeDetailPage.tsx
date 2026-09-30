@@ -54,7 +54,7 @@ export default function EmployeeDetailPage() {
  user?.role === 'ADMIN' || 
  user?.role === 'HR' || 
  user?.role === 'HR_EXECUTIVE' || 
- (user?.role === 'MANAGER' && (user?.employeeId === id || emp?.managerId === user?.employeeId || (user as any)?.employee?.id === id || emp?.managerId === (user as any)?.employee?.id));
+ (false && (user?.employeeId === id || emp?.managerId === user?.employeeId || (user as any)?.employee?.id === id || emp?.managerId === (user as any)?.employee?.id));
 
  // Intersection observer logic for scroll spy
  useEffect(() => {

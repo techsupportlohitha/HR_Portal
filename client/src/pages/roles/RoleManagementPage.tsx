@@ -13,12 +13,11 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Select } from '@/components/ui/Select';
 
-const ROLES = ['ADMIN', 'HR', 'HR_EXECUTIVE', 'MANAGER', 'EMPLOYEE'];
+const ROLES = ['ADMIN', 'HR', 'HR_EXECUTIVE', 'EMPLOYEE'];
 const ROLE_LABELS: Record<string, string> = {
  ADMIN: 'Super Admin',
- HR: 'HR Admin',
+ HR: 'Management',
  HR_EXECUTIVE: 'HR Executive',
- MANAGER: 'Manager',
  EMPLOYEE: 'Employee',
 };
 const PERMISSION_FLAGS = [

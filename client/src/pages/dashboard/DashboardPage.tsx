@@ -5,21 +5,23 @@ import { useQuery } from '@tanstack/react-query';
 import { dashboardApi } from '@/api/dashboard';
 import { recruitmentApi } from '@/api/recruitment';
 import { ScheduleInterviewModal } from './components/ScheduleInterviewModal';
+import { EmployeeDashboard } from './components/EmployeeDashboard';
+
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { BoxReveal } from '@/components/ui/modern-animated-sign-in';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, BarChart, Bar, Legend, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { 
  Users, UserMinus, Briefcase, FileText, CheckCircle, Clock, 
- ChevronRight, Calendar, AlertTriangle, Info, ArrowUpRight, ArrowDownRight, Award, MapPin, Plus, ArrowRight, Plane, Receipt
-} from 'lucide-react';
+ ChevronRight, Calendar, AlertTriangle, Info, ArrowUpRight, ArrowDownRight, Award, MapPin, Plus, ArrowRight, Plane, BookOpen, Receipt
+, Coffee } from 'lucide-react';
 import { formatDate } from '@/utils/dateFormat';
 
 export default function DashboardPage() {
  const navigate = useNavigate();
  const { user } = useAuth();
  const isAdminOrHR = user?.role === 'ADMIN' || user?.role === 'HR';
- const isManager = user?.role === 'MANAGER';
+ const isManager = false;
  const [showAbsent, setShowAbsent] = useState(false);
  
  const [shouldAnimate] = useState(() => {
@@ -51,6 +53,15 @@ export default function DashboardPage() {
  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
 
  if (isStatsLoading) return <LoadingSpinner />;
+
+  if (!isAdminOrHR && !isManager) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="My Dashboard" description={`Welcome back, ${user?.employee?.firstName || user?.email.split('@')[0]}`} />
+        <EmployeeDashboard />
+      </div>
+    );
+  }
 
  if (statsError) {
  return (
@@ -215,105 +226,8 @@ export default function DashboardPage() {
  {isAdminOrHR && (
  <BoxReveal disabled={!shouldAnimate} boxColor="var(--skeleton)" duration={0.5} width="100%">
  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
- {/* Open Positions */}
- <div className="bg-surface rounded-xl border border-slate-border p-5 shadow-sm">
- <div className="flex items-center justify-between mb-4">
- <h3 className="font-semibold text-text-heading flex items-center gap-2">
- <Briefcase className="h-4 w-4 text-accent-600" /> Open Positions
- </h3>
- <span className="text-xs bg-accent-100 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300 px-2 py-1 rounded-full font-medium">
- {reqData.filter((r: any) => r.status !== 'JOINED_REJECTED').length} Active
- </span>
- </div>
- <div className="space-y-1">
- {reqData.filter((r: any) => r.status !== 'JOINED_REJECTED').slice(0, 6).map((req: any) => (
- <div
- key={req.id}
- onClick={() => navigate('/recruitment')}
- className="flex items-center justify-between p-2.5 rounded-lg hover:bg-tint cursor-pointer transition-colors group"
- >
- <div className="min-w-0 flex-1">
- <p className="text-sm font-medium text-text-heading truncate group-hover:text-accent-600 dark:group-hover:text-accent-400 transition-colors">{req.positionTitle}</p>
- <div className="flex items-center gap-2 mt-0.5">
- <span className="text-xs text-text-muted flex items-center gap-1"><MapPin className="h-3 w-3" />{req.location}</span>
- <span className="text-xs text-text-muted">{req.department?.name}</span>
- </div>
- </div>
- <div className="flex items-center gap-2 ml-2 shrink-0">
- <span className="text-xs text-text-muted flex items-center gap-1"><Users className="h-3 w-3" />{req._count?.candidates || 0}</span>
- <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusClasses(req.status)}`}>{getStatusLabel(req.status)}</span>
- <ArrowRight className="h-4 w-4 text-text-muted group-hover:text-accent-600 dark:group-hover:text-accent-400 transition-colors" />
- </div>
- </div>
- ))}
- {reqData.filter((r: any) => r.status !== 'JOINED_REJECTED').length === 0 && (
- <p className="text-sm text-text-muted text-center py-6">No open positions</p>
- )}
- </div>
- </div>
- 
- {/* Interview Scheduling */}
- <div className="bg-surface rounded-xl border border-slate-border p-5 shadow-sm">
- <div className="flex items-center justify-between mb-4">
- <h3 className="font-semibold text-text-heading flex items-center gap-2">
- <Calendar className="h-4 w-4 text-accent-600" /> Interview Scheduling
- </h3>
- <button
- onClick={() => setIsScheduleModalOpen(true)}
- className="flex items-center gap-1.5 text-xs font-semibold text-accent-600 hover:text-accent-700 bg-accent-50 hover:bg-accent-100 px-3 py-1.5 rounded-lg transition-colors"
- >
- <Plus className="h-3.5 w-3.5" /> Schedule Interview
- </button>
- </div>
- {(() => {
- const interviewStages = ['TELEPHONIC', 'HR_INTERVIEW', 'TECHNICAL', 'MANAGEMENT'];
- const interviewReqs = reqData.filter((r: any) => interviewStages.includes(r.status));
- const stageLabels: Record<string, string> = { TELEPHONIC: 'Telephonic', HR_INTERVIEW: 'HR Round', TECHNICAL: 'Technical', MANAGEMENT: 'Management' };
- const stageBg: Record<string, string> = { TELEPHONIC: 'bg-violet-100 dark:bg-violet-900/30', HR_INTERVIEW: 'bg-purple-100 dark:bg-purple-900/30', TECHNICAL: 'bg-fuchsia-100 dark:bg-fuchsia-900/30', MANAGEMENT: 'bg-pink-100 dark:bg-pink-900/30' };
- const stageText: Record<string, string> = { TELEPHONIC: 'text-violet-700 dark:text-violet-400', HR_INTERVIEW: 'text-purple-700 dark:text-purple-400', TECHNICAL: 'text-fuchsia-700 dark:text-fuchsia-400', MANAGEMENT: 'text-pink-700 dark:text-pink-400' };
- return interviewReqs.length > 0 ? (
- <div className="space-y-1">
- {interviewReqs.map((req: any) => (
- <div
- key={req.id}
- onClick={() => navigate('/recruitment')}
- className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-tint cursor-pointer transition-colors group"
- >
- <div className={`h-9 w-9 rounded-full ${stageBg[req.status]} flex items-center justify-center shrink-0`}>
- <Calendar className={`h-4 w-4 ${stageText[req.status]}`} />
- </div>
- <div className="min-w-0 flex-1">
- <p className="text-sm font-medium text-text-heading truncate group-hover:text-accent-600 dark:group-hover:text-accent-400 transition-colors">{req.positionTitle}</p>
- <div className="flex items-center gap-2 mt-0.5">
- <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stageBg[req.status]} ${stageText[req.status]}`}>{stageLabels[req.status]}</span>
- <span className="text-xs text-text-muted flex items-center gap-1"><Users className="h-3 w-3" />{req._count?.candidates || 0} candidates</span>
- </div>
- </div>
- <ArrowRight className="h-4 w-4 text-text-muted group-hover:text-accent-600 dark:group-hover:text-accent-400 shrink-0" />
- </div>
- ))}
- </div>
- ) : (
- <div className="flex flex-col items-center justify-center py-8 text-center">
- <div className="h-12 w-12 rounded-full bg-tint flex items-center justify-center mb-3">
- <Clock className="h-6 w-6 text-text-muted" />
- </div>
- <p className="text-sm font-medium text-text-heading">No interviews scheduled</p>
- <p className="text-xs text-text-muted mt-1">Requisitions in interview stages will appear here</p>
- </div>
- );
- })()}
- </div>
- </div>
- </BoxReveal>
- )}
-
- <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
- 
- {/* Left Column: Needs Attention & Trend */}
- <div className="lg:col-span-1 space-y-8">
- 
- {/* 2. Needs Attention */}
+ {/* Needs Attention */}
+{/* 2. Needs Attention */}
  <div className="bg-surface rounded-xl shadow-sm border border-slate-border overflow-hidden flex flex-col">
  <div className="p-5 border-b border-slate-border bg-tint flex items-center justify-between">
  <h3 className="font-bold text-text-heading flex items-center gap-2">
@@ -355,42 +269,193 @@ export default function DashboardPage() {
  )}
  </div>
 
- {/* Workforce Trend Chart (Only for HR/Admin) */}
- {isAdminOrHR && joinExitTrend.length > 0 && (
- <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5">
- <h3 className="font-bold text-text-heading mb-4 text-sm uppercase tracking-wider">Workforce Trend (6 Mo)</h3>
- <div className="h-48 w-full">
- <ResponsiveContainer width="100%" height="100%">
- <AreaChart data={joinExitTrend.slice(-6)} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
- <defs>
- <linearGradient id="colorJoins" x1="0" y1="0" x2="0" y2="1">
- <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
- <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
- </linearGradient>
- <linearGradient id="colorExits" x1="0" y1="0" x2="0" y2="1">
- <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.2}/>
- <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
- </linearGradient>
- </defs>
- <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--slate-border)" />
- <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
- <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
- <Tooltip 
- contentStyle={{ borderRadius: '8px', border: '1px solid var(--slate-border)', backgroundColor: 'var(--surface)', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
- itemStyle={{ fontSize: '12px', fontWeight: 500 }}
- labelStyle={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}
- />
- <Area type="monotone" name="Joiners" dataKey="joins" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorJoins)" />
- <Area type="monotone" name="Exits" dataKey="exits" stroke="#f43f5e" strokeWidth={2} fillOpacity={1} fill="url(#colorExits)" />
- </AreaChart>
- </ResponsiveContainer>
+ 
+{/* Interview Scheduling */}
+        <div className="bg-surface rounded-xl border border-slate-border p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-text-heading flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-accent-600" /> Interview Scheduling
+            </h3>
+            <button
+              onClick={() => setIsScheduleModalOpen(true)}
+              className="flex items-center gap-1.5 text-xs font-semibold text-accent-600 hover:text-accent-700 bg-accent-50 hover:bg-accent-100 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" /> Schedule Interview
+            </button>
+          </div>
+          {(() => {
+            const upcoming = stats?.upcomingInterviews || [];
+            
+            return upcoming.length > 0 ? (
+              <div className="space-y-1">
+                {upcoming.map((candidate: any) => {
+                  const dateStr = new Date(candidate.interviewDate).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                  return (
+                    <div
+                      key={candidate.id}
+                      onClick={() => navigate('/recruitment')}
+                      className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-tint cursor-pointer transition-colors group"
+                    >
+                      <div className="h-9 w-9 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0">
+                        <Users className="h-4 w-4 text-violet-700 dark:text-violet-400" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-text-heading truncate group-hover:text-accent-600 dark:group-hover:text-accent-400 transition-colors">
+                          {candidate.candidateName}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                            {candidate.interviewRound || 'Interview'}
+                          </span>
+                          <span className="text-xs text-text-muted truncate">{candidate.requisition?.positionTitle}</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end shrink-0">
+                        <span className="text-xs font-semibold text-text-muted group-hover:text-accent-600 dark:group-hover:text-accent-400">{dateStr}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="h-12 w-12 rounded-full bg-tint flex items-center justify-center mb-3">
+                  <Clock className="h-6 w-6 text-text-muted" />
+                </div>
+                <p className="text-sm font-medium text-text-heading">No interviews scheduled</p>
+                <p className="text-xs text-text-muted mt-1">Candidates with upcoming interviews will appear here</p>
+              </div>
+            );
+          })()}
+        </div>
  </div>
- </div>
+ </BoxReveal>
  )}
 
- </div>
+ <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+ 
+ {/* Left Column: Needs Attention & Trend */}
+ <div className="lg:col-span-1 flex flex-col gap-8 h-full">
+          {/* Attendance Trend Chart (Only for HR/Admin) */}
+          {isAdminOrHR && stats?.attendanceTrend && (
+            <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5">
+              <h3 className="font-bold text-text-heading mb-4 text-sm uppercase tracking-wider">Attendance (7 Days)</h3>
+              <div className="h-48 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={stats.attendanceTrend} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorPresent" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorAbsent" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--slate-border)" />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                    <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '8px', border: '1px solid var(--slate-border)', backgroundColor: 'var(--surface)', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                      itemStyle={{ fontSize: '12px', fontWeight: 500 }}
+                      labelStyle={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}
+                    />
+                    <Area type="monotone" name="Present" dataKey="present" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorPresent)" />
+                    <Area type="monotone" name="Absent" dataKey="absent" stroke="#f43f5e" strokeWidth={2} fillOpacity={1} fill="url(#colorAbsent)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
 
- {/* Right Column: Module Overview Table */}
+ 
+ 
+
+ 
+
+          
+
+          {/* Quick Actions */}
+          <div className="space-y-4 flex-1 flex flex-col">
+            <h3 className="font-bold text-text-heading text-lg">Quick Actions</h3>
+            <div className="flex-1 flex flex-col justify-between">
+              {(() => {
+                
+                const pendingTraining = stats.moduleOverview?.training?.pendingApprovals || 0;
+                const pendingTravel = stats.moduleOverview?.travel?.pendingApprovals || 0;
+                const pendingExpenses = stats.moduleOverview?.expenses?.pendingApprovals || 0;
+
+                return (
+                  <>
+                    <Link to="/training" className="flex items-center gap-4 bg-surface p-4 rounded-xl border border-slate-border hover:border-brand-primary hover:shadow-md transition-all group">
+                      <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform relative">
+                        <BookOpen size={20} />
+                        {pendingTraining > 0 && (
+                          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-1 ring-white dark:ring-navy-900">
+                            {pendingTraining}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-sm text-text-heading group-hover:text-brand-primary transition-colors">
+                          {pendingTraining > 0 ? 'Training Approvals' : 'Training Updates'}
+                        </h4>
+                        <p className="text-xs text-text-muted">
+                          {pendingTraining > 0 ? `${pendingTraining} request${pendingTraining > 1 ? 's' : ''} awaiting action` : 'View training sessions'}
+                        </p>
+                      </div>
+                      <ArrowRight size={16} className="text-slate-300 group-hover:text-brand-primary group-hover:translate-x-1 transition-all" />
+                    </Link>
+                    
+                    <Link to="/travel" className="flex items-center gap-4 bg-surface p-4 rounded-xl border border-slate-border hover:border-brand-primary hover:shadow-md transition-all group">
+                      <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform relative">
+                        <Plane size={20} />
+                        {pendingTravel > 0 && (
+                          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-1 ring-white dark:ring-navy-900">
+                            {pendingTravel}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-sm text-text-heading group-hover:text-brand-primary transition-colors">
+                          {pendingTravel > 0 ? 'Travel Approvals' : 'Travel Request'}
+                        </h4>
+                        <p className="text-xs text-text-muted">
+                          {pendingTravel > 0 ? `${pendingTravel} request${pendingTravel > 1 ? 's' : ''} awaiting action` : 'Plan business travel'}
+                        </p>
+                      </div>
+                      <ArrowRight size={16} className="text-slate-300 group-hover:text-brand-primary group-hover:translate-x-1 transition-all" />
+                    </Link>
+
+                    <Link to="/office-expenses" className="flex items-center gap-4 bg-surface p-4 rounded-xl border border-slate-border hover:border-brand-primary hover:shadow-md transition-all group">
+                      <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform relative">
+                        <Receipt size={20} />
+                        {pendingExpenses > 0 && (
+                          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-1 ring-white dark:ring-navy-900">
+                            {pendingExpenses}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-sm text-text-heading group-hover:text-brand-primary transition-colors">
+                          {pendingExpenses > 0 ? 'Expense Approvals' : 'Claim Expense'}
+                        </h4>
+                        <p className="text-xs text-text-muted">
+                          {pendingExpenses > 0 ? `${pendingExpenses} claim${pendingExpenses > 1 ? 's' : ''} awaiting action` : 'Submit bills for reimbursement'}
+                        </p>
+                      </div>
+                      <ArrowRight size={16} className="text-slate-300 group-hover:text-brand-primary group-hover:translate-x-1 transition-all" />
+                    </Link>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+
+  </div>
+
+  {/* Right Column: Module Overview Table */}
  <div className="lg:col-span-2">
  <div className="bg-surface rounded-xl shadow-sm border border-slate-border overflow-hidden">
  <div className="p-5 border-b border-slate-border bg-tint flex items-center justify-between">
@@ -528,7 +593,7 @@ export default function DashboardPage() {
  </div>
  </div>
 
- </div>
+</div>
  <ScheduleInterviewModal isOpen={isScheduleModalOpen} onClose={() => setIsScheduleModalOpen(false)} />
  </div>
  );

@@ -235,17 +235,57 @@ export default function RecruitmentPage() {
  ))}
  </section>
  ) : (
- <KanbanBoard 
- items={data.filter((req: any) => req.id === selectedBoardReqId).map((req: any) => ({
- id: req.id,
- title: req.positionTitle,
- subtitle: req.department?.name || req.location,
- status: req.status, // maps directly to the Kanban stages
- originalData: req
- }))} 
- onStatusChange={handleStatusChange} 
- onItemClick={(item) => setSelectedReq(item.originalData)}
- />
+           <div className="flex flex-col gap-6">
+            <KanbanBoard 
+              items={data.filter((req: any) => req.id === selectedBoardReqId).map((req: any) => ({
+                id: req.id,
+                title: req.positionTitle,
+                subtitle: req.department?.name || req.location,
+                status: req.status, // maps directly to the Kanban stages
+                originalData: req
+              }))} 
+              onStatusChange={handleStatusChange} 
+              onItemClick={(item) => setSelectedReq(item.originalData)}
+            />
+            
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-text-heading text-lg">Candidates Pipeline</h3>
+                {canExport('recruitment') && (
+                  <Button variant="outline" onClick={handleExportCandidates}>
+                    <Download className="w-4 h-4 mr-2" /> Export Register
+                  </Button>
+                )}
+              </div>
+              {isCandidatesLoading ? (
+                <div className="py-12"><LoadingSpinner /></div>
+              ) : (
+                <div className="bg-surface rounded-xl shadow-sm border border-slate-border overflow-hidden">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-surface text-gray-500">
+                      <tr>
+                        <th className="px-6 py-4 font-medium">Candidate Name</th>
+                        <th className="px-6 py-4 font-medium">Email</th>
+                        <th className="px-6 py-4 font-medium">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-border">
+                      {candidatesData?.map((c: any) => (
+                        <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                          <td className="px-6 py-4 font-medium text-navy-900 dark:text-white">{c.candidateName}</td>
+                          <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{c.email}</td>
+                          <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{c.selectionStatus || c.screeningStatus || 'APPLIED'}</td>
+                        </tr>
+                      ))}
+                      {!candidatesData?.length && (
+                        <tr><td colSpan={3} className="px-6 py-8 text-center text-gray-500">No candidates found.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
  )}
  </div>
 
