@@ -872,17 +872,6 @@ model ModulePermission {
   @@map("module_permissions")
 }
 
-model SystemSettings {
-  id                  String   @id @default(uuid())
-  minPasswordLength   Int      @default(8)
-  requireUppercase    Boolean  @default(true)
-  requireNumbers      Boolean  @default(true)
-  requireSpecialChars Boolean  @default(true)
-  passwordExpiryDays  Int      @default(90)
-  updatedAt           DateTime @updatedAt
-
-  @@map("system_settings")
-}
 
 enum ExpenseCategory {
   STATIONERY

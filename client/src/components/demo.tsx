@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import AnimatedRadio from "@/components/ui/animated-radio";
-import { LayoutDashboard, Users, Settings, Briefcase } from "lucide-react";
+import { LayoutDashboard, Users, Briefcase } from "lucide-react";
 
 export default function SidebarDemo() {
  const [currentRoute, setCurrentRoute] = useState("/dashboard");
@@ -36,16 +36,7 @@ export default function SidebarDemo() {
  </div>
  ),
  },
- {
- id: "nav-settings",
- value: "/settings",
- label: (
- <div className="flex items-center gap-3">
- <Settings className="w-5 h-5" />
- <span>Settings</span>
- </div>
- ),
- },
+ 
  ];
 
  return (

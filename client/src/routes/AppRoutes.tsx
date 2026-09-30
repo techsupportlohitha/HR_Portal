@@ -24,7 +24,6 @@ const OfficeExpensesPage = lazy(() => import('@/pages/expenses/OfficeExpensesPag
 const RecruitmentPage = lazy(() => import('@/pages/recruitment/RecruitmentPage'));
 const NotificationListPage = lazy(() => import('@/pages/notifications/NotificationListPage'));
 const AttritionDashboardPage = lazy(() => import('@/pages/attrition/AttritionDashboardPage'));
-const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
 const AuditLogPage = lazy(() => import('@/pages/audit/AuditLogPage'));
 const LoginHistoryPage = lazy(() => import('@/pages/loginHistory/LoginHistoryPage'));
 const RoleManagementPage = lazy(() => import('@/pages/roles/RoleManagementPage'));
@@ -68,14 +67,13 @@ const AppRoutes = () => {
  <Route path="/leaves" element={<LeaveApplicationPage />} />
 
  <Route path="/policies" element={<Navigate to="/documents" replace />} />
- <Route path="/profile" element={<Navigate to="/settings" replace />} />
+ <Route path="/profile" element={<Navigate to="/" replace />} />
  <Route path="/notifications" element={<NotificationListPage />} />
 
  <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'HR']} />}>
  <Route path="/recruitment" element={<RecruitmentPage />} />
  <Route path="/leaves/approvals" element={<LeaveApprovalsPage />} />
- <Route path="/settings" element={<SettingsPage />} />
- <Route path="/audit" element={<AuditLogPage />} />
+  <Route path="/audit" element={<AuditLogPage />} />
  <Route path="/login-history" element={<LoginHistoryPage />} />
  <Route path="/roles" element={<RoleManagementPage />} />
  <Route path="/dashboard/attrition" element={<AttritionDashboardPage />} />
