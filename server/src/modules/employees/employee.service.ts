@@ -135,17 +135,30 @@ export class EmployeeService {
     return employee;
   }
 
-  async create(currentUser: CurrentUser, data: CreateEmployeeInput, reqContext: { ipAddress?: string } = {}) {
-    const { dateOfBirth, joiningDate, ...restData } = data;
-    
-    let employee;
-    try {
-      employee = await prisma.employee.create({
-        data: {
-          ...restData as any,
-          dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
-          joiningDate: new Date(joiningDate),
-        },
+      async create(currentUser: CurrentUser, data: CreateEmployeeInput, reqContext: { ipAddress?: string } = {}) {
+      const createData: any = { ...data };
+
+      const numericFields = ['salary', 'ctc', 'basicSalary', 'grossSalary', 'probationPeriod', 'noticePeriod'];
+      for (const field of numericFields) {
+        if (createData[field] === '') {
+          createData[field] = null;
+        } else if (createData[field] !== undefined && createData[field] !== null) {
+          createData[field] = Number(createData[field]);
+        }
+      }
+      if (createData.departmentId === '') createData.departmentId = null;
+      if (createData.managerId === '') createData.managerId = null;
+
+      const { dateOfBirth, joiningDate, ...restData } = createData;
+
+      let employee;
+      try {
+        employee = await prisma.employee.create({
+          data: {
+            ...restData as any,
+            dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+            joiningDate: new Date(joiningDate),
+          },
         include: {
           department: { select: { id: true, name: true } },
         },
@@ -220,6 +233,17 @@ export class EmployeeService {
     }
 
     const updateData: any = { ...data };
+
+    const numericFields = ['salary', 'ctc', 'basicSalary', 'grossSalary', 'probationPeriod', 'noticePeriod'];
+    for (const field of numericFields) {
+      if (updateData[field] === '') {
+        updateData[field] = null;
+      } else if (updateData[field] !== undefined && updateData[field] !== null) {
+        updateData[field] = Number(updateData[field]);
+      }
+    }
+    
+    if (updateData.departmentId === '') updateData.departmentId = null;
 
     if (data.dateOfBirth) {
       updateData.dateOfBirth = new Date(data.dateOfBirth);
