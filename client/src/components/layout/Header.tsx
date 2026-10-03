@@ -89,13 +89,15 @@ export function Header({ onMenuClick, menuOpen = false, sidebarCollapsed = false
  
  <button 
  onClick={() => setCmdOpen(true)}
- className="hidden md:flex items-center text-sm text-gray-500 dark:text-gray-400 bg-surface px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-transparent w-64 justify-between"
+ className="hidden md:flex items-center text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-slate-800/50 px-4 py-2.5 rounded-full hover:bg-gray-200 dark:hover:bg-slate-800 transition-colors border border-transparent w-80 lg:w-[480px] justify-between focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-700 outline-none"
  >
- <div className="flex items-center">
- <Search className="h-4 w-4 mr-2" />
- <span>Search...</span>
+ <div className="flex items-center text-gray-400 dark:text-gray-500 font-medium">
+ <Search className="h-4 w-4 mr-3" strokeWidth={2.5} />
+ <span>Search portal, staff, travel, policies...</span>
  </div>
- <kbd className="hidden sm:inline-block text-xs font-semibold px-1.5 py-0.5 rounded bg-gray-200 bg-surface">Ctrl K</kbd>
+ <kbd className="hidden sm:flex items-center justify-center text-[11px] font-semibold px-2 py-0.5 rounded bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 text-gray-500 dark:text-gray-400 shadow-sm gap-0.5">
+ <span className="text-[12px] font-sans">⌘</span>K
+ </kbd>
  </button>
  </div>
 

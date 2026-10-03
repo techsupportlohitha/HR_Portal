@@ -9,7 +9,8 @@ export class AuthController {
       const result = await authService.login(req.body, { ipAddress: req.ip, deviceBrowser: req.headers['user-agent'] });
       sendSuccess(res, result, 'Login successful');
     } catch (error: any) {
-      sendError(res, error.message, 401);
+      console.error('[AUTH LOGIN ERROR]', error);
+      sendError(res, error.message || 'Login failed', 401);
     }
   }
 

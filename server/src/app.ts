@@ -39,7 +39,14 @@ app.use((req, res, next) => {
 });
 
 // Middleware
-app.use(cors({ origin: true, credentials: true }));
+const corsOptions = {
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-correlation-id'],
+};
+app.options('*', cors(corsOptions)); // Handle preflight for ALL routes
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use('/api/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use(express.urlencoded({ extended: true }));
