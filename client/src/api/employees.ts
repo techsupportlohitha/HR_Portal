@@ -26,7 +26,14 @@ export const employeesApi = {
  const { data } = await apiClient.get<ApiResponse<any>>('/employees/dashboard-stats');
  return data;
  },
- uploadDocument: async (formData: FormData) => {
+ 
+  bulkImport: async (formData: FormData) => {
+    const { data } = await apiClient.post<ApiResponse<any>>('/employees/bulk-import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
+  uploadDocument: async (formData: FormData) => {
  const { data } = await apiClient.post<ApiResponse<any>>('/employees/documents/upload', formData, {
  headers: { 'Content-Type': 'multipart/form-data' }
  });

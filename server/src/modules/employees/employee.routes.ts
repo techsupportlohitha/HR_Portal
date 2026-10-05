@@ -24,6 +24,8 @@ router.delete('/:id', requirePermission('employees', 'delete'), (req, res) => em
 
 const upload = multer({ dest: 'uploads/' });
 
+router.post('/bulk-import', requirePermission('employees', 'add'), upload.single('file'), (req, res) => employeeController.bulkImport(req as any, res));
+
 router.post('/:id/photo', requirePermission('employees', 'edit'), upload.single('photo'), async (req, res) => {
   try {
     const employeeId = req.params.id as string;

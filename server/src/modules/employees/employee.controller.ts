@@ -80,6 +80,34 @@ export class EmployeeController {
       sendError(res, error.message);
     }
   }
+
+  async bulkImport(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!req.file) {
+        sendError(res, 'No file uploaded', 400);
+        return;
+      }
+      
+      const xlsx = require('xlsx');
+      const workbook = xlsx.readFile(req.file.path);
+      const sheetName = workbook.SheetNames[0];
+      const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+      
+      const result = await employeeService.bulkImport(req.user! as any, data, { ipAddress: req.ip });
+      
+      // Cleanup the uploaded file
+      const fs = require('fs');
+      if (fs.existsSync(req.file.path)) {
+         fs.unlinkSync(req.file.path);
+      }
+      
+      sendSuccess(res, result, `Successfully imported ${result.createdCount} employees`);
+    } catch (error: any) {
+      sendError(res, error.message);
+    }
+  }
+
 }
+
 
 export const employeeController = new EmployeeController();

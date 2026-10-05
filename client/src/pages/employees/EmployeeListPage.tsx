@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, UsersRound, Download } from 'lucide-react';
+import { Search, Plus, UsersRound, Download, Upload } from 'lucide-react';
 import { employeesApi } from '@/api/employees';
 import { departmentsApi } from '@/api/departments';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,6 +12,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useDebounce } from '@/hooks/useDebounce';
+import { BulkImportModal } from './components/BulkImportModal';
 import { Select } from '@/components/ui/Select';
 
 export default function EmployeeListPage() {
@@ -24,7 +25,9 @@ export default function EmployeeListPage() {
  const [location, setLocation] = useState('');
  const [status, setStatus] = useState('');
 
- const [page, setPage] = useState(1);
+ const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
+
+  const [page, setPage] = useState(1);
  const pageSize = 12;
 
  // reset pagination when filters change
@@ -90,7 +93,13 @@ export default function EmployeeListPage() {
  description="Find, review, and manage employee records."
  actions={
  <div className="flex items-center gap-3">
- {canExport('employees') && (
+ 
+              {canExport('employees') && (
+                <Button variant="outline" onClick={() => setIsBulkImportOpen(true)}>
+                  <Upload className="w-4 h-4 mr-2" /> Bulk Import
+                </Button>
+              )}
+              {canExport('employees') && (
  <Button variant="outline" onClick={handleExport}>
  <Download className="w-4 h-4 mr-2" /> Export Register
  </Button>

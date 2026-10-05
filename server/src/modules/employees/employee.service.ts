@@ -354,6 +354,81 @@ export class EmployeeService {
       recentJoinees,
     };
   }
+
+  async bulkImport(currentUser: CurrentUser, employees: any[], reqContext: { ipAddress?: string } = {}) {
+    const bcrypt = require('bcryptjs');
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash('password123', salt);
+    
+    let createdCount = 0;
+    let failedRows = [];
+
+    for (let i = 0; i < employees.length; i++) {
+      const row = employees[i];
+      try {
+        if (!row.firstName || !row.lastName || !row.email || !row.employeeCode || !row.designation) {
+           throw new Error('Missing required fields (firstName, lastName, email, employeeCode, designation)');
+        }
+        
+        // Ensure email and employeeCode are unique
+        const existing = await prisma.employee.findFirst({
+           where: { OR: [{ email: row.email }, { employeeCode: row.employeeCode }] }
+        });
+        if (existing) {
+           throw new Error(`Email ${row.email} or Code ${row.employeeCode} already exists.`);
+        }
+
+        const joiningDate = row.joiningDate ? new Date(row.joiningDate) : new Date();
+
+        await prisma.$transaction(async (tx) => {
+          const emp = await tx.employee.create({
+            data: {
+              employeeCode: row.employeeCode,
+              firstName: row.firstName,
+              lastName: row.lastName,
+              email: row.email,
+              phone: row.phone || null,
+              designation: row.designation,
+              departmentId: row.departmentId || null,
+              joiningDate,
+              status: 'ACTIVE',
+              isActive: true,
+              gender: row.gender || null,
+              location: row.location || null,
+            }
+          });
+
+          await tx.user.create({
+            data: {
+              email: emp.email,
+              password: hashedPassword,
+              role: 'EMPLOYEE',
+              employeeId: emp.id
+            }
+          });
+
+          await tx.auditLog.create({
+            data: {
+              actionPerformed: 'CREATE',
+              moduleAffected: 'employees',
+              
+              userId: (currentUser as any).id,
+              ipAddress: reqContext.ipAddress,
+              
+            }
+          });
+        });
+        createdCount++;
+      } catch (error: any) {
+        failedRows.push({ row: i + 2, error: error.message });
+      }
+    }
+    
+    return { createdCount, failedRows };
+  }
+
 }
 
+
 export const employeeService = new EmployeeService();
+
