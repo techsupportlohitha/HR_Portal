@@ -167,6 +167,7 @@ enum RequisitionStatus {
   SELECTED
   OFFER
   JOINED_REJECTED
+  CLOSED
 }
 
 enum ScreeningStatus {

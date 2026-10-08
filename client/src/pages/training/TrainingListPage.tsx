@@ -1,5 +1,5 @@
 import { formatDate, formatDateTime } from '@/utils/dateFormat';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { trainingApi } from '@/api/training';
 import { Timeline, type TimelineItem } from '@/components/ui/Timeline';
@@ -19,6 +19,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import apiClient from '@/api/client';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { hasAdminAccess } from '@/utils/roles';
+import { PaginationControls } from '@/components/ui/PaginationControls';
 
 export default function TrainingListPage() {
  const { user } = useAuth();
@@ -26,6 +27,8 @@ export default function TrainingListPage() {
  const queryClient = useQueryClient();
  const [isModalOpen, setIsModalOpen] = useState(false);
  const [selectedTraining, setSelectedTraining] = useState<any>(null);
+ const [participantPage, setParticipantPage] = useState(1);
+ const participantPageSize = 10;
  const [selectedTrainingForEdit, setSelectedTrainingForEdit] = useState<any>(null);
  const [editingParticipant, setEditingParticipant] = useState<any>(null);
  const [newParticipantId, setNewParticipantId] = useState('');
@@ -34,6 +37,7 @@ export default function TrainingListPage() {
  const [typeFilter, setTypeFilter] = useState('ALL');
  const [departmentFilter, setDepartmentFilter] = useState('ALL');
  const isAdminOrHR = hasAdminAccess(user?.role);
+ useEffect(() => setParticipantPage(1), [selectedTraining?.id]);
 
  const { data: trainingData, isLoading } = useQuery({
  queryKey: ['trainings'],
@@ -573,7 +577,7 @@ export default function TrainingListPage() {
  </tr>
  </thead>
  <tbody className="divide-y dark:divide-gray-800">
- {selectedTraining.participants.map((p: any) => (
+ {selectedTraining.participants.slice((participantPage - 1) * participantPageSize, participantPage * participantPageSize).map((p: any) => (
  <tr key={p.id}>
  <td className="px-4 py-3 font-medium">{p.employee?.firstName} {p.employee?.lastName}</td>
  <td className="px-4 py-3 text-gray-500">{p.employee?.department?.name || 'N/A'}</td>
@@ -593,6 +597,13 @@ export default function TrainingListPage() {
  ))}
  </tbody>
  </table>
+ <PaginationControls
+ page={participantPage}
+ pageSize={participantPageSize}
+ total={selectedTraining.participants.length}
+ onPageChange={setParticipantPage}
+ itemLabel="participants"
+ />
  </div>
  ) : (
  <div className="text-sm text-gray-500 bg-surface p-4 rounded-lg text-center">

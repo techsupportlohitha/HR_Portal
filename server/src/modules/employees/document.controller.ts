@@ -23,12 +23,20 @@ export class DocumentController {
     }
   }
 
-  async generateDownloadLink(req: AuthRequest, res: Response) {
+  async viewDocument(req: AuthRequest, res: Response) {
     try {
-      const link = await documentService.generateDownloadLink(req.params.id as string, req.user, { ipAddress: req.ip });
-      return sendSuccess(res, link, 'Download link generated');
+      const file = await documentService.getDocumentFile(req.params.id as string, req.user, { ipAddress: req.ip });
+      const disposition = file.inline ? 'inline' : 'attachment';
+      res.setHeader('Content-Type', file.contentType);
+      res.setHeader('Content-Disposition', `${disposition}; filename*=UTF-8''${encodeURIComponent(file.documentName)}`);
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      return res.sendFile(file.filePath, (error) => {
+        if (error && !res.headersSent) sendError(res, 'Unable to read document file', 404);
+      });
     } catch (error: any) {
-      return sendError(res, error.message, 403);
+      const statusCode = error.message === 'Document not found' || error.message.startsWith('Document file is unavailable') ? 404 : 403;
+      return sendError(res, error.message, statusCode);
     }
   }
 

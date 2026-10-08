@@ -57,7 +57,7 @@ export class DashboardService {
     // Open Vacancies
     const openVacancies = hasOrganizationAccess
       ? await prisma.requisition.aggregate({
-          where: { status: { notIn: ['JOINED_REJECTED', 'OFFER'] } },
+          where: { status: { not: 'JOINED_REJECTED' } },
           _sum: { numberOfVacancies: true }
         }).then(r => r._sum?.numberOfVacancies || 0)
       : 0;

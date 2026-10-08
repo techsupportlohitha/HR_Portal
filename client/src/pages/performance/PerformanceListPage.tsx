@@ -108,7 +108,7 @@ export default function PerformanceListPage() {
  caption="Performance reviews"
  data={reviews}
  keyField="id"
- pageSize={8}
+ pageSize={10}
  onRowClick={(review: any) => setSelectedReview(review)}
  emptyMessage="No reviews match the selected filters."
  columns={[

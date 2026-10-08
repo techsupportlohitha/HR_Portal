@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { recruitmentApi } from '@/api/recruitment';
 import { departmentsApi } from '@/api/departments';
-import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -11,24 +10,18 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { Plus, Briefcase, Users, ChevronLeft, ChevronRight, Download, Search, PhoneCall, UserCheck, Award, TrendingUp, Calendar, Clock, MapPin, CheckCircle2, ArrowRight, Pencil } from 'lucide-react';
-import { KanbanBoard } from './KanbanBoard';
-import { hasAdminAccess } from '@/utils/roles';
+import { Plus, Briefcase, Users, ChevronLeft, ChevronRight, Download, CheckCircle2, Pencil } from 'lucide-react';
 
 export default function RecruitmentPage() {
   const navigate = useNavigate();
  const [searchParams] = useSearchParams();
- const { user } = useAuth();
  const queryClient = useQueryClient();
  const { canExport, canEdit, canAdd } = usePermissions();
- const isAdminOrHR = hasAdminAccess(user?.role);
  
  const [isReqModalOpen, setIsReqModalOpen] = useState(false);
  const [selectedReq, setSelectedReq] = useState<any>(null);
- const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
- const [selectedBoardReqId, setSelectedBoardReqId] = useState<string | null>(null);
- const [trackerMode, setTrackerMode] = useState<'kanban' | 'table'>('kanban');
  const [editingReq, setEditingReq] = useState<any>(null);
+ const [showHistory, setShowHistory] = useState(false);
  
  const { data: deptData } = useQuery({
  queryKey: ['departments'],
@@ -48,11 +41,41 @@ export default function RecruitmentPage() {
 
  
  const data = reqResponse?.data || [];
+ const historyRequisitions = data.filter((req: any) => ['CLOSED', 'JOINED_REJECTED'].includes(req.status));
+ const visibleRequisitions = data.filter((req: any) =>
+   showHistory
+     ? ['CLOSED', 'JOINED_REJECTED'].includes(req.status)
+     : !['CLOSED', 'JOINED_REJECTED'].includes(req.status)
+ );
+ const routeReqId = searchParams.get('reqId');
+ const routeCandidateId = searchParams.get('candidateId');
+ const routeCandidate = candidatesData.find((candidate: any) => candidate.id === routeCandidateId);
+ const candidateStages = [
+   { value: 'TELEPHONIC', label: 'Telephonic' },
+   { value: 'HR_INTERVIEW', label: 'HR interview' },
+   { value: 'TECHNICAL', label: 'Technical Interview' },
+   { value: 'MANAGEMENT', label: 'Management interview' },
+   { value: 'OFFER', label: 'Offer' },
+ ];
+ const candidateStageIndex = routeCandidate
+   ? Math.max(0, candidateStages.findIndex((stage) => stage.value === routeCandidate.interviewRound))
+   : -1;
+
+ React.useEffect(() => {
+   if (!routeReqId || !data.length) return;
+   const requisition = data.find((req: any) => req.id === routeReqId);
+   if (requisition) setSelectedReq(requisition);
+ }, [routeReqId, data]);
+
+ React.useEffect(() => {
+   if (routeReqId && !routeCandidateId) {
+     navigate(`/recruitment/interviews?reqId=${encodeURIComponent(routeReqId)}`, { replace: true });
+   }
+ }, [routeReqId, routeCandidateId, navigate]);
 
  React.useEffect(() => {
    if (searchParams.get('tab') === 'vacancies') {
      setSelectedReq(null);
-     setViewMode('list');
    }
  }, [searchParams]);
 
@@ -74,17 +97,6 @@ export default function RecruitmentPage() {
  }
  });
 
- const updateReqStatusMutation = useMutation({
- mutationFn: ({ id, col }: any) => recruitmentApi.updateRequisitionStatus(id, { status: col }),
- onSuccess: () => {
- queryClient.invalidateQueries({ queryKey: ['requisitions'] });
- }
- });
-
- const handleStatusChange = (id: string, newStatus: string) => {
- updateReqStatusMutation.mutate({ id, col: newStatus });
- };
-
  const handleExportCandidates = () => {
  if (!candidatesData?.length) return;
  const csvContent = "data:text/csv;charset=utf-8," 
@@ -99,25 +111,6 @@ export default function RecruitmentPage() {
  document.body.appendChild(link);
  link.click();
  document.body.removeChild(link);
- };
-
- const getStatusLabel = (status: string) => {
- if (status === 'JOINED_REJECTED') return 'Completed';
- return status?.replace('_', ' ') || 'Unknown';
- };
-
- const getStatusClasses = (status: string) => {
- if (status === 'REQUIREMENT') return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400';
- if (status === 'SOURCING') return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
- if (status === 'SCREENING') return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400';
- if (status === 'TELEPHONIC') return 'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400';
- if (status === 'HR_INTERVIEW') return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
- if (status === 'TECHNICAL') return 'bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-900/30 dark:text-fuchsia-400';
- if (status === 'MANAGEMENT') return 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400';
- if (status === 'SELECTED') return 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400';
- if (status === 'OFFER') return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
- if (status === 'JOINED_REJECTED') return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400';
- return 'bg-gray-100 text-gray-800 bg-surface dark:text-gray-300';
  };
 
  const handleSubmitReq = (e: React.FormEvent<HTMLFormElement>) => {
@@ -141,12 +134,9 @@ export default function RecruitmentPage() {
  <div className="space-y-6 flex flex-col h-full h-[calc(100vh-6rem)]">
  <PageHeader
  title="Recruitment Tracker"
- description="Manage job requisitions and candidate pipelines."
+ description="Manage job openings and scheduled interviews."
  actions={<div className="flex items-center gap-3">
- {viewMode === 'board' && (
- <Button variant="outline" onClick={() => setViewMode('list')}>Back to List</Button>
- )}
- {canAdd('recruitment') && viewMode === 'list' && (
+ {canAdd('recruitment') && (
  <Button onClick={() => { setEditingReq(null); setIsReqModalOpen(true); }} className="gap-2">
  <Plus className="w-4 h-4" /> New Requisition
  </Button>
@@ -160,12 +150,12 @@ export default function RecruitmentPage() {
  <div className="space-y-4">
  <div className="flex items-center justify-between">
  <div className="flex items-center gap-4">
- <Button variant="ghost" onClick={() => setSelectedReq(null)} className="px-2">
+ <Button variant="ghost" onClick={() => navigate('/recruitment?tab=vacancies')} className="px-2">
  <ChevronLeft className="w-5 h-5" />
  </Button>
  <div>
  <h2 className="text-xl font-bold text-navy-900 dark:text-white">{selectedReq.positionTitle}</h2>
- <p className="text-sm text-gray-500 dark:text-gray-400">HR Funnel Layout Structure</p>
+ <p className="text-sm text-gray-500 dark:text-gray-400">{routeCandidate ? 'Candidate stage tracker' : 'HR Funnel Layout Structure'}</p>
  </div>
  </div>
  {canExport('recruitment') && (
@@ -174,62 +164,70 @@ export default function RecruitmentPage() {
  </Button>
  )}
  </div>
- {isCandidatesLoading ? (
- <div className="py-12"><LoadingSpinner /></div>
- ) : (
- <div className="overflow-hidden rounded-xl border border-slate-border bg-surface shadow-sm">
- <div className="overflow-x-auto" role="region" tabIndex={0} aria-label="Candidate pipeline. Scroll horizontally for more columns.">
- <table className="w-full min-w-[40rem] text-left text-sm">
- <thead className="bg-surface text-gray-500">
- <tr>
- <th className="px-6 py-4 font-medium">Candidate Name</th>
- <th className="px-6 py-4 font-medium">Email</th>
- <th className="px-6 py-4 font-medium">Status</th>
- </tr>
- </thead>
- <tbody className="divide-y divide-slate-border">
- {candidatesData?.map((c: any) => (
- <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
- <td className="px-6 py-4 font-medium text-navy-900 dark:text-white">{c.candidateName}</td>
- <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{c.email}</td>
- <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{c.selectionStatus || c.screeningStatus || 'APPLIED'}</td>
- </tr>
- ))}
- {!candidatesData?.length && (
- <tr><td colSpan={3} className="px-6 py-8 text-center text-gray-500">No candidates found.</td></tr>
- )}
- </tbody>
- </table>
- </div>
- </div>
- )}
+ {routeCandidateId ? (
+   isCandidatesLoading ? <div className="py-12"><LoadingSpinner /></div> : routeCandidate ? (
+     <section className="space-y-5 rounded-xl border border-slate-border bg-surface p-5 shadow-sm" aria-label={`${routeCandidate.candidateName} recruitment stages`}>
+       <div className="flex flex-wrap items-start justify-between gap-4">
+         <div>
+           <h3 className="text-lg font-bold text-navy-900 dark:text-white">{routeCandidate.candidateName}</h3>
+           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{routeCandidate.email || 'No email provided'}{routeCandidate.interviewDate ? ` · Interview ${new Date(routeCandidate.interviewDate).toLocaleString()}` : ''}</p>
+         </div>
+       </div>
+       <ol className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+         {candidateStages.map((stage, index) => {
+           const complete = index < candidateStageIndex;
+           const current = index === candidateStageIndex;
+           return (
+             <li key={stage.value} className={`rounded-xl border p-4 ${current ? 'border-orange-300 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/30' : complete ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30' : 'border-slate-border bg-surface'}`}>
+               <div className="flex items-center gap-2">
+                 <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${current ? 'bg-orange-500 text-white' : complete ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500 dark:bg-slate-800'}`}>
+                   {complete ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
+                 </span>
+                 <span className="font-semibold text-navy-900 dark:text-white">{stage.label}</span>
+               </div>
+               <p className="mt-2 pl-9 text-xs text-gray-500 dark:text-gray-400">{current ? 'Current stage' : complete ? 'Completed' : 'Upcoming'}</p>
+             </li>
+           );
+         })}
+       </ol>
+       {routeCandidate.selectionStatus && <p className="text-sm text-gray-600 dark:text-gray-300">Selection status: <span className="font-semibold">{routeCandidate.selectionStatus.replaceAll('_', ' ')}</span></p>}
+     </section>
+   ) : <div className="rounded-xl border border-dashed border-slate-border p-8 text-center text-gray-500">Candidate not found for this requisition.</div>
+ ) : <div className="py-12"><LoadingSpinner /></div>}
  </div>
  ) : isLoading ? (
  <div className="py-12"><LoadingSpinner /></div>
- ) : viewMode === 'list' ? (
+ ) : (
  <section aria-label="Job requisitions" className="space-y-3">
- <p className="border-b border-slate-border px-4 py-2 text-xs text-gray-500 dark:border-slate-border dark:text-gray-400 sm:hidden">
- Tap a requisition to open its pipeline. Key status details stay visible on this screen.
- </p>
- {data.length === 0 ? (
- <div className="flex min-h-48 items-center justify-center rounded-xl border border-dashed border-slate-border bg-surface px-6 text-center text-gray-600 dark:text-gray-400">
- No requisitions found.
+ <div className="flex w-fit max-w-full items-center gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800" role="tablist" aria-label="Vacancy status">
+   <button type="button" role="tab" aria-selected={!showHistory} onClick={() => setShowHistory(false)} className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${!showHistory ? 'bg-white text-primary-700 shadow-sm dark:bg-slate-700 dark:text-primary-300' : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100'}`}>
+     Open vacancies ({data.length - historyRequisitions.length})
+   </button>
+   <button type="button" role="tab" aria-selected={showHistory} onClick={() => setShowHistory(true)} className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${showHistory ? 'bg-white text-primary-700 shadow-sm dark:bg-slate-700 dark:text-primary-300' : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100'}`}>
+     History ({historyRequisitions.length})
+   </button>
  </div>
- ) : data.map((req: any) => (
+ <p className="border-b border-slate-border px-4 py-2 text-xs text-gray-500 dark:border-slate-border dark:text-gray-400 sm:hidden">
+ Tap an opening to view its scheduled interviews.
+ </p>
+ {visibleRequisitions.length === 0 ? (
+ <div className="flex min-h-48 items-center justify-center rounded-xl border border-dashed border-slate-border bg-surface px-6 text-center text-gray-600 dark:text-gray-400">
+ {showHistory ? 'No closed vacancies in history.' : 'No open vacancies found.'}
+ </div>
+ ) : visibleRequisitions.map((req: any) => (
  <article
  key={req.id}
  role="button"
  tabIndex={0}
- onClick={() => { setSelectedBoardReqId(req.id); setViewMode('board'); }}
+ onClick={() => navigate(`/recruitment/interviews?reqId=${encodeURIComponent(req.id)}`)}
  onKeyDown={(event) => {
  if (event.key === 'Enter' || event.key === ' ') {
  event.preventDefault();
- setSelectedBoardReqId(req.id);
- setViewMode('board');
+ navigate(`/recruitment/interviews?reqId=${encodeURIComponent(req.id)}`);
  }
  }}
  className="group flex cursor-pointer flex-col gap-4 rounded-xl border border-slate-border bg-surface p-4 shadow-sm transition duration-200 hover:border-slate-border hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:hover:border-slate-600 md:grid md:grid-cols-[minmax(0,1fr)_15rem_auto] md:items-center md:gap-6 md:p-5"
- aria-label={`Open pipeline for ${req.positionTitle}`}
+ aria-label={`View scheduled interviews for ${req.positionTitle}`}
  >
  <div className="flex min-w-0 items-start gap-4">
  <div className="flex h-14 w-12 shrink-0 items-center justify-center rounded-lg border border-emerald-100 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300">
@@ -254,9 +252,6 @@ export default function RecruitmentPage() {
  </dl>
 
  <div className="flex items-center justify-between gap-3 border-t border-slate-border pt-4 dark:border-slate-border md:justify-end md:border-l md:border-t-0 md:py-1 md:pl-6">
- <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClasses(req.status)}`}>
- {getStatusLabel(req.status)}
- </span>
  {canEdit('recruitment') && (
  <Button
  type="button"
@@ -275,72 +270,12 @@ export default function RecruitmentPage() {
  </Button>
  )}
  <span className="inline-flex items-center gap-1 text-sm font-semibold text-primary-700 dark:text-primary-300">
- Open pipeline <ChevronRight className="h-4 w-4" aria-hidden="true" />
+ View interviews <ChevronRight className="h-4 w-4" aria-hidden="true" />
  </span>
  </div>
  </article>
  ))}
  </section>
- ) : (
-           <div className="flex flex-col gap-4 h-full">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-2">
-              {canExport('recruitment') && (
-                <Button variant="outline" onClick={handleExportCandidates} className="shadow-sm">
-                  <Download className="w-4 h-4 mr-2" /> Export Register
-                </Button>
-              )}
-            </div>
-
-            {trackerMode === 'kanban' ? (
-              <KanbanBoard 
-                items={data.filter((req: any) => req.id === selectedBoardReqId).map((req: any) => ({
-                  id: req.id,
-                  title: req.positionTitle,
-                  subtitle: req.department?.name || req.location,
-                  status: req.status, // maps directly to the Kanban stages
-                  originalData: req
-                }))} 
-                onStatusChange={handleStatusChange} 
-                onItemClick={(item) => navigate('/recruitment/interviews?reqId=' + item.id)}
-              />
-            ) : (
-              <div className="mt-2">
-                {isCandidatesLoading ? (
-                  <div className="py-12"><LoadingSpinner /></div>
-                ) : (
-                  <div className="overflow-hidden rounded-xl border border-slate-border bg-surface shadow-sm">
-                    <div className="overflow-x-auto" role="region" tabIndex={0} aria-label="Candidate pipeline. Scroll horizontally for more columns.">
-                    <table className="w-full min-w-[40rem] text-left text-sm">
-                      <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
-                        <tr>
-                          <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs">Candidate Name</th>
-                          <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs">Email</th>
-                          <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-border">
-                        {candidatesData?.map((c: any) => (
-                          <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                            <td className="px-6 py-4 font-semibold text-slate-900 dark:text-white">{c.candidateName}</td>
-                            <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{c.email}</td>
-                            <td className="px-6 py-4">
-                              <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] font-bold">
-                                {c.selectionStatus || c.screeningStatus || 'APPLIED'}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                        {!candidatesData?.length && (
-                          <tr><td colSpan={3} className="px-6 py-12 text-center text-slate-500 font-medium">No candidates found in the pipeline.</td></tr>
-                        )}
-                      </tbody>
-                    </table>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
  )}
  </div>
 
@@ -368,33 +303,6 @@ export default function RecruitmentPage() {
  </Button>
  </div>
  </form>
- </Modal>
-
- <Modal isOpen={!!selectedReq} onClose={() => setSelectedReq(null)} title="Requisition Details">
- <div className="space-y-4 pb-4">
- <div className="flex justify-between items-start">
- <div>
- <h3 className="text-xl font-bold text-navy-900 dark:text-white">{selectedReq?.positionTitle}</h3>
- <p className="text-sm font-medium text-gray-500 mt-1">{selectedReq?.department?.name} • {selectedReq?.location}</p>
- </div>
- {canEdit('recruitment') && (
- <Button variant="outline" onClick={() => { setEditingReq(selectedReq); setSelectedReq(null); setIsReqModalOpen(true); }} size="sm">
- Edit
- </Button>
- )}
- </div>
- 
- <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
- <div className="bg-surface rounded-lg p-3">
- <span className="text-xs text-gray-500 uppercase font-semibold">Vacancies</span>
- <p className="text-lg font-bold text-navy-900 dark:text-white">{selectedReq?.numberOfVacancies}</p>
- </div>
- <div className="bg-surface rounded-lg p-3">
- <span className="text-xs text-gray-500 uppercase font-semibold">Current Stage</span>
- <p className="text-lg font-bold text-navy-900 dark:text-white">{selectedReq?.status?.replace('_', ' ')}</p>
- </div>
- </div>
- </div>
  </Modal>
 
  

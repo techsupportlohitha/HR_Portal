@@ -36,6 +36,10 @@ export const employeesApi = {
  const { data } = await apiClient.get<ApiResponse<any[]>>(`/employees/documents/${employeeId}`);
  return data;
  },
+ downloadDocument: async (documentId: string) => {
+ const { data } = await apiClient.get<Blob>(`/employees/documents/${documentId}/download`, { responseType: 'blob' });
+ return data;
+ },
  deleteDocument: async (documentId: string) => {
  const { data } = await apiClient.delete<ApiResponse<null>>(`/employees/documents/${documentId}`);
  return data;

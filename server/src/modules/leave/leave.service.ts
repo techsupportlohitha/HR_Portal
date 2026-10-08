@@ -3,19 +3,28 @@ import { ApplyLeaveInput, UpdateLeaveStatusInput } from './leave.schema';
 
 export class LeaveService {
   async apply(employeeId: string, data: ApplyLeaveInput) {
-    const startDate = new Date(data.startDate);
-    const endDate = new Date(data.endDate);
+    // Date-only inputs must be interpreted as calendar dates, not UTC instants.
+    const parseDateOnly = (value: Date | string) => {
+      if (value instanceof Date) {
+        return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+      }
+
+      const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+      return new Date(year, month - 1, day);
+    };
+    const startDate = parseDateOnly(data.startDate);
+    const endDate = parseDateOnly(data.endDate);
 
     if (endDate < startDate) {
       throw new Error('End date must be after start date');
     }
 
-    // Calculate total days (excluding weekends)
+    // Sunday is the weekly off; Saturdays are working days.
     let totalDays = 0;
     const current = new Date(startDate);
     while (current <= endDate) {
       const dayOfWeek = current.getDay();
-      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      if (dayOfWeek !== 0) {
         totalDays++;
       }
       current.setDate(current.getDate() + 1);

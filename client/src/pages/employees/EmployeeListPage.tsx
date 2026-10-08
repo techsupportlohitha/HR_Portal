@@ -14,6 +14,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Select } from '@/components/ui/Select';
 import { hasAdminAccess } from '@/utils/roles';
+import { PaginationControls } from '@/components/ui/PaginationControls';
 
 export default function EmployeeListPage() {
  const navigate = useNavigate();
@@ -27,7 +28,7 @@ export default function EmployeeListPage() {
  const [status, setStatus] = useState('');
 
  const [page, setPage] = useState(1);
- const pageSize = 12;
+ const pageSize = 10;
 
  // reset pagination when filters change
  useEffect(() => { setPage(1); }, [debouncedSearch, departmentId, location, status]);
@@ -43,7 +44,6 @@ export default function EmployeeListPage() {
  });
 
  const displayedEmployees = empData?.data?.slice((page - 1) * pageSize, page * pageSize) || [];
- const totalPages = Math.ceil((empData?.data?.length || 0) / pageSize);
  const customOrder = ['HR&ADMIN-IT', 'HR & ADMIN', 'COMMERCIAL', 'ACCOUNTS', 'PROCUREMENT'];
  const sortedDepts = [...(deptData?.data || [])].sort((a, b) => {
  const indexA = customOrder.indexOf(a.name);
@@ -382,44 +382,7 @@ export default function EmployeeListPage() {
  ))}
  </div>
 
- {totalPages > 1 && (
- <div className="flex items-center justify-between border-t border-slate-border pt-4">
- <p className="text-sm text-slate-500">
- Showing <span className="font-medium">{((page - 1) * pageSize) + 1}</span> to <span className="font-medium">{Math.min(page * pageSize, empData?.data?.length || 0)}</span> of <span className="font-medium">{empData?.data?.length}</span> results
- </p>
- <div className="flex items-center gap-2">
- <Button
- variant="outline"
- size="sm"
- onClick={() => setPage(p => Math.max(1, p - 1))}
- disabled={page === 1}
- >
- Previous
- </Button>
- <div className="flex gap-1 hidden sm:flex">
- {Array.from({ length: totalPages }, (_, i) => i + 1).filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1).map((p, i, arr) => (
- <React.Fragment key={p}>
- {i > 0 && arr[i-1] !== p - 1 && <span className="px-2 py-1 text-slate-400">...</span>}
- <button
- onClick={() => setPage(p)}
- className={`w-8 h-8 rounded-md text-sm font-medium transition-colors ${page === p ? 'bg-accent-600 text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'}`}
- >
- {p}
- </button>
- </React.Fragment>
- ))}
- </div>
- <Button
- variant="outline"
- size="sm"
- onClick={() => setPage(p => Math.min(totalPages, p + 1))}
- disabled={page === totalPages}
- >
- Next
- </Button>
- </div>
- </div>
- )}
+ <PaginationControls page={page} pageSize={pageSize} total={empData?.data?.length || 0} onPageChange={setPage} itemLabel="results" />
  </div>
  )}
  </div>

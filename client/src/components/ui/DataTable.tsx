@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, ArrowDownIcon, ArrowUpIcon, ChevronsUpDownIcon } from 'lucide-react';
+import { ArrowDownIcon, ArrowUpIcon, ChevronsUpDownIcon } from 'lucide-react';
+import { PaginationControls } from './PaginationControls';
 import {
  flexRender,
  getCoreRowModel,
@@ -147,25 +148,6 @@ export function DataTable<T>({
  }, [rowSelection, onSelectionChange, table]);
 
  const pageIndex = table.getState().pagination.pageIndex;
- const pageCount = table.getPageCount();
- const pageNumbers = useMemo(() => {
- const pages = [];
- const totalPages = pageCount;
- const currentPage = pageIndex + 1;
- 
- if (totalPages <= 5) {
- for (let i = 1; i <= totalPages; i++) pages.push(i);
- } else {
- if (currentPage > 3) pages.push(1, '...');
- for (let i = Math.max(1, currentPage - 1); i <= Math.min(totalPages, currentPage + 1); i++) {
- pages.push(i);
- }
- if (currentPage < totalPages - 2) pages.push('...');
- if (currentPage < totalPages - 1) pages.push(totalPages);
- }
- return pages;
- }, [pageIndex, pageCount]);
-
  return (
  <div className="rounded-xl border border-slate-border bg-white dark:bg-gray-900 overflow-hidden">
  <p className="border-b border-slate-border px-4 py-2 text-xs text-slate-500 dark:text-slate-400 sm:hidden">
@@ -225,51 +207,13 @@ export function DataTable<T>({
  </div>
 
  {/* Pagination */}
- {table.getPageCount() > 1 && (
- <div className="flex flex-col gap-3 border-t border-slate-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
- <p className="text-sm text-gray-500 dark:text-gray-400">
- Show {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to {Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, data.length)} of {data.length} results
- </p>
- <div className="flex flex-wrap items-center gap-1">
- <button
- aria-label="Previous page"
- onClick={() => table.previousPage()}
- disabled={!table.getCanPreviousPage()}
- className="h-8 w-8 flex items-center justify-center rounded-lg border border-slate-border text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
- >
- <ChevronLeft className="h-4 w-4" />
- </button>
- {pageNumbers.map((num, idx) =>
- num === '...' ? (
- <span key={`dots-${idx}`} className="px-1 text-gray-400 dark:text-gray-500">⋯</span>
- ) : (
- <button
- key={num}
- onClick={() => table.setPageIndex((num as number) - 1)}
- className={cn(
- "h-8 w-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors",
- table.getState().pagination.pageIndex === (num as number) - 1
- ? "bg-accent-500 text-white"
- : "border border-slate-border text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
- )}
- aria-label={`Page ${num}`}
- aria-current={table.getState().pagination.pageIndex === (num as number) - 1 ? 'page' : undefined}
- >
- {num}
- </button>
- )
- )}
- <button
- aria-label="Next page"
- onClick={() => table.nextPage()}
- disabled={!table.getCanNextPage()}
- className="h-8 w-8 flex items-center justify-center rounded-lg border border-slate-border text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
- >
- <ChevronRight className="h-4 w-4" />
- </button>
- </div>
- </div>
- )}
+ <PaginationControls
+ page={pageIndex + 1}
+ pageSize={pageSize}
+ total={data.length}
+ onPageChange={(nextPage) => table.setPageIndex(nextPage - 1)}
+ itemLabel="results"
+ />
  </div>
  );
 }

@@ -5,11 +5,11 @@
     "main": "dist/server.js",
     "scripts": {
         "dev": "tsx watch src/server.ts",
-        "build": "tsx scripts/prebuild.ts && prisma generate && tsc",
+        "build": "prisma generate && tsc",
         "start": "node dist/server.js",
         "lint": "eslint src/",
         "prisma:generate": "prisma generate",
-        "prisma:push": "prisma db push --accept-data-loss",
+        "prisma:push": "prisma db push",
         "prisma:seed": "prisma db seed",
         "prisma:studio": "prisma studio",
         "test": "jest --runInBand",

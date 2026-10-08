@@ -16,7 +16,7 @@ export const updateRequisitionSchema = z.object({
 });
 
 export const updateRequisitionStatusSchema = z.object({
-  status: z.enum(['REQUIREMENT', 'SOURCING', 'SCREENING', 'TELEPHONIC', 'HR_INTERVIEW', 'TECHNICAL', 'MANAGEMENT', 'SELECTED', 'OFFER', 'JOINED_REJECTED'])
+  status: z.enum(['REQUIREMENT', 'SOURCING', 'SCREENING', 'TELEPHONIC', 'HR_INTERVIEW', 'TECHNICAL', 'MANAGEMENT', 'SELECTED', 'OFFER', 'JOINED_REJECTED', 'CLOSED'])
 });
 
 export const createCandidateSchema = z.object({

@@ -115,7 +115,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
  };
 
  return (
- <div className={cn("flex flex-col", label ? "space-y-1 w-full" : (className && className.includes("w-") ? "" : "w-full sm:w-auto min-w-[140px]"))} ref={containerRef}>
+ <div className={cn("flex flex-col", label ? "space-y-1 w-full" : (className && className.includes("w-") ? "" : "w-full sm:w-auto min-w-[140px]"))} ref={containerRef} data-select-control>
  {label && (
  <label htmlFor={selectId} className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
  {label} {required && <span className="text-red-500" aria-hidden="true">*</span>}

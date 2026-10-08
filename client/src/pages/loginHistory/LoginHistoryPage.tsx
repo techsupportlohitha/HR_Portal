@@ -1,13 +1,16 @@
+import { useState } from 'react';
 import { formatDate, formatDateTime } from '@/utils/dateFormat';
 import { useQuery } from '@tanstack/react-query';
 import { auditApi } from '@/api/audit';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { PaginationControls } from '@/components/ui/PaginationControls';
 
 export default function LoginHistoryPage() {
+ const [page, setPage] = useState(1);
  const { data, isLoading } = useQuery({
- queryKey: ['audit-logs'],
- queryFn: auditApi.getAll,
+ queryKey: ['login-history', page],
+ queryFn: () => auditApi.getAll(page, 10),
  });
 
  if (isLoading) return <LoadingSpinner />;
@@ -18,6 +21,7 @@ export default function LoginHistoryPage() {
  : Array.isArray((responseData as { data?: unknown } | undefined)?.data)
  ? (responseData as { data: unknown[] }).data
  : [];
+ const pagination = (responseData as { pagination?: { total: number } } | undefined)?.pagination;
 
  return (
  <div className="space-y-6">
@@ -69,6 +73,7 @@ export default function LoginHistoryPage() {
  </table>
  </div>
  </div>
+ <PaginationControls page={page} pageSize={10} total={pagination?.total ?? logs.length} onPageChange={setPage} />
  </div>
  );
 }

@@ -1,7 +1,8 @@
 import prisma from '../../config/database';
 import { hasAdminAccess } from '../../utils/roles';
 import { DocumentType } from '@prisma/client';
-import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
 export class DocumentService {
   async upload(currentUser: any, file: Express.Multer.File, data: any, reqContext: { ipAddress?: string }) {
@@ -56,7 +57,7 @@ export class DocumentService {
     return docs;
   }
 
-  async generateDownloadLink(documentId: string, currentUser: any, reqContext: { ipAddress?: string }) {
+  async getDocumentFile(documentId: string, currentUser: any, reqContext: { ipAddress?: string }) {
     const doc = await prisma.employeeDocument.findUnique({ where: { id: documentId } });
     if (!doc) throw new Error('Document not found');
 
@@ -64,12 +65,18 @@ export class DocumentService {
       throw new Error('Not authorized to download this document');
     }
 
-    // Short-lived download simulation: generate a unique hash for the download URL
-    const token = crypto.randomBytes(16).toString('hex');
-    
+    const uploadsDirectory = path.resolve(process.cwd(), 'uploads');
+    const filePath = path.resolve(doc.filePath);
+    if (!filePath.startsWith(`${uploadsDirectory}${path.sep}`)) {
+      throw new Error('Stored document path is invalid');
+    }
+    if (!fs.existsSync(filePath)) {
+      throw new Error('Document file is unavailable. It may need to be uploaded again.');
+    }
+
     await prisma.auditLog.create({
       data: {
-        actionPerformed: 'DOWNLOAD_DOCUMENT',
+        actionPerformed: 'VIEW_DOCUMENT',
         moduleAffected: 'employees',
         recordIdAffected: documentId,
         userId: currentUser.userId,
@@ -77,7 +84,24 @@ export class DocumentService {
       }
     });
 
-    return { downloadUrl: `/api/employees/documents/download/${documentId}?token=${token}` };
+    const extension = path.extname(doc.documentName).toLowerCase();
+    const contentTypes: Record<string, string> = {
+      '.pdf': 'application/pdf',
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp',
+      '.txt': 'text/plain',
+    };
+    const contentType = contentTypes[extension] || 'application/octet-stream';
+
+    return {
+      filePath,
+      documentName: doc.documentName,
+      contentType,
+      inline: contentType !== 'application/octet-stream',
+    };
   }
 
   async deleteDocument(documentId: string, currentUser: any, reqContext: { ipAddress?: string }) {

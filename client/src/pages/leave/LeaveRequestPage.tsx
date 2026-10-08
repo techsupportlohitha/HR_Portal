@@ -10,9 +10,12 @@ import toast from 'react-hot-toast';
 import { Select } from '@/components/ui/Select';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { PaginationControls } from '@/components/ui/PaginationControls';
 
 export default function LeaveRequestPage() {
  const queryClient = useQueryClient();
+ const [page, setPage] = useState(1);
+ const pageSize = 10;
  const [isAddLeaveModalOpen, setIsAddLeaveModalOpen] = useState(false);
  const [formData, setFormData] = useState({
  leaveType: 'Medical Leave',
@@ -80,6 +83,9 @@ export default function LeaveRequestPage() {
  return type;
  };
 
+ const leaveRows = leavesData?.data || [];
+ const displayedLeaves = leaveRows.slice((page - 1) * pageSize, page * pageSize);
+
  return (
  <div className="space-y-6">
  <PageHeader title="Leave Request" actions={<Button onClick={() => setIsAddLeaveModalOpen(true)} className="gap-2"><Plus className="h-4 w-4" />Add Leave</Button>} />
@@ -103,7 +109,7 @@ export default function LeaveRequestPage() {
  </tr>
  </thead>
  <tbody className="divide-y divide-white">
- {leavesData?.data?.map((leave: any, index: number) => (
+ {displayedLeaves.map((leave: any, index: number) => (
  <tr key={leave.id} className={index % 2 === 0 ? "bg-[#f5f5f5]" : "bg-surface"}>
  <td className="py-4 px-6 text-[#e68a00] font-bold">
  #EMP : {leave.employee?.employeeCode || '00000'}
@@ -159,7 +165,7 @@ export default function LeaveRequestPage() {
  </td>
  </tr>
  ))}
- {(!leavesData?.data || leavesData.data.length === 0) && (
+ {leaveRows.length === 0 && (
  <tr>
  <td colSpan={7} className="py-8 text-center text-gray-500">
  No pending leave requests found.
@@ -169,6 +175,7 @@ export default function LeaveRequestPage() {
  </tbody>
  </table>
  </div>
+ <PaginationControls page={page} pageSize={pageSize} total={leaveRows.length} onPageChange={setPage} />
  </div>
  )}
 

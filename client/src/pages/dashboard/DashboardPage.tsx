@@ -35,11 +35,64 @@ const RECRUITMENT_STAGE_ORDER = [
 ];
 
 const RECRUITMENT_LEVELS = [
-  { label: 'L1', name: 'Telephonic', completeAt: 'HR_INTERVIEW' },
-  { label: 'L2', name: 'HR', completeAt: 'TECHNICAL' },
-  { label: 'L3', name: 'Technical', completeAt: 'MANAGEMENT' },
-  { label: 'L4', name: 'Management', completeAt: 'SELECTED' }
+  { label: 'L1', name: 'Telephonic', stage: 'TELEPHONIC', completeAt: 'HR_INTERVIEW' },
+  { label: 'L2', name: 'HR Interview', stage: 'HR_INTERVIEW', completeAt: 'TECHNICAL' },
+  { label: 'L3', name: 'Technical Interview', stage: 'TECHNICAL', completeAt: 'MANAGEMENT' },
+  { label: 'L4', name: 'Management Interview', stage: 'MANAGEMENT', completeAt: 'SELECTED' }
 ];
+
+const normalizeRecruitmentStage = (value?: string | null) => {
+  const stage = value?.trim().toUpperCase().replace(/[\s-]+/g, '_') || '';
+  const aliases: Record<string, string> = {
+    'HR_ROUND': 'HR_INTERVIEW',
+    'TECHNICAL_ROUND': 'TECHNICAL',
+    'MANAGEMENT_ROUND': 'MANAGEMENT',
+  };
+  return aliases[stage] || stage;
+};
+
+const getCurrentRequisitionProgress = (requisition: any) => {
+  const candidateProgress = (requisition.candidates || [])
+    .filter((candidate: any) => candidate.selectionStatus !== 'SELECTION_REJECTED')
+    .map((candidate: any) => {
+      const interviewStage = normalizeRecruitmentStage(candidate.interviewRound);
+      const stage = candidate.offerStatus && candidate.offerStatus !== 'NOT_RELEASED'
+        ? 'OFFER'
+        : candidate.selectionStatus === 'SELECTED'
+          ? 'SELECTED'
+          : interviewStage;
+      const isOpeningFilled = candidate.selectionStatus === 'SELECTED'
+        || ['RELEASED', 'OFFER_ACCEPTED'].includes(candidate.offerStatus || '');
+      return { stage, updatedAt: candidate.updatedAt, isOpeningFilled };
+    })
+    .filter((candidate: any) => RECRUITMENT_STAGE_ORDER.includes(candidate.stage));
+
+  const vacancyCount = Math.max(0, Number(requisition.numberOfVacancies) || 0);
+  const filledOpeningCount = Math.min(
+    vacancyCount,
+    candidateProgress.filter((candidate: any) => candidate.isOpeningFilled).length
+  );
+  const queueCandidates = vacancyCount > filledOpeningCount
+    ? candidateProgress.filter((candidate: any) => !candidate.isOpeningFilled)
+    : [];
+  const stageCandidates = queueCandidates.length ? queueCandidates : candidateProgress;
+  const currentStage = stageCandidates.length
+    ? stageCandidates.reduce((latest: any, candidate: any) =>
+        RECRUITMENT_STAGE_ORDER.indexOf(candidate.stage) > RECRUITMENT_STAGE_ORDER.indexOf(latest.stage) ? candidate : latest
+      ).stage
+    : normalizeRecruitmentStage(requisition.status);
+  const currentStageCandidates = stageCandidates.filter((candidate: any) => candidate.stage === currentStage);
+  const latestCandidateUpdate = currentStageCandidates
+    .map((candidate: any) => candidate.updatedAt)
+    .filter(Boolean)
+    .sort((first: string, second: string) => new Date(second).getTime() - new Date(first).getTime())[0];
+
+  return {
+    ...requisition,
+    currentStage,
+    currentStageUpdatedAt: latestCandidateUpdate || requisition.stageUpdatedAt || requisition.updatedAt,
+  };
+};
 
 const getCompletedRecruitmentLevels = (status: string) => {
   const stageIndex = RECRUITMENT_STAGE_ORDER.indexOf(status);
@@ -50,6 +103,7 @@ export default function DashboardPage() {
  const navigate = useNavigate();
  const { user } = useAuth();
  const isAdminOrHR = hasAdminAccess(user?.role);
+ const [clockNow, setClockNow] = useState(() => Date.now());
  const [showAbsent, setShowAbsent] = useState(false);
  const [expandedRequisitionId, setExpandedRequisitionId] = useState<string | null>(null);
  
@@ -61,6 +115,11 @@ export default function DashboardPage() {
  }
  return false;
  });
+
+ React.useEffect(() => {
+   const timer = window.setInterval(() => setClockNow(Date.now()), 60_000);
+   return () => window.clearInterval(timer);
+ }, []);
 
  const { data: statsData, isLoading: isStatsLoading, error: statsError } = useQuery({
  queryKey: ['dashboard-stats'],
@@ -77,6 +136,8 @@ export default function DashboardPage() {
  queryKey: ['requisitions'],
  queryFn: recruitmentApi.getRequisitions,
  enabled: isAdminOrHR,
+ refetchInterval: 5000,
+ refetchOnMount: 'always',
  });
  const reqData = reqResponse?.data || [];
  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
@@ -183,26 +244,30 @@ export default function DashboardPage() {
 
  const moduleOverview = stats.moduleOverview || {};
  const joinExitTrend = attritionData?.joinExitTrend || [];
- const activeRequisitions = reqData.filter((requisition: any) => requisition.status !== 'JOINED_REJECTED');
+ const activeRequisitions = reqData
+   .map(getCurrentRequisitionProgress)
+   .filter((requisition: any) => requisition.currentStage !== 'JOINED_REJECTED' && requisition.status !== 'CLOSED');
  const totalOpenVacancies = activeRequisitions.reduce((total: number, requisition: any) => total + (requisition.numberOfVacancies || 0), 0);
- const vacancyStageCounts = [
-   { label: 'Telephonic', status: 'TELEPHONIC' },
-   { label: 'HR Interview', status: 'HR_INTERVIEW' },
-   { label: 'Management Interview', status: 'MANAGEMENT' },
-   { label: 'Offer', status: 'OFFER' },
- ].map((stage) => ({
-   ...stage,
-   count: activeRequisitions.filter((requisition: any) => requisition.status === stage.status)
-     .reduce((total: number, requisition: any) => total + (requisition.numberOfVacancies || 0), 0),
- }));
- const levelCompletionCounts = RECRUITMENT_LEVELS.map((_, levelIndex) =>
-   activeRequisitions.filter((requisition: any) => getCompletedRecruitmentLevels(requisition.status) > levelIndex).length
+ const openVacanciesCount = reqResponse?.data ? totalOpenVacancies : headline.openVacancies || 0;
+ const currentStageCandidateCounts = RECRUITMENT_LEVELS.map((level) =>
+   activeRequisitions.reduce((count: number, requisition: any) => {
+     const candidates = (requisition.candidates || []).filter((candidate: any) => {
+       if (candidate.selectionStatus === 'SELECTION_REJECTED') return false;
+       const stage = candidate.offerStatus && candidate.offerStatus !== 'NOT_RELEASED'
+         ? 'OFFER'
+         : candidate.selectionStatus === 'SELECTED'
+           ? 'SELECTED'
+           : normalizeRecruitmentStage(candidate.interviewRound);
+       return stage === level.stage;
+     });
+     return count + candidates.length;
+   }, 0)
  );
  const overallRecruitmentProgress = activeRequisitions.length
-   ? Math.round(activeRequisitions.reduce((total: number, requisition: any) => total + getCompletedRecruitmentLevels(requisition.status) * 25, 0) / activeRequisitions.length)
+   ? Math.round(activeRequisitions.reduce((total: number, requisition: any) => total + getCompletedRecruitmentLevels(requisition.currentStage) * 25, 0) / activeRequisitions.length)
    : 0;
  const trackedRequisitions = [...activeRequisitions]
-   .sort((first: any, second: any) => new Date(first.stageUpdatedAt || first.updatedAt).getTime() - new Date(second.stageUpdatedAt || second.updatedAt).getTime())
+   .sort((first: any, second: any) => new Date(first.currentStageUpdatedAt).getTime() - new Date(second.currentStageUpdatedAt).getTime())
    .slice(0, 6);
 
  return (
@@ -309,19 +374,20 @@ export default function DashboardPage() {
  <div className="flex justify-between items-start mb-4">
  <div>
  <p className="text-sm font-medium text-text-muted mb-1">Open vacancies</p>
- <h3 className="text-3xl font-bold text-text-heading group-hover:text-accent-600 transition-colors">{headline.openVacancies || 0}</h3>
+ <h3 className="text-3xl font-bold text-text-heading group-hover:text-accent-600 transition-colors">{openVacanciesCount}</h3>
  </div>
  <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
  <Briefcase className="w-5 h-5" />
  </div>
  </div>
- <div className="grid min-w-0 grid-cols-2 gap-x-3 gap-y-1 text-[11px] leading-4 text-text-muted">
- {vacancyStageCounts.map((stage) => (
-   <span key={stage.status} className="flex min-w-0 items-start justify-between gap-1">
-     <span className="min-w-0 break-words">{stage.label}</span>
-     <span className="shrink-0 font-semibold text-text-heading">{stage.count}</span>
-   </span>
- ))}
+ <div className="space-y-2">
+ <div className="flex items-center justify-between gap-2 text-xs text-text-muted">
+   <span>Overall rounds completion</span>
+   <span className="shrink-0 font-semibold text-text-heading">{overallRecruitmentProgress}%</span>
+ </div>
+ <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700" role="progressbar" aria-label="Overall recruitment rounds completion" aria-valuenow={overallRecruitmentProgress} aria-valuemin={0} aria-valuemax={100}>
+   <span className="block h-full rounded-full bg-purple-500 transition-all" style={{ width: `${overallRecruitmentProgress}%` }} />
+ </div>
  </div>
  </Link>
 
@@ -566,9 +632,9 @@ export default function DashboardPage() {
                   </div>
                   {RECRUITMENT_LEVELS.map((level, index) => (
                     <div key={level.label} className="rounded-lg bg-tint p-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">{level.label} completed</p>
-                      <p className="mt-1 text-xl font-bold text-text-heading">{levelCompletionCounts[index]}</p>
-                      <p className="text-[11px] text-text-muted">{level.name}</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">{level.name} candidates</p>
+                      <p className="mt-1 text-xl font-bold text-text-heading">{currentStageCandidateCounts[index]}</p>
+                      <p className="text-[11px] text-text-muted">Currently in stage</p>
                     </div>
                   ))}
                   <div className="rounded-lg bg-blue-50 p-3 dark:bg-blue-950/30">
@@ -584,11 +650,19 @@ export default function DashboardPage() {
 
                 <div className="flex-1 flex flex-col gap-2">
                   {trackedRequisitions.map((requisition: any) => {
-                    const completedLevels = getCompletedRecruitmentLevels(requisition.status);
-                    const progress = completedLevels * 25;
+                    const completedLevels = getCompletedRecruitmentLevels(requisition.currentStage);
+                    const openingCount = Math.max(0, Number(requisition.numberOfVacancies) || 0);
+                    const filledOpenings = Math.min(openingCount, Math.max(0, Number(requisition.selectedCount) || 0));
+                    const progress = openingCount ? Math.round((filledOpenings / openingCount) * 100) : 0;
                     const isExpanded = expandedRequisitionId === requisition.id;
-                    const stageDate = requisition.stageUpdatedAt || requisition.updatedAt;
-                    const daysInStage = Math.max(0, Math.floor((Date.now() - new Date(stageDate).getTime()) / 86400000));
+                    const stageDate = requisition.currentStageUpdatedAt;
+                    const stageStart = stageDate ? new Date(stageDate) : null;
+                    const stageStartDay = stageStart && !Number.isNaN(stageStart.getTime())
+                      ? new Date(stageStart.getFullYear(), stageStart.getMonth(), stageStart.getDate()).getTime()
+                      : clockNow;
+                    const today = new Date(clockNow);
+                    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+                    const daysInStage = Math.max(0, Math.floor((todayStart - stageStartDay) / 86400000));
 
                     return (
                       <div key={requisition.id} className="rounded-lg border border-slate-border overflow-hidden">
@@ -600,7 +674,7 @@ export default function DashboardPage() {
                         >
                           <span className="min-w-0">
                             <span className="block text-sm font-semibold text-text-heading truncate">{requisition.positionTitle}</span>
-                            <span className="block text-xs text-text-muted truncate">{requisition.department?.name || requisition.location || 'Department not specified'} · {requisition.selectedCount || 0} selected</span>
+                            <span className="block text-xs text-text-muted truncate">{requisition.department?.name || requisition.location || 'Department not specified'} · {requisition.offerCount || 0} offer{requisition.offerCount === 1 ? '' : 's'}</span>
                           </span>
                           <span className="text-sm font-semibold text-text-heading md:text-center">{requisition.numberOfVacancies || 0}</span>
                           <span className="flex items-center gap-2" aria-label={`${completedLevels} of 4 interview levels completed`}>
@@ -615,13 +689,13 @@ export default function DashboardPage() {
                             ))}
                           </span>
                           <span>
-                            <span className="flex justify-between text-[11px] font-semibold text-text-muted mb-1"><span>Work done</span><span>{progress}%</span></span>
+                            <span className="flex justify-between text-[11px] font-semibold text-text-muted mb-1"><span>Openings filled</span><span>{progress}%</span></span>
                             <span className="block h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                               <span className="block h-full rounded-full bg-blue-500" style={{ width: `${progress}%` }} />
                             </span>
                           </span>
-                          <span className={`justify-self-start rounded-full px-2.5 py-1 text-[10px] font-semibold ${getStatusClasses(requisition.status)}`}>
-                            {getStatusLabel(requisition.status)}
+                          <span className={`justify-self-start rounded-full px-2.5 py-1 text-[10px] font-semibold ${getStatusClasses(requisition.currentStage)}`}>
+                            {getStatusLabel(requisition.currentStage)}
                           </span>
                           <ChevronRight className={`h-4 w-4 text-text-muted transition-transform ${isExpanded ? 'rotate-90' : ''}`} aria-hidden="true" />
                         </button>

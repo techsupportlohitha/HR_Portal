@@ -11,6 +11,9 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Select } from '@/components/ui/Select';
 import { DatePicker } from '@/components/ui/DatePicker';
+import { PaginationControls } from '@/components/ui/PaginationControls';
+
+const PAGE_SIZE = 10;
 
 const MODULES = [
  'employees', 'travel', 'assets', 'recruitment', 'performance',
@@ -95,7 +98,7 @@ export default function AuditLogPage() {
 
  const params = new URLSearchParams({
  page: String(page),
- limit: '50',
+ limit: String(PAGE_SIZE),
  ...(debouncedSearch && { search: debouncedSearch }),
  ...(module && { module }),
  ...(action && { action }),
@@ -294,19 +297,8 @@ export default function AuditLogPage() {
  </div>
 
  {/* Pagination */}
- {pagination && pagination.totalPages > 1 && (
- <div className="flex flex-col gap-3 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between">
- <span>Showing {((page - 1) * 50) + 1}–{Math.min(page * 50, pagination.total)} of {pagination.total} records</span>
- <div className="flex flex-wrap items-center gap-2">
- <Button variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
- Previous
- </Button>
- <span className="flex items-center px-3 text-sm">Page {page} of {pagination.totalPages}</span>
- <Button variant="outline" onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))} disabled={page === pagination.totalPages}>
- Next
- </Button>
- </div>
- </div>
+ {pagination && (
+ <PaginationControls page={page} pageSize={PAGE_SIZE} total={pagination.total} onPageChange={setPage} />
  )}
 
  {/* Detail Modal */}

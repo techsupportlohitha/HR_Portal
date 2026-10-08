@@ -1,20 +1,22 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { employeesApi } from '@/api/employees';
 import { Button } from '@/components/ui/Button';
+import { Modal } from '@/components/ui/Modal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Badge } from '@/components/ui/Badge';
 import { 
-  ArrowLeft, FileText, CheckCircle2, Download, QrCode, User, 
+  ArrowLeft, FileText, CheckCircle2, Download, Eye, QrCode, User,
   Briefcase, Wallet, MonitorPlay, FileCheck, Award
 } from 'lucide-react';
 import { formatDate } from '@/utils/dateFormat';
 import { DigitalIDCardModal } from './components/DigitalIDCardModal';
 import { hasAdminAccess } from '@/utils/roles';
 import { usePermissions } from '@/hooks/usePermissions';
+import toast from 'react-hot-toast';
 
 function DetailBlock({ label, value }: { label: string, value: React.ReactNode }) {
   return (
@@ -33,6 +35,15 @@ export default function EmployeeDetailPage() {
   const { canEdit: hasEditPermission, canApprove, canExport } = usePermissions();
   const queryClient = useQueryClient();
   const [isDigitalIDModalOpen, setIsDigitalIDModalOpen] = useState(false);
+  const [openingDocumentId, setOpeningDocumentId] = useState<string | null>(null);
+  const [documentPreview, setDocumentPreview] = useState<{ name: string; url: string; type: string } | null>(null);
+
+  useEffect(() => {
+    const previewUrl = documentPreview?.url;
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [documentPreview]);
 
   const [isDeactivateOpen, setIsDeactivateOpen] = useState(false);
   const deactivateMutation = { mutate: (id: string) => {}, isPending: false }; // stub for now
@@ -48,6 +59,19 @@ export default function EmployeeDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['employee', id] });
     }
   });
+
+  const handleViewDocument = async (doc: any) => {
+    setOpeningDocumentId(doc.id);
+    try {
+      const blob = await employeesApi.downloadDocument(doc.id);
+      const url = URL.createObjectURL(blob);
+      setDocumentPreview({ name: doc.documentName, url, type: blob.type || 'application/octet-stream' });
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Unable to open this document. It may need to be uploaded again.');
+    } finally {
+      setOpeningDocumentId(null);
+    }
+  };
 
   if (isLoading) return <LoadingSpinner />;
   if (!empData?.data) return <div className="p-6 text-red-500">Employee not found.</div>;
@@ -168,7 +192,7 @@ export default function EmployeeDetailPage() {
                 <div className="flex-1">
                   <h4 className="font-bold text-sm text-slate-900 dark:text-white mb-0.5">{doc.documentName}</h4>
                   <p className="text-[11px] text-slate-500 font-medium uppercase tracking-wider">{doc.documentType.replace('_', ' ')} • {formatDate(doc.uploadDate)}</p>
-                  <div className="mt-2 flex items-center gap-2 text-[11px] font-bold">
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold">
                     {doc.verificationStatus === 'VERIFIED' ? (
                       <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 rounded-md">
                         <CheckCircle2 className="w-3.5 h-3.5" /> Verified
@@ -186,6 +210,16 @@ export default function EmployeeDetailPage() {
                       </div>
                     )}
                   </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-3 h-8 gap-1.5 px-2 text-xs"
+                    onClick={() => handleViewDocument(doc)}
+                    disabled={openingDocumentId === doc.id}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    {openingDocumentId === doc.id ? 'Opening…' : 'View document'}
+                  </Button>
                 </div>
               </div>
             ))}
@@ -297,7 +331,36 @@ export default function EmployeeDetailPage() {
           </div>
         )}
       </div>
-<ConfirmDialog isOpen={isDeactivateOpen} title="Deactivate Employee" message="Are you sure you want to deactivate this employee? They will lose access to the system immediately." confirmLabel="Deactivate" cancelLabel="Cancel" isDestructive={true} onConfirm={() => deactivateMutation.mutate(id as string)} onCancel={() => setIsDeactivateOpen(false)} />
+      <ConfirmDialog isOpen={isDeactivateOpen} title="Deactivate Employee" message="Are you sure you want to deactivate this employee? They will lose access to the system immediately." confirmLabel="Deactivate" cancelLabel="Cancel" isDestructive={true} onConfirm={() => deactivateMutation.mutate(id as string)} onCancel={() => setIsDeactivateOpen(false)} />
+          <Modal
+            isOpen={!!documentPreview}
+            onClose={() => setDocumentPreview(null)}
+            title={documentPreview?.name || 'Employee document'}
+            className="max-w-5xl"
+          >
+            {documentPreview && (
+              <div className="space-y-3">
+                {documentPreview.type === 'application/pdf' ? (
+                  <iframe title={documentPreview.name} src={documentPreview.url} className="h-[70vh] w-full rounded-lg border border-slate-border" />
+                ) : documentPreview.type.startsWith('image/') ? (
+                  <img src={documentPreview.url} alt={documentPreview.name} className="mx-auto max-h-[70vh] max-w-full rounded-lg object-contain" />
+                ) : documentPreview.type === 'text/plain' ? (
+                  <iframe title={documentPreview.name} src={documentPreview.url} className="h-[70vh] w-full rounded-lg border border-slate-border" />
+                ) : (
+                  <p className="text-sm text-text-muted">Preview is not available for this file type. Download it to open it with a compatible app.</p>
+                )}
+                <div className="flex justify-end">
+                  <a
+                    href={documentPreview.url}
+                    download={documentPreview.name}
+                    className="inline-flex h-9 items-center gap-2 rounded-full border border-slate-border px-4 text-sm font-medium text-text-heading hover:bg-tint"
+                  >
+                    <Download className="h-4 w-4" /> Download
+                  </a>
+                </div>
+              </div>
+            )}
+          </Modal>
           {emp && <DigitalIDCardModal isOpen={isDigitalIDModalOpen} onClose={() => setIsDigitalIDModalOpen(false)} employee={emp} />}
     </div>
   );

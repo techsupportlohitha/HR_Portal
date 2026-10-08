@@ -13,6 +13,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Select } from '@/components/ui/Select';
 import { usePermissions } from '@/hooks/usePermissions';
+import { PaginationControls } from '@/components/ui/PaginationControls';
 const hasLockedPermissions = (role: string) => role === 'ADMIN' || role === 'HR';
 
 const ROLES = ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'];
@@ -157,6 +158,8 @@ function UserAccountsTab() {
  const [search, setSearch] = useState('');
  const debouncedSearch = useDebounce(search, 500);
  const [roleFilter, setRoleFilter] = useState('');
+ const [page, setPage] = useState(1);
+ const pageSize = 10;
  const [resetModal, setResetModal] = useState<any>(null);
  const [newPassword, setNewPassword] = useState('');
  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -181,6 +184,8 @@ function UserAccountsTab() {
  return data.data as any[];
  },
  });
+ const userRows = users || [];
+ const displayedUsers = userRows.slice((page - 1) * pageSize, page * pageSize);
 
  const roleMutation = useMutation({
  mutationFn: async ({ id, role }: { id: string; role: string }) => {
@@ -216,14 +221,14 @@ function UserAccountsTab() {
  <input
  placeholder="Search users..."
  value={search}
- onChange={e => setSearch(e.target.value)}
+ onChange={e => { setSearch(e.target.value); setPage(1); }}
  className="w-full pl-9 pr-4 py-2 h-[42px] rounded-[1.25rem] border border-slate-200 dark:border-slate-700 shadow-[0_1px_2px_rgba(0,0,0,0.02)] text-[13px] focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all bg-white dark:bg-surface text-slate-900 dark:text-white"
  />
  </div>
  <Select
  aria-label="Filter users by role"
  value={roleFilter}
- onChange={e => setRoleFilter(e.target.value)}
+ onChange={e => { setRoleFilter(e.target.value); setPage(1); }}
  className="py-2 px-3 bg-surface border border-slate-border rounded-lg text-sm focus:outline-none"
  >
  <option value="">All Roles</option>
@@ -249,7 +254,7 @@ function UserAccountsTab() {
  </tr>
  </thead>
  <tbody className="divide-y divide-slate-border">
- {(users || []).map((u: any) => (
+ {displayedUsers.map((u: any) => (
  <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
  <td className="px-4 py-3">
  <div className="flex items-center gap-3">
@@ -309,8 +314,9 @@ function UserAccountsTab() {
  </div>
  </div>
  )}
+ <PaginationControls page={page} pageSize={pageSize} total={userRows.length} onPageChange={setPage} itemLabel="users" />
 
- 
+
  {mayAddUsers && isAddModalOpen && (
  <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Create Management User">
  <div className="space-y-4 py-2">

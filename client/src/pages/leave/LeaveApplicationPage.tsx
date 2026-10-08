@@ -17,6 +17,11 @@ import { Clock, CalendarDays } from 'lucide-react';
 
 type DurationType = 'full' | 'half' | 'hour';
 
+const parseLocalDate = (value: string) => {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
 export default function LeaveApplicationPage() {
   const queryClient = useQueryClient();
 
@@ -54,13 +59,13 @@ export default function LeaveApplicationPage() {
   // Compute live leave duration label
   const leaveDurationLabel = useMemo(() => {
     if (!formData.startDate) return null;
-    const start = new Date(formData.startDate);
-    const end = formData.endDate ? new Date(formData.endDate) : start;
+    const start = parseLocalDate(formData.startDate);
+    const end = formData.endDate ? parseLocalDate(formData.endDate) : start;
     let days = 0;
     const cur = new Date(start);
     while (cur <= end) {
       const d = cur.getDay();
-      if (d !== 0 && d !== 6) days++;
+      if (d !== 0) days++;
       cur.setDate(cur.getDate() + 1);
     }
     if (durationType === 'half' && days === 1) return '0.5 Days';
@@ -71,8 +76,8 @@ export default function LeaveApplicationPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (durationType !== 'full') {
-      const start = new Date(formData.startDate);
-      const end = formData.endDate ? new Date(formData.endDate) : start;
+      const start = parseLocalDate(formData.startDate);
+      const end = formData.endDate ? parseLocalDate(formData.endDate) : start;
       if (start.toDateString() !== end.toDateString()) {
         toast.error('Half-day and hourly leaves must be for a single day only.');
         return;
