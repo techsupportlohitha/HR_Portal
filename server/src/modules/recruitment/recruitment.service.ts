@@ -12,25 +12,30 @@ interface CurrentUser {
 }
 
 export class RecruitmentService {
-  private async closeRequisitionWhenOffersComplete(requisitionId: string, userId: string, ipAddress?: string) {
+  private async closeRequisitionWhenVacanciesFilled(requisitionId: string, userId: string, ipAddress?: string) {
+    const requisition = await prisma.requisition.findUnique({
+      where: { id: requisitionId },
+      select: { numberOfVacancies: true, status: true }
+    });
+    if (!requisition || requisition.status === 'CLOSED' || requisition.numberOfVacancies < 1) return;
+
     const candidates = await prisma.candidate.findMany({
       where: { requisitionId },
-      select: { interviewRound: true, offerStatus: true, selectionStatus: true }
+      select: { selectionStatus: true, offerStatus: true }
     });
-    const activeCandidates = candidates.filter(candidate => candidate.selectionStatus !== 'SELECTION_REJECTED');
-    const allActiveCandidatesAtOffer = activeCandidates.length > 0 && activeCandidates.every(candidate => {
-      const round = candidate.interviewRound?.trim().toUpperCase().replace(/[\s-]+/g, '_');
-      return round === 'OFFER' || ['RELEASED', 'OFFER_ACCEPTED', 'OFFER_DECLINED'].includes(candidate.offerStatus || '');
+    const filledCount = candidates.filter(candidate =>
+      candidate.selectionStatus === 'SELECTED'
+      || (candidate.selectionStatus !== 'SELECTION_REJECTED'
+        && candidate.offerStatus !== 'OFFER_DECLINED'
+        && ['RELEASED', 'OFFER_ACCEPTED'].includes(candidate.offerStatus || ''))
+    ).length;
+    if (filledCount < requisition.numberOfVacancies) return;
+
+    const result = await prisma.requisition.updateMany({
+      where: { id: requisitionId, status: { not: 'CLOSED' } },
+      data: { status: 'CLOSED', stageUpdatedAt: new Date() }
     });
-
-    if (!allActiveCandidatesAtOffer) return;
-
-    const closedCount = await prisma.$executeRaw`
-      UPDATE "requisitions"
-      SET "status" = 'CLOSED'::"RequisitionStatus", "stageUpdatedAt" = CURRENT_TIMESTAMP
-      WHERE "id" = ${requisitionId} AND "status" <> 'CLOSED'::"RequisitionStatus"
-    `;
-    if (!closedCount) return;
+    if (!result.count) return;
 
     await prisma.auditLog.create({
       data: {
@@ -139,8 +144,9 @@ export class RecruitmentService {
       candidates,
       selectedCount: candidates.filter(candidate =>
         candidate.selectionStatus === 'SELECTED'
-        || candidate.offerStatus === 'RELEASED'
-        || candidate.offerStatus === 'OFFER_ACCEPTED'
+        || (candidate.selectionStatus !== 'SELECTION_REJECTED'
+          && candidate.offerStatus !== 'OFFER_DECLINED'
+          && ['RELEASED', 'OFFER_ACCEPTED'].includes(candidate.offerStatus || ''))
       ).length,
       offerCount: candidates.filter(candidate =>
         candidate.interviewRound?.trim().toUpperCase().replace(/[\s-]+/g, '_') === 'OFFER'
@@ -294,7 +300,7 @@ export class RecruitmentService {
       });
       return updated;
     });
-    await this.closeRequisitionWhenOffersComplete(candidate.requisitionId, userId, reqContext.ipAddress);
+    await this.closeRequisitionWhenVacanciesFilled(candidate.requisitionId, userId, reqContext.ipAddress);
     return updated;
   }
 
@@ -326,12 +332,11 @@ export class RecruitmentService {
       });
       return updated;
     });
-    await this.closeRequisitionWhenOffersComplete(candidate.requisitionId, userId, reqContext.ipAddress);
+    await this.closeRequisitionWhenVacanciesFilled(candidate.requisitionId, userId, reqContext.ipAddress);
     return updated;
   }
 }
 
 export const recruitmentService = new RecruitmentService();
-
 
 

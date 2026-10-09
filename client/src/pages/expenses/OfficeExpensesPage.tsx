@@ -27,6 +27,14 @@ export default function OfficeExpensesPage() {
  const mayApproveExpense = canApprove('expenses');
  
  const [isModalOpen, setIsModalOpen] = useState(false);
+ const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+ const [selectedExpense, setSelectedExpense] = useState<any>(null);
+ const openDetails = (expense: any) => {
+   setSelectedExpense(expense);
+   setDetailsModalOpen(true);
+ };
+ const money = (value: any) => `₹${Number(value ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+ const statusLabel = (value: string | undefined) => value?.replace(/_/g, ' ') || '—';
 
  const { data, isLoading } = useQuery({
  queryKey: ['office-expenses'],
@@ -74,7 +82,7 @@ export default function OfficeExpensesPage() {
  <Wallet className="w-4 h-4 text-teal-500" />
  </div>
  <div>
- <div className="font-semibold text-text-heading capitalize">{row.category.replace('_', ' ').toLowerCase()}</div>
+ <button type="button" className="font-semibold text-text-heading capitalize hover:underline text-left" aria-label={`View ${row.category.replace(/_/g, ' ').toLowerCase()} expense details`} onClick={(event) => { event.stopPropagation(); openDetails(row); }}>{row.category.replace(/_/g, ' ').toLowerCase()}</button>
  <div className="text-xs text-gray-500 max-w-[200px] truncate">{row.description}</div>
  </div>
  </div>
@@ -99,7 +107,7 @@ export default function OfficeExpensesPage() {
  accessor: (row: any) => row.billUpload ? (
  <div className="flex flex-col">
  {row.billUpload.split(',').map((url: string, i: number) => (
- <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:underline text-sm">
+ <a key={i} href={url} target="_blank" rel="noopener noreferrer" onClick={(event) => event.stopPropagation()} className="text-indigo-500 hover:underline text-sm">
  File {i + 1}
  </a>
  ))}
@@ -118,7 +126,7 @@ export default function OfficeExpensesPage() {
  { 
  header: 'Action', 
  accessor: (row: any) => (
- <div className="flex items-center gap-2">
+ <div className="flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
  {row.status === 'PENDING' && mayApproveExpense && (
  <>
  <button 
@@ -220,9 +228,42 @@ export default function OfficeExpensesPage() {
  data={data} 
  keyField="id" 
  emptyMessage="No expenses found."
+ onRowClick={openDetails}
  />
  )}
  </div>
+
+ <Modal isOpen={detailsModalOpen} onClose={() => setDetailsModalOpen(false)} title="Office Expense Details" className="max-w-2xl">
+   {selectedExpense && <div className="space-y-5">
+     <section>
+       <h3 className="font-semibold text-text-heading mb-3">Expense information</h3>
+       <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+         {[
+           ['Category', statusLabel(selectedExpense.category)],
+           ['Description', selectedExpense.description || '—'],
+           ['Amount', money(selectedExpense.amount)],
+           ['Expense date', formatDate(selectedExpense.expenseDate)],
+           ['Submitted by', [selectedExpense.submittedBy?.firstName, selectedExpense.submittedBy?.lastName].filter(Boolean).join(' ') || '—'],
+           ['Request ID', selectedExpense.id],
+           ['Created', formatDateTime(selectedExpense.createdAt)],
+           ['Last updated', formatDateTime(selectedExpense.updatedAt)],
+         ].map(([label, value]) => <div key={label}><dt className="text-text-muted">{label}</dt><dd className="text-text-heading break-words whitespace-pre-wrap">{value}</dd></div>)}
+       </dl>
+     </section>
+     <section className="border-t border-slate-border pt-4">
+       <h3 className="font-semibold text-text-heading mb-3">Approval & payment</h3>
+       <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+         <div><dt className="text-text-muted">Status</dt><dd className="text-text-heading">{statusLabel(selectedExpense.status)}</dd></div>
+         <div><dt className="text-text-muted">Approved by</dt><dd className="text-text-heading">{[selectedExpense.approvedBy?.firstName, selectedExpense.approvedBy?.lastName].filter(Boolean).join(' ') || '—'}</dd></div>
+       </dl>
+     </section>
+     <section className="border-t border-slate-border pt-4">
+       <h3 className="font-semibold text-text-heading mb-2">Receipt & attachments</h3>
+       {selectedExpense.billUpload ? <ul className="space-y-2 text-sm">{selectedExpense.billUpload.split(',').filter(Boolean).map((file: string, index: number) => <li key={index}><a className="text-brand-primary underline break-all" href={file.trim()} target="_blank" rel="noopener noreferrer">View receipt {index + 1}</a></li>)}</ul> : <p className="text-sm text-text-muted">No receipt attached.</p>}
+     </section>
+     <div className="flex justify-end border-t border-slate-border pt-4"><Button variant="outline" onClick={() => setDetailsModalOpen(false)}>Close</Button></div>
+   </div>}
+ </Modal>
 
  <Modal isOpen={isModalOpen && mayCreateExpense} onClose={() => setIsModalOpen(false)} title="Submit Office Expense">
  <form onSubmit={handleSubmit} className="space-y-4">

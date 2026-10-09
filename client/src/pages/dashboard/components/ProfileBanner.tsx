@@ -51,7 +51,7 @@ export function ProfileBanner() {
       </div>
 
       <div className="flex flex-wrap justify-center md:justify-end items-center gap-3 w-full md:w-auto mt-4 md:mt-0">
-        {user?.role !== 'MANAGER' && canAdd('leave') && (
+        {user?.role !== 'ADMIN' && user?.role !== 'MANAGER' && canAdd('leave') && (
           <Button variant="primary" className="rounded-full shadow-sm text-sm h-9 px-4 flex items-center gap-2" onClick={() => navigate('/leaves')}>
             <Calendar className="w-4 h-4" />
             Apply Leave
@@ -69,7 +69,7 @@ export function ProfileBanner() {
               Submit Expense
             </Button>
         )}
-        {user?.role !== 'MANAGER' && canAdd('requests') && (
+        {user?.role !== 'ADMIN' && user?.role !== 'MANAGER' && canAdd('requests') && (
           <Button variant="secondary" className="rounded-full shadow-sm text-sm h-9 px-4 flex items-center gap-2" onClick={() => navigate('/requests')}>
             <MessageSquare className="w-4 h-4" />
             HR Query

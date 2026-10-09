@@ -247,7 +247,11 @@ export default function DashboardPage() {
  const activeRequisitions = reqData
    .map(getCurrentRequisitionProgress)
    .filter((requisition: any) => requisition.currentStage !== 'JOINED_REJECTED' && requisition.status !== 'CLOSED');
- const totalOpenVacancies = activeRequisitions.reduce((total: number, requisition: any) => total + (requisition.numberOfVacancies || 0), 0);
+ const totalOpenVacancies = activeRequisitions.reduce((total: number, requisition: any) => {
+   const vacancies = Math.max(0, Number(requisition.numberOfVacancies) || 0);
+   const filled = Math.max(0, Number(requisition.selectedCount) || 0);
+   return total + Math.max(0, vacancies - filled);
+ }, 0);
  const openVacanciesCount = reqResponse?.data ? totalOpenVacancies : headline.openVacancies || 0;
  const currentStageCandidateCounts = RECRUITMENT_LEVELS.map((level) =>
    activeRequisitions.reduce((count: number, requisition: any) => {
@@ -727,6 +731,5 @@ export default function DashboardPage() {
  </div>
  );
 }
-
 
 

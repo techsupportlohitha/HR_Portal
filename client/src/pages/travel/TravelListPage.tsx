@@ -33,12 +33,31 @@ export default function TravelListPage() {
  const [approvalModalOpen, setApprovalModalOpen] = useState(false);
  const [expenseModalOpen, setExpenseModalOpen] = useState(false);
  const [settleModalOpen, setSettleModalOpen] = useState(false);
+ const [detailsModalOpen, setDetailsModalOpen] = useState(false);
  const [selectedRequest, setSelectedRequest] = useState<any>(null);
 
  const { data, isLoading } = useQuery({
  queryKey: ['travel'],
  queryFn: () => travelApi.getAll().then(res => res.data),
  });
+
+ const detailsQuery = useQuery({
+   queryKey: ['travel-detail', selectedRequest?.id],
+   queryFn: () => travelApi.getById(selectedRequest.id).then(res => res.data),
+   enabled: detailsModalOpen && Boolean(selectedRequest?.id),
+ });
+ const details = detailsQuery.data;
+ const openDetails = (request: any) => {
+   setSelectedRequest(request);
+   setDetailsModalOpen(true);
+ };
+ const money = (value: any) => `₹${Number(value ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+ const expenseTotal = details
+   ? [details.hotelExpense, details.foodAllowance, details.localConveyance, details.otherExpenses]
+       .reduce((sum: number, value: any) => sum + Number(value ?? 0), 0)
+   : 0;
+ const personName = (person: any) => person ? [person.firstName, person.lastName].filter(Boolean).join(' ') || person.email || '—' : '—';
+ const statusLabel = (value: string | undefined) => value?.replace(/^APPROVAL_/, '').replace(/_/g, ' ') || '—';
 
  const createMutation = useMutation({
  mutationFn: (payload: any) => travelApi.create(payload),
@@ -116,7 +135,7 @@ export default function TravelListPage() {
  <Plane className="w-4 h-4 text-indigo-500" />
  </div>
  <div>
- <div className="font-semibold text-text-heading">{row.destination}</div>
+ <button type="button" className="font-semibold text-text-heading hover:underline text-left" aria-label={`View travel request to ${row.destination}`} onClick={(event) => { event.stopPropagation(); openDetails(row); }}>{row.destination}</button>
  <div className="text-xs text-gray-500 max-w-[200px] truncate">{row.travelPurpose}</div>
  </div>
  </div>
@@ -151,7 +170,7 @@ export default function TravelListPage() {
  { 
  header: 'Action', 
  accessor: (row: any) => (
- <div className="flex items-center gap-2">
+ <div className="flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
  {row.approvalStatus === 'APPROVAL_PENDING' && mayApproveTravel && (
  <button 
  className="group flex items-center justify-start gap-2 rounded-full bg-slate-100 dark:bg-slate-800 p-1.5 text-slate-500 hover:text-green-600 hover:bg-green-100 dark:hover:bg-green-900/50 transition-all duration-300 overflow-hidden w-8 hover:w-[110px]" 
@@ -265,7 +284,14 @@ export default function TravelListPage() {
  <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5">
  <p className="text-sm text-text-muted mb-1 font-medium">Total Settled Expenses</p>
  <p className="text-2xl font-bold text-text-heading">
- ₹{data.filter((d:any) => d.settlementStatus === 'SETTLED').reduce((sum:number, d:any) => sum + Number(d.totalExpenseClaimed || 0), 0)}
+ ₹{data.filter((d:any) => d.settlementStatus === 'SETTLED').reduce((sum:number, d:any) => {
+   const expenses = [d.hotelExpense, d.foodAllowance, d.localConveyance, d.otherExpenses];
+   // Recalculate from components because older saved totals may be concatenated.
+   const total = expenses.some(value => value != null)
+     ? expenses.reduce((subtotal:number, value:any) => subtotal + Number(value ?? 0), 0)
+     : Number(d.totalExpenseClaimed ?? 0);
+   return sum + total;
+ }, 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
  </p>
  </div>
  </div>
@@ -288,9 +314,73 @@ export default function TravelListPage() {
  data={data} 
  keyField="id" 
  emptyMessage="No travel requests found."
+ onRowClick={openDetails}
  />
  )}
  </div>
+
+ <Modal isOpen={detailsModalOpen} onClose={() => setDetailsModalOpen(false)} title="Travel Request Details" className="max-w-2xl">
+   {detailsQuery.isLoading ? <div className="py-8"><LoadingSpinner /></div> : detailsQuery.isError ? (
+     <div className="space-y-3"><p role="alert">Could not load this travel request.</p><Button onClick={() => detailsQuery.refetch()}>Retry</Button></div>
+   ) : details ? (
+     <div className="space-y-5">
+       <section>
+         <h3 className="font-semibold text-text-heading mb-3">Trip information</h3>
+         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+           {[
+             ['Employee', personName(details.employee)],
+             ['Department', details.employee?.department?.name || '—'],
+             ['Designation', details.employee?.designation || '—'],
+             ['Destination', details.destination],
+             ['Business purpose', details.travelPurpose],
+             ['Travel mode', statusLabel(details.travelMode)],
+             ['Start date', formatDate(details.startDate)],
+             ['End date', formatDate(details.endDate)],
+             ['Request ID', details.id],
+             ['Created', formatDateTime(details.createdAt)],
+             ['Last updated', formatDateTime(details.updatedAt)],
+           ].map(([label, value]) => <div key={label}><dt className="text-text-muted">{label}</dt><dd className="text-text-heading break-words whitespace-pre-wrap">{value}</dd></div>)}
+         </dl>
+       </section>
+       <section className="border-t border-slate-border pt-4">
+         <h3 className="font-semibold text-text-heading mb-3">Approval & settlement</h3>
+         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+           {[
+             ['Approval status', statusLabel(details.approvalStatus)],
+             ['Approver', personName(details.approver)],
+             ['Approval date', details.approvalDate ? formatDateTime(details.approvalDate) : '—'],
+             ['Settlement status', statusLabel(details.settlementStatus)],
+             ['Verified by', details.verifiedBy?.email || '—'],
+             ['Settlement date', details.settlementDate ? formatDateTime(details.settlementDate) : '—'],
+           ].map(([label, value]) => <div key={label}><dt className="text-text-muted">{label}</dt><dd className="text-text-heading break-words">{value}</dd></div>)}
+         </dl>
+       </section>
+       <section className="border-t border-slate-border pt-4">
+         <h3 className="font-semibold text-text-heading mb-3">Expenses & advances</h3>
+         <dl className="space-y-2 text-sm">
+           {[
+             ['Advance requested', details.advanceRequested], ['Advance approved', details.advanceApproved],
+             ['Hotel expense', details.hotelExpense], ['Food allowance', details.foodAllowance],
+             ['Local conveyance', details.localConveyance], ['Other expenses', details.otherExpenses],
+             ['Total expenses', expenseTotal], ['Net amount (payable / recoverable)', expenseTotal - Number(details.advanceApproved ?? 0)],
+           ].map(([label, value]) => <div key={String(label)} className="flex justify-between gap-4"><dt className="text-text-muted">{label}</dt><dd className="font-medium text-text-heading whitespace-nowrap">{money(value)}</dd></div>)}
+         </dl>
+       </section>
+       <section className="border-t border-slate-border pt-4">
+         <h3 className="font-semibold text-text-heading mb-2">Bills & attachments</h3>
+         {details.billUpload ? <ul className="space-y-2 text-sm">{details.billUpload.split(',').filter(Boolean).map((file: string, index: number) => {
+           const filePath = file.trim();
+           const isLink = /^https?:\/\//i.test(filePath) || /^\/(?!\/)/.test(filePath);
+           const href = filePath.startsWith('/api/')
+             ? new URL(filePath, new URL(apiClient.defaults.baseURL || '/api', window.location.origin).origin).href
+             : filePath;
+           return <li key={index}>{isLink ? <a className="text-brand-primary underline break-all" href={href} target="_blank" rel="noopener noreferrer">View attachment {index + 1}</a> : <span className="break-all">{filePath}</span>}</li>;
+         })}</ul> : <p className="text-sm text-text-muted">No files attached.</p>}
+       </section>
+       <div className="flex justify-end border-t border-slate-border pt-4"><Button variant="outline" onClick={() => setDetailsModalOpen(false)}>Close</Button></div>
+     </div>
+   ) : null}
+ </Modal>
 
  {/* New Request Modal */}
  <Modal isOpen={isModalOpen && mayCreateTravel} onClose={() => setIsModalOpen(false)} title="New Travel Request">
