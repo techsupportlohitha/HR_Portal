@@ -6,7 +6,7 @@ import { CandidatePipeline } from "./CandidatePipeline";
 import { CandidateStageControls } from "./CandidateStageControls";
 
 vi.mock("@/api/recruitment", () => ({ recruitmentApi: {
-  getPipeline: vi.fn(async () => ({ data: { columns: [{ stage: "TELEPHONIC", total: 104, items: [{ id: "qa", candidateName: "QA Candidate", requisitionId: "opening", currentStage: "TELEPHONIC", screeningStatus: "SCREENING_PENDING", requisition: { positionTitle: "Developer" } }] }] } })),
+  getPipeline: vi.fn(async () => ({ data: { columns: [{ stage: "TELEPHONIC", total: 104, items: [{ id: "qa", candidateName: "QA Candidate", requisitionId: "opening", currentStage: "TELEPHONIC", requisition: { positionTitle: "Developer" } }] }] } })),
   moveCandidateStage: vi.fn(),
 } }));
 
@@ -28,4 +28,10 @@ describe("pipeline access and complete counts", () => {
     expect(screen.queryByRole("button", { name: "Move stage" })).toBeNull();
     expect(screen.getByText("Shortlist reviewed")).toBeInTheDocument();
   });
+});
+
+it("does not offer progression while the current appointment is still pending", () => {
+  render(wrapper(<CandidateStageControls editable candidate={{id:"qa",currentStage:"HR_INTERVIEW",interviews:[{round:"HR_INTERVIEW",status:"COMPLETED",feedbackSubmittedAt:"2026-10-14"},{round:"HR_INTERVIEW",status:"SCHEDULED"}]}} />));
+  expect(screen.getByRole("button",{name:"Move to Technical interview"})).toBeDisabled();
+  expect(screen.getByText("Complete this round and submit feedback before moving forward.")).toBeInTheDocument();
 });

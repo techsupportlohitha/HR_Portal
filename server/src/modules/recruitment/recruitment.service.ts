@@ -5,6 +5,7 @@ import { getModuleScope } from "../../utils/authorization";
 import { permissionService } from "../permissions/permission.service";
 import { candidateStages } from "./recruitment.schema";
 import { assertStageTransition } from "./candidate-stage";
+import { previousRoundFeedback } from "./previous-round-feedback";
 
 interface CurrentUser {
   id: string;
@@ -15,6 +16,24 @@ interface CurrentUser {
 }
 
 export class RecruitmentService {
+  private async addPreviousRoundFeedback(rows: any[]) {
+    const reviewerIds = [...new Set<string>(rows.flatMap(row => (row.interviews || [])
+      .filter((item: any) => item.feedbackSubmittedAt && item.feedbackSubmittedById)
+      .map((item: any) => item.feedbackSubmittedById)))];
+    const reviewers = reviewerIds.length ? await prisma.user.findMany({
+      where: { id: { in: reviewerIds } },
+      select: { id: true, employee: { select: { firstName: true, lastName: true } } },
+    }) : [];
+    const names = new Map(reviewers.map(user => [user.id, user.employee ? `${user.employee.firstName} ${user.employee.lastName}`.trim() : "Reviewer unavailable"]));
+    return rows.map(row => {
+      const interviews = (row.interviews || []).map((item: any) => ({ ...item,
+        reviewerName: item.feedbackSubmittedAt ? names.get(item.feedbackSubmittedById) || "Reviewer unavailable" : null,
+      }));
+      return { ...row, interviews: interviews.map((item: any) => ({ ...item,
+        previousRoundFeedback: previousRoundFeedback(row.id, item.round, interviews),
+      })) };
+    });
+  }
   private async setCandidateStage(tx: Prisma.TransactionClient, candidate: any, stage: string, userId: string, reason?: string) {
     if (candidate.currentStage === stage) return;
     const enteredAt = new Date();
@@ -531,8 +550,9 @@ export class RecruitmentService {
       },
       orderBy: { interviewDate: "asc" },
     });
-    const historical = candidates.flatMap((candidate) =>
-      candidate.interviews.map((interview) => ({
+    const enrichedCandidates = await this.addPreviousRoundFeedback(candidates);
+    const historical = enrichedCandidates.flatMap((candidate) =>
+      candidate.interviews.map((interview: any) => ({
         ...candidate,
         ...interview,
         candidateId: candidate.id,
@@ -712,7 +732,7 @@ export class RecruitmentService {
       take: 500,
     });
     return this.protectCandidateCompensation(
-      rows.map((row) => ({
+      (await this.addPreviousRoundFeedback(rows)).map((row) => ({
         ...row,
         currentStage: row.currentStage === "SCREENING" ? "TELEPHONIC" : row.currentStage,
         activity: activity.filter((event) => event.recordIdAffected === row.id),

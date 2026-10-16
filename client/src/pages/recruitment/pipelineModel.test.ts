@@ -26,3 +26,7 @@ describe("pipeline next actions", () => {
     expect(stageAge("2026-10-10T00:00:00Z", Date.parse("2026-10-12T00:00:00Z"))).toBe(2);
   });
 });
+
+it("ignores old-round drafts when the current round is scheduled", () => {
+  expect(candidateNextAction({currentStage:"TECHNICAL",interviews:[{round:"HR_INTERVIEW",status:"COMPLETED"},{round:"TECHNICAL",status:"SCHEDULED",startsAt:"2030-01-01T10:00:00Z"}]},Date.parse("2026-10-15"))).toBe("Interview scheduled");
+});

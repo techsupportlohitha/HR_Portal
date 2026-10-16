@@ -1,5 +1,7 @@
 # Recruitment Tracker Revamp Plan
 
+> **Superseded:** This older proposal does not describe the current recruitment stages or interface. Follow [the current recruitment UI and scheduling guide](../../../../docs/designs/recruitment-lifecycle.md) for the implemented workflow.
+
 This document outlines a comprehensive plan to redesign the Recruitment Tracker (Kanban board) to significantly improve user experience (UX), visual design (UI), and accessibility (a11y) without losing any existing functionality.
 
 ## 1. Drag & Drop Experience (UX)

@@ -11,8 +11,10 @@ import { CANDIDATE_STAGES, candidateNextAction, stageAge } from "./pipelineModel
 
 export function CandidatePipeline({ requisitions }: { requisitions: any[] }) {
   const [params, setParams] = useSearchParams();
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [pages, setPages] = useState<Record<string, number>>({});
   const pageSize = 25;
+  const mobileStage = params.get("viewStage") || "TELEPHONIC";
   const search = params.get("q") || "";
   const requisitionId = params.get("opening") || "";
   const updateFilter = (key: string, value: string) => {
@@ -27,13 +29,17 @@ export function CandidatePipeline({ requisitions }: { requisitions: any[] }) {
   });
   return (
     <section aria-label="Candidate pipeline" className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+      <div className="flex items-end gap-2 sm:hidden">
+        <div className="min-w-0 flex-1"><Select label="Candidate stage" value={mobileStage} onChange={event => updateFilter("viewStage", event.target.value)}>{CANDIDATE_STAGES.map(stage => <option key={stage.value} value={stage.value}>{stage.label} ({query.data?.data?.columns?.find((item: any) => item.stage === stage.value)?.total ?? 0})</option>)}</Select></div>
+        <Button variant="outline" aria-expanded={filtersOpen} aria-controls="pipeline-filters" onClick={() => setFiltersOpen(open => !open)}>Filters{search ? " (1)" : ""}</Button>
+      </div>
+      <div id="pipeline-filters" className={`${filtersOpen ? "grid" : "hidden"} gap-3 sm:grid sm:grid-cols-[1fr_1fr_auto]`}>
         <Input label="Search candidates" placeholder="Name or email" value={search} onChange={(event) => updateFilter("q", event.target.value)} />
         <Select label="Opening" value={requisitionId} onChange={(event) => updateFilter("opening", event.target.value)}>
           <option value="">All openings</option>
           {requisitions.map((opening) => <option key={opening.id} value={opening.id}>{opening.positionTitle}</option>)}
         </Select>
-        <Button variant="outline" className="self-end" onClick={() => { const next = new URLSearchParams(params); next.delete("q"); next.delete("opening"); setParams(next, { replace: true }); setPages({}); }}>Clear filters</Button>
+        <Button variant="outline" className="self-end" onClick={() => { const next = new URLSearchParams(params); next.delete("q");  setParams(next, { replace: true }); setPages({}); }}>Clear filters</Button>
       </div>
       {query.isLoading ? <LoadingSpinner /> : query.isError ? (
         <div role="alert" className="rounded-xl border border-slate-border p-4">Could not load the pipeline. <Button variant="outline" onClick={() => query.refetch()}>Retry</Button></div>
@@ -42,14 +48,14 @@ export function CandidatePipeline({ requisitions }: { requisitions: any[] }) {
           {CANDIDATE_STAGES.map((stage) => {
             const column = query.data?.data?.columns?.find((item: any) => item.stage === stage.value);
             return (
-              <section key={stage.value} aria-label={`${stage.label} candidates`} className="w-[min(82vw,19rem)] shrink-0 overflow-hidden rounded-lg border border-slate-border bg-tint">
+              <section key={stage.value} aria-label={`${stage.label} candidates`} className={`${mobileStage === stage.value ? "block" : "hidden"} w-full shrink-0 overflow-hidden rounded-lg border border-slate-border bg-tint sm:block sm:w-72`}>
                 <h2 className="flex items-center justify-between border-b border-slate-border px-4 py-3 font-semibold text-text-heading">{stage.label}<span className="rounded-full bg-surface px-2 py-0.5 text-sm">{column?.total ?? 0}</span></h2>
                 <div className="min-h-40 space-y-2 p-2">
                   {(column?.items || []).map((candidate: any) => {
                     const age = stageAge(candidate.stageEnteredAt);
-                    const next = candidate.interviews?.find((item: any) => item.status === "SCHEDULED");
+                    const next = candidate.interviews?.find((item: any) => item.status === "SCHEDULED" && item.round === candidate.currentStage);
                     return (
-                      <Link key={candidate.id} to={`/recruitment?tab=pipeline&q=${encodeURIComponent(search)}&opening=${encodeURIComponent(requisitionId)}&reqId=${encodeURIComponent(candidate.requisitionId)}&candidateId=${encodeURIComponent(candidate.id)}`} className="block rounded-md border border-slate-border bg-surface p-3 shadow-sm transition hover:border-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500">
+                      <Link key={candidate.id} to={`/recruitment?tab=pipeline&q=${encodeURIComponent(search)}&opening=${encodeURIComponent(requisitionId)}&reqId=${encodeURIComponent(candidate.requisitionId)}&candidateId=${encodeURIComponent(candidate.id)}&viewStage=${encodeURIComponent(candidate.currentStage || mobileStage)}`} className="block rounded-md border border-slate-border bg-surface p-3 shadow-sm transition hover:border-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500">
                         <div className="flex items-start justify-between gap-2">
                           <h3 className="break-words font-medium text-text-heading">{candidate.candidateName}</h3>
                         </div>

@@ -9,7 +9,7 @@ This system acts as a centralized HR portal, designed from the ground up with st
 - **Dashboard**: Role-specific overview with key metrics and quick actions for pending approvals.
 - **Employee Management**: Full employee directory, profile management, document verification, and automatic user account provisioning.
 - **Leave Management**: Leave requests, holiday lists, manager approvals, and real-time attendance tracking.
-- **Recruitment Tracker**: Manage job requisitions, track candidates from Telephonic through HR, Technical, Management, Offer, and Joining. Upload a text PDF or DOCX resume (up to 20 MB) to autofill editable application fields; notice period is optional.
+- **Recruitment Tracker**: Manage job requisitions, track candidates from Telephonic through HR, Technical, Management, Offer, and Joining. Upload a text PDF or DOCX resume (up to 20 MB) to autofill editable application fields; notice period is optional. See the [recruitment UI and scheduling guide](docs/designs/recruitment-lifecycle.md).
 - **Asset Management**: Track company laptops and assets, issue/return workflows, and condition monitoring.
 - **Performance Review**: Goal setting, manager evaluations, and continuous feedback tracking.
 - **Training Management**: Schedule training sessions, manage participants, and track completion.
@@ -65,6 +65,8 @@ JWT_EXPIRES_IN="7d"
 CORS_ORIGIN="http://localhost:5173"
 ```
 *Note: Ensure you never commit your actual `.env` file. It is excluded in `.gitignore`.*
+
+For production file uploads using Supabase Storage, see the [production storage setup guide](docs/production-file-storage-supabase.md).
 
 ### 4. Database Setup
 ```bash

@@ -1,6 +1,6 @@
 # Supabase Storage for production uploads
 
-The backend can store uploads in a Supabase Storage bucket using its S3-compatible endpoint. The bucket must be private. Application download routes continue to authenticate the employee and check existing module permissions before reading an object.
+The backend can store uploads in a Supabase Storage bucket using its S3-compatible endpoint. The bucket must be private. Authenticated attachment download routes continue to check the employee and existing module permissions before reading an object. The profile-photo URL route is currently unauthenticated: it serves an image only when the filename is referenced by an employee profile. Treat those photo URLs as publicly reachable, and do not use profile-photo storage for documents.
 
 ## Supabase project setup
 
@@ -27,6 +27,6 @@ Enter the secret key directly in Render's secret environment variable field. Do 
 
 ## Free plan limits and existing files
 
-Supabase Free includes 1 GB of file storage and 5 GB of egress per billing period. Free projects can pause after a week of low activity. Monitor usage; staying within the free allowances is necessary to keep storage at $0.
+Supabase Free currently includes 1 GB of file storage and 5 GB of egress per billing period. Free projects can pause after a week of low activity. Plan limits and pause behavior can change; check the [current billing limits](https://supabase.com/docs/guides/platform/billing-on-supabase) and [free project pause policy](https://supabase.com/docs/guides/platform/free-project-pausing) before relying on them. Monitor usage; staying within the free allowances is necessary to keep storage at $0.
 
 Switching providers does not copy existing files. Any files still available on the old server disk need to be copied into the Supabase bucket with their existing `uploads/<filename>` object keys so database references keep working. Files already missing from Render must be restored from a backup or uploaded again.

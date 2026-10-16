@@ -13,6 +13,7 @@ import { Select } from "@/components/ui/Select";
 import {
   Plus,
   ChevronLeft,
+  ChevronDown,
   Download,
   CheckCircle2,
   Upload,
@@ -23,11 +24,20 @@ import { candidateCsv } from "./interviewExport";
 
 import { JobPositions } from "./JobPositions";
 import { CandidatePipeline } from "./CandidatePipeline";
-import { CandidateStageControls } from "./CandidateStageControls";
-import { CANDIDATE_STAGES } from "./pipelineModel";
+import { CandidateStageControls, CandidateStageHistory } from "./CandidateStageControls";
+import { CANDIDATE_STAGES, candidateNextAction } from "./pipelineModel";
+import { InterviewAppointmentPanel } from "./InterviewAppointmentPanel";
 import { candidateDetailsUrl, normalizeRecruitmentSearch } from "./recruitmentNavigation";
 
 const EMPTY_REQUISITIONS: any[] = [];
+const STAGE_GUIDANCE: Record<string, string> = {
+  TELEPHONIC: "Record the initial conversation and assessment here. This round does not need calendar scheduling.",
+  HR_INTERVIEW: "Review the previous round’s feedback, schedule the HR interview, and submit feedback before moving forward.",
+  TECHNICAL: "Use the previous round’s feedback to focus the technical discussion, then submit this round’s assessment.",
+  MANAGEMENT: "Review the interview history, complete the management discussion, and record the hiring decision.",
+  OFFER: "Track the offer response, key dates, and compensation details for this candidate.",
+  JOINED: "Record whether the candidate joined and capture the actual joining date.",
+};
 
 export default function RecruitmentPage() {
   const navigate = useNavigate();
@@ -96,14 +106,13 @@ export default function RecruitmentPage() {
   const routeCandidate = candidatesData.find(
     (candidate: any) => candidate.id === routeCandidateId,
   );
+  const hiringCompleted = routeCandidate?.joiningStatus === "JOINED";
   React.useEffect(() => {
     setJoiningOutcome(routeCandidate?.joiningStatus || "PENDING");
   }, [routeCandidate?.id, routeCandidate?.joiningStatus]);
   const candidateStages = CANDIDATE_STAGES;
   const currentCandidateStage = routeCandidate?.currentStage === "SCREENING" ? "TELEPHONIC" : routeCandidate?.currentStage || "TELEPHONIC";
-  const completedRoundInterviews = (routeCandidate?.interviews || []).filter(
-    (interview: any) => interview.round === reviewStage && interview.status === "COMPLETED",
-  );
+  const roundAppointments = (routeCandidate?.interviews || []).filter((interview: any) => interview.round === reviewStage).slice().sort((a: any, b: any) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
   React.useEffect(() => {
     setReviewStage(currentCandidateStage);
   }, [routeCandidate?.id, currentCandidateStage]);
@@ -115,6 +124,18 @@ export default function RecruitmentPage() {
         ),
       )
     : -1;
+  const reviewStageIndex = Math.max(0, candidateStages.findIndex((stage) => stage.value === reviewStage));
+  const isStageComplete = (stageValue: string, index: number) =>
+    stageValue === "TELEPHONIC" ? index < candidateStageIndex
+      : stageValue === "JOINED" ? routeCandidate?.joiningStatus === "JOINED"
+      : stageValue === "OFFER" ? ["OFFER_ACCEPTED", "OFFER_DECLINED"].includes(routeCandidate?.offerStatus)
+      : (routeCandidate?.interviews || []).some((interview: any) =>
+          interview.round === stageValue && interview.status === "COMPLETED" && !!interview.feedbackSubmittedAt,
+        );
+  const collapseCompletedPreviousStage =
+    ["HR_INTERVIEW", "TECHNICAL", "MANAGEMENT"].includes(reviewStage)
+    && reviewStageIndex < candidateStageIndex
+    && isStageComplete(reviewStage, reviewStageIndex);
 
   React.useEffect(() => {
     if (!routeReqId) {
@@ -170,22 +191,6 @@ export default function RecruitmentPage() {
     onError: (error: any) =>
       toast.error(error?.response?.data?.message || "Could not update offer"),
   });
-  const feedbackMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: any }) =>
-      recruitmentApi.submitInterviewFeedback(id, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["candidates"] });
-      queryClient.invalidateQueries({ queryKey: ["candidate-register"] });
-      queryClient.invalidateQueries({ queryKey: ["candidate-pipeline"] });
-      queryClient.invalidateQueries({ queryKey: ["interviews"] });
-      toast.success("Interview feedback saved");
-    },
-    onError: (error: any) =>
-      toast.error(
-        error?.response?.data?.message || "Could not save interview feedback",
-      ),
-  });
-
   const closureMutation = useMutation({
     mutationFn: ({ id, status, reason }: any) =>
       recruitmentApi.updateRequisitionStatus(id, { status, reason }),
@@ -262,25 +267,6 @@ export default function RecruitmentPage() {
       },
     });
   };
-  const handleFeedbackSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const values = new FormData(event.currentTarget);
-    const score = String(values.get("score") || "");
-    feedbackMutation.mutate({
-      id: String(values.get("interviewId")),
-      payload: {
-        feedback: String(values.get("feedback")),
-        draft:
-          (event.nativeEvent as SubmitEvent).submitter?.getAttribute(
-            "value",
-          ) === "draft",
-        revisionReason: values.get("revisionReason") || undefined,
-        score: score ? Number(score) : undefined,
-        recommendation: values.get("recommendation") || undefined,
-      },
-    });
-  };
-
   const updateReqMutation = useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: any }) =>
       recruitmentApi.updateRequisition(id, payload),
@@ -333,10 +319,15 @@ export default function RecruitmentPage() {
   };
 
   return (
-    <div className="space-y-6 flex flex-col h-full h-[calc(100vh-6rem)]">
+    <div className="space-y-6">
+      <nav aria-label="Recruitment breadcrumb" className="flex flex-wrap items-center gap-2 text-sm text-text-muted">
+        <button type="button" className="hover:underline" onClick={() => navigate("/recruitment?tab=openings")}>Recruitment</button>
+        {(selectedReq || searchParams.get("opening")) && <><span aria-hidden="true">/</span><button type="button" className="hover:underline" onClick={() => navigate(`/recruitment?tab=pipeline&opening=${encodeURIComponent(selectedReq?.id || searchParams.get("opening") || "")}&q=${encodeURIComponent(searchParams.get("q") || "")}&viewStage=${encodeURIComponent(searchParams.get("viewStage") || "TELEPHONIC")}`)}>{selectedReq?.positionTitle || data.find((item: any) => item.id === searchParams.get("opening"))?.positionTitle || "Opening"}</button></>}
+        {routeCandidate && <><span aria-hidden="true">/</span><span aria-current="page" className="font-medium text-text-heading">{routeCandidate.candidateName}</span></>}
+      </nav>
       <PageHeader
-        title={!selectedReq && activeTab === "openings" ? "Job positions" : "Recruitment Tracker"}
-        description={!selectedReq && activeTab === "openings" ? "Manage positions and follow each applicant through hiring." : "Manage job openings and scheduled interviews."}
+        title={!selectedReq && activeTab === "pipeline" ? `${data.find((item: any) => item.id === searchParams.get("opening"))?.positionTitle || "Recruitment"} candidates` : !selectedReq && activeTab === "openings" ? "Job positions" : "Recruitment Tracker"}
+        description={!selectedReq && activeTab === "openings" ? "Manage positions and follow each applicant through hiring." : "Track stages, schedule interviews and review feedback."}
         actions={
           <div className="flex flex-wrap items-center gap-3">
             {canAdd("recruitment") && (
@@ -347,7 +338,7 @@ export default function RecruitmentPage() {
                 New application
               </Button>
             )}
-            {canAdd("recruitment") && (
+            {canAdd("recruitment") && activeTab !== "pipeline" && (
               <Button
                 onClick={() => {
                   setEditingReq(null);
@@ -372,8 +363,8 @@ export default function RecruitmentPage() {
                   aria-label="Back to position pipeline"
                   onClick={() =>
                     navigate(
-                      activeTab === "pipeline"
-                        ? `/recruitment?tab=pipeline&q=${encodeURIComponent(searchParams.get("q") || "")}&opening=${encodeURIComponent(searchParams.get("opening") || "")}`
+                      searchParams.get("returnTo")?.startsWith("/recruitment/interviews?") ? searchParams.get("returnTo")! : activeTab === "pipeline"
+                        ? `/recruitment?tab=pipeline&q=${encodeURIComponent(searchParams.get("q") || "")}&opening=${encodeURIComponent(searchParams.get("opening") || "")}&viewStage=${encodeURIComponent(searchParams.get("viewStage") || "TELEPHONIC")}`
                         : "/recruitment?tab=openings",
                     )
                   }
@@ -395,9 +386,7 @@ export default function RecruitmentPage() {
                     </p>
                   )}
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {routeCandidate
-                      ? "Candidate stage tracker"
-                      : "HR Funnel Layout Structure"}
+                    {routeCandidate ? "Candidate details and interview progress" : "Candidates for this opening"}
                   </p>
                 </div>
               </div>
@@ -417,17 +406,8 @@ export default function RecruitmentPage() {
                   className="space-y-5 rounded-xl border border-slate-border bg-surface p-5 shadow-sm"
                   aria-label={`${routeCandidate.candidateName} recruitment stages`}
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                      <h3 className="text-lg font-bold text-navy-900 dark:text-white">
-                        {routeCandidate.candidateName}
-                      </h3>
-                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        {routeCandidate.email || "No email provided"}
-                      </p>
-                    </div>
-                    <details className="w-full rounded-lg border border-slate-border p-3">
-                      <summary className="cursor-pointer text-sm font-medium">Candidate details</summary>
+                  <details className="group w-full rounded-lg border border-slate-border p-3">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium"><span>Candidate details</span><ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" /></summary>
                     <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-text-muted sm:grid-cols-3">
                       <div>
                         <dt className="text-xs text-gray-500">Phone</dt>
@@ -435,9 +415,7 @@ export default function RecruitmentPage() {
                       </div>
                       <div>
                         <dt className="text-xs text-gray-500">Qualification</dt>
-                        <dd>
-                          {routeCandidate.qualification || "Not provided"}
-                        </dd>
+                        <dd>{routeCandidate.qualification || "Not provided"}</dd>
                       </div>
                       <div>
                         <dt className="text-xs text-gray-500">Experience</dt>
@@ -448,12 +426,8 @@ export default function RecruitmentPage() {
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-gray-500">
-                          Current company
-                        </dt>
-                        <dd>
-                          {routeCandidate.currentCompany || "Not provided"}
-                        </dd>
+                        <dt className="text-xs text-gray-500">Current company</dt>
+                        <dd>{routeCandidate.currentCompany || "Not provided"}</dd>
                       </div>
                       <div>
                         <dt className="text-xs text-gray-500">Notice period</dt>
@@ -466,9 +440,7 @@ export default function RecruitmentPage() {
                       {canViewRestricted("recruitment") && (
                         <>
                           <div>
-                            <dt className="text-xs text-gray-500">
-                              Expected salary
-                            </dt>
+                            <dt className="text-xs text-gray-500">Expected salary</dt>
                             <dd>
                               {routeCandidate.expectedSalary != null
                                 ? `₹${Number(routeCandidate.expectedSalary).toLocaleString("en-IN")}`
@@ -476,9 +448,7 @@ export default function RecruitmentPage() {
                             </dd>
                           </div>
                           <div>
-                            <dt className="text-xs text-gray-500">
-                              Current salary
-                            </dt>
+                            <dt className="text-xs text-gray-500">Current salary</dt>
                             <dd>
                               {routeCandidate.currentSalary != null
                                 ? `₹${Number(routeCandidate.currentSalary).toLocaleString("en-IN")}`
@@ -488,33 +458,42 @@ export default function RecruitmentPage() {
                         </>
                       )}
                     </dl>
-                    </details>
+                  </details>
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-navy-900 dark:text-white">
+                        {routeCandidate.candidateName}
+                      </h3>
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        {routeCandidate.email || "No email provided"}
+                      </p>
+                    </div>
+
                   </div>
-                  <ol aria-label="View recruitment stage" className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-border bg-tint p-4">
+                    <div><p className="text-xs text-text-muted">Next action · {candidateStages.find(stage => stage.value === currentCandidateStage)?.label}</p><p className="mt-1 font-semibold text-text-heading">{candidateNextAction(routeCandidate)}</p></div>
+                    <Button type="button" variant="outline" onClick={() => { setReviewStage(currentCandidateStage); requestAnimationFrame(() => document.getElementById("candidate-round-actions")?.scrollIntoView({ behavior: "smooth", block: "start" })); }}>View current round</Button>
+                  </div>
+                  <nav aria-label="Candidate stages" className="rounded-xl border border-slate-border p-4">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <h4 className="font-semibold text-text-heading">Hiring stages</h4>
+                        <p className="text-xs text-text-muted">Step {reviewStageIndex + 1} of {candidateStages.length} · Select a stage to review it here.</p>
+                      </div>
+                      <span className="rounded-full bg-tint px-3 py-1 text-xs font-medium text-text-heading">
+                        Current: {candidateStages[candidateStageIndex]?.label || "Completed"}
+                      </span>
+                    </div>
+                    <ol aria-label="View recruitment stage" className="flex min-w-0 gap-2 overflow-x-auto pb-2">
                     {candidateStages.map((stage, index) => {
                       const locked = index < candidateStageIndex && (routeCandidate.interviews || []).some(
                         (interview: any) => interview.round === stage.value && interview.status === "COMPLETED" && !!interview.feedbackSubmittedAt,
                       );
-                      const complete =
-                        stage.value === "TELEPHONIC"
-                          ? index < candidateStageIndex
-                          : stage.value === "JOINED" ? routeCandidate.joiningStatus === "JOINED"
-                          : stage.value === "OFFER"
-                            ? ["OFFER_ACCEPTED", "OFFER_DECLINED"].includes(
-                                routeCandidate.offerStatus,
-                              )
-                            : (routeCandidate.interviews || []).some(
-                                (interview: any) =>
-                                  interview.round === stage.value &&
-                                  interview.status === "COMPLETED" && !!interview.feedbackSubmittedAt,
-                              );
+                      const complete = isStageComplete(stage.value, index);
                       const current = index === candidateStageIndex && currentCandidateStage !== "JOINED";
                       return (
-                        <li
-                          key={stage.value}
-                          className="min-w-0"
-                        >
-                          <button type="button" aria-pressed={reviewStage === stage.value} disabled={locked} title={locked ? "Completed stage locked after feedback submission" : undefined} onClick={() => setReviewStage(stage.value)} className={`h-full w-full rounded-xl border p-3 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-primary ${locked ? "cursor-not-allowed opacity-70" : ""} ${reviewStage === stage.value ? "ring-2 ring-brand-primary" : ""} ${current ? "border-orange-300 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/30" : complete ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30" : "border-slate-border bg-surface"}`}
+                        <li key={stage.value} className="w-40 shrink-0">
+                          <button type="button" aria-pressed={reviewStage === stage.value} title={locked ? "View completed stage (read only)" : undefined} onClick={() => setReviewStage(stage.value)} className={`h-full w-full rounded-xl border p-3 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-primary ${locked ? "opacity-80" : ""} ${reviewStage === stage.value ? "ring-2 ring-brand-primary" : ""} ${current ? "border-orange-300 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/30" : complete ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30" : "border-slate-border bg-surface"}`}
                         >
                           <div className="flex items-center gap-2">
                             <span
@@ -541,21 +520,38 @@ export default function RecruitmentPage() {
                         </li>
                       );
                     })}
-                  </ol>
-                  <div className="rounded-xl border border-slate-border bg-tint p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">{reviewStage === currentCandidateStage ? "Current stage" : "Stage details"}</p>
-                    <h4 className="mt-1 text-lg font-semibold text-text-heading">{candidateStages.find(stage => stage.value === reviewStage)?.label}</h4>
-                    <p className="mt-2 text-sm font-medium">Application outcome: {(routeCandidate.selectionStatus || "IN_PROGRESS").replaceAll("_", " ").toLowerCase()}</p>
-                  </div>
+                    </ol>
+                  </nav>
+                  <details open={!collapseCompletedPreviousStage} className={`group ${collapseCompletedPreviousStage ? "rounded-xl border border-slate-border bg-tint" : ""}`}>
+                    <summary className={collapseCompletedPreviousStage ? "flex cursor-pointer list-none items-center justify-between gap-3 p-4 font-semibold" : "hidden"}>
+                      <span>{candidateStages[reviewStageIndex]?.label} stage details</span>
+                      <span className="flex shrink-0 items-center gap-2"><span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">Completed</span><ChevronDown aria-hidden="true" className="h-4 w-4 transition-transform group-open:rotate-180" /></span>
+                    </summary>
+                    <div className={collapseCompletedPreviousStage ? "space-y-4 border-t border-slate-border p-4" : "space-y-4"}>
+                  <section id="candidate-round-actions" aria-label={`${candidateStages[reviewStageIndex]?.label || "Selected stage"} workspace`} className="space-y-2 rounded-xl border border-slate-border bg-tint p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">{reviewStage === currentCandidateStage ? "Current stage" : reviewStageIndex < candidateStageIndex ? "Previous stage" : "Upcoming stage"}</p>
+                        <h4 className="mt-1 text-lg font-semibold text-text-heading">{candidateStages[reviewStageIndex]?.label}</h4>
+                      </div>
+                      <span className="rounded-full border border-slate-border bg-surface px-3 py-1 text-xs font-medium text-text-muted">Step {reviewStageIndex + 1} / {candidateStages.length}</span>
+                    </div>
+                    <p className="text-sm text-text-muted">{STAGE_GUIDANCE[reviewStage]}</p>
+                    <p className="text-sm font-medium">Application outcome: {(routeCandidate.selectionStatus || "IN_PROGRESS").replaceAll("_", " ").toLowerCase()}</p>
+                  </section>
 
                   {canEdit("recruitment") && (
                     <div className="space-y-4">
-                      {["OFFER", "JOINED"].includes(reviewStage) && <form
+                      {["OFFER", "JOINED"].includes(reviewStage) && <details open={!hiringCompleted} className="group rounded-xl border border-slate-border">
+                        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 font-semibold">
+                          <span>{reviewStage === "JOINED" ? "Offer and joining details" : "Offer management"}</span>
+                          <span className="flex shrink-0 items-center gap-2">{hiringCompleted && <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">Completed</span>}<ChevronDown aria-hidden="true" className="h-4 w-4 transition-transform group-open:rotate-180" /></span>
+                        </summary>
+                        <form
                         key={`${routeCandidate.id}:${reviewStage}`}
                         onSubmit={handleOfferSubmit}
-                        className="space-y-3 rounded-xl border border-slate-border p-4"
+                        className="space-y-3 border-t border-slate-border p-4"
                       >
-                        <h4 className="font-semibold">{reviewStage === "JOINED" ? "Joining outcome" : "Offer management"}</h4>
                         {reviewStage === "OFFER" && <>
                         <Select
                           name="offerStatus"
@@ -638,7 +634,8 @@ export default function RecruitmentPage() {
                             ? "Saving…"
                             : reviewStage === "JOINED" ? "Save joining outcome" : "Save offer status"}
                         </Button>
-                      </form>}
+                        </form>
+                      </details>}
                     </div>
                   )}
                   {["OFFER", "JOINED"].includes(reviewStage) && <dl className="grid grid-cols-1 gap-3 rounded-xl border border-slate-border p-4 text-sm sm:grid-cols-2">
@@ -648,183 +645,62 @@ export default function RecruitmentPage() {
                     {reviewStage === "OFFER" && canViewRestricted("recruitment") && <div><dt className="text-text-muted">Offered salary</dt><dd className="mt-1 font-medium">{routeCandidate.offeredSalary != null ? `₹${Number(routeCandidate.offeredSalary).toLocaleString("en-IN")}` : "Not provided"}</dd></div>}
                     {reviewStage === "JOINED" && <div><dt className="text-text-muted">Actual joining date</dt><dd className="mt-1 font-medium">{routeCandidate.actualJoiningDate ? new Date(routeCandidate.actualJoiningDate).toLocaleDateString("en-IN", {timeZone:"Asia/Kolkata"}) : "Not provided"}</dd></div>}
                   </dl>}
-                  {!["TELEPHONIC", "OFFER", "JOINED"].includes(reviewStage) && <>
-                  {canAdd("recruitment") && !["SELECTED", "SELECTION_REJECTED"].includes(routeCandidate.selectionStatus) && routeCandidate.joiningStatus !== "JOINED" && <Button onClick={() => setScheduleCandidate({ ...routeCandidate, interviewId: undefined, interviewDate: undefined, interviewRound: reviewStage })}>Schedule {candidateStages.find(stage => stage.value === reviewStage)?.label.toLowerCase()}</Button>}
-                  {completedRoundInterviews.length > 0 && <section className="space-y-3" aria-label="Interview history">
-                    <h4 className="font-semibold">Round appointments & feedback</h4>
-                    {completedRoundInterviews.map((interview: any) => (
-                        <article
-                          key={interview.id}
-                          className="rounded-lg border border-slate-border p-3"
-                        >
-                          <div className="flex flex-wrap justify-between gap-2">
-                            <span className="font-medium">
-                              {interview.round.replaceAll("_", " ")}
-                            </span>
-                            <span className="text-sm">
-                              {interview.status.replaceAll("_", " ")}
-                            </span>
-                          </div>
-                          <p className="mt-1 text-sm text-gray-500">
-                            {new Date(interview.startsAt).toLocaleString(
-                              "en-IN",
-                              {
-                                timeZone: interview.timezone || "Asia/Kolkata",
-                              },
-                            )}{" "}
-                            · {interview.timezone || "Asia/Kolkata"} ·{" "}
-                            {interview.mode.replaceAll("_", " ")}
-                            {interview.location
-                              ? ` · ${interview.location}`
-                              : ""}
-                          </p>
-                          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                            {interview.feedback || "Feedback pending"}
-                            {interview.score != null
-                              ? ` · Score ${interview.score}/10`
-                              : ""}
-                            {interview.recommendation
-                              ? ` · ${interview.recommendation.replaceAll("_", " ")}`
-                              : ""}
-                          </p>
-                          {interview.draftFeedback && (
-                            <p className="text-xs text-text-muted">
-                              Draft saved. Submit it to finalize this
-                              evaluation.
-                            </p>
-                          )}
-                          {interview.feedbackSubmittedAt && (
-                            <p className="text-xs text-text-muted">
-                              Submitted{" "}
-                              {new Date(
-                                interview.feedbackSubmittedAt,
-                              ).toLocaleString("en-IN", {
-                                timeZone: "Asia/Kolkata",
-                              })}
-                            </p>
-                          )}
-                          {canEdit("recruitment") &&
-                            interview.status === "COMPLETED" && (
-                              <form
-                                className="mt-3 grid gap-2 sm:grid-cols-[1fr_9rem_10rem_auto]"
-                                onSubmit={handleFeedbackSubmit}
-                              >
-                                <input
-                                  type="hidden"
-                                  name="interviewId"
-                                  value={interview.id}
-                                />
-                                <Input
-                                  name="feedback"
-                                  label="Interview feedback"
-                                  required
-                                  defaultValue={
-                                    interview.draftFeedback ??
-                                    interview.feedback ??
-                                    ""
-                                  }
-                                  placeholder="Record evidence-based feedback"
-                                />
-                                <Input
-                                  name="score"
-                                  label="Score (optional, 1–10)"
-                                  type="number"
-                                  min="1"
-                                  max="10"
-                                  defaultValue={
-                                    interview.draftScore ??
-                                    interview.score ??
-                                    ""
-                                  }
-                                />
-                                <Select
-                                  name="recommendation"
-                                  label="Recommendation"
-                                  defaultValue={
-                                    interview.draftRecommendation ??
-                                    interview.recommendation ??
-                                    ""
-                                  }
-                                >
-                                  <option value="">Not provided</option>
-                                  <option value="STRONG_YES">Strong yes</option>
-                                  <option value="YES">Yes</option>
-                                  <option value="HOLD">Hold</option>
-                                  <option value="NO">No</option>
-                                </Select>
-                                {interview.feedback && (
-                                  <Input
-                                    name="revisionReason"
-                                    label="Reason for feedback correction"
-                                    placeholder="Required when resubmitting"
-                                  />
-                                )}
-                                <div className="self-end flex flex-wrap gap-2">
-                                  <Button
-                                    type="submit"
-                                    name="intent"
-                                    value="draft"
-                                    variant="outline"
-                                    disabled={feedbackMutation.isPending}
-                                  >
-                                    Save draft
-                                  </Button>
-                                  <Button
-                                    type="submit"
-                                    name="intent"
-                                    value="submit"
-                                    disabled={feedbackMutation.isPending}
-                                  >
-                                    {feedbackMutation.isPending
-                                      ? "Saving…"
-                                      : "Submit feedback"}
-                                  </Button>
-                                </div>
-                              </form>
-                            )}
-                        </article>
-                      ))}
-                  </section>}
-
+                  {!["OFFER", "JOINED"].includes(reviewStage) && <>
+                  <section className="space-y-3" aria-label="Round appointments and feedback">
+                    {canAdd("recruitment") && reviewStage !== "TELEPHONIC" && candidateStages.findIndex(stage => stage.value === reviewStage) >= candidateStageIndex && !roundAppointments.some((item: any) => item.status === "SCHEDULED") && !["SELECTED", "SELECTION_REJECTED"].includes(routeCandidate.selectionStatus) && routeCandidate.joiningStatus !== "JOINED" && <Button onClick={() => setScheduleCandidate({ ...routeCandidate, interviewId: undefined, interviewDate: undefined, interviewRound: reviewStage })}>Schedule {candidateStages.find(stage => stage.value === reviewStage)?.label.toLowerCase()}</Button>}
+                    {roundAppointments.map((interview: any) => <InterviewAppointmentPanel key={interview.id} interview={interview} editable={canEdit("recruitment") && reviewStage === currentCandidateStage && !["SELECTED", "SELECTION_REJECTED"].includes(routeCandidate.selectionStatus) && routeCandidate.joiningStatus !== "JOINED"} onReschedule={() => setScheduleCandidate({ ...routeCandidate, ...interview, id: routeCandidate.id, interviewId: interview.id, interviewDate: interview.startsAt, interviewRound: interview.round, interviewLocation: interview.location })} />)}
+                    {!roundAppointments.length && <p className="rounded-xl border border-dashed border-slate-border p-4 text-sm text-text-muted">{reviewStage === "TELEPHONIC" ? "Record the telephonic assessment through the existing stage controls below. Calendar scheduling is not required." : "No appointments recorded for this round."}</p>}
+                  </section>
                   </>}
-                  {canEdit("recruitment") && reviewStage === "MANAGEMENT" && (
-                    <form
-                      className="grid gap-3 rounded-xl border border-slate-border p-4 sm:grid-cols-2"
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        const values = new FormData(e.currentTarget);
-                        decisionMutation.mutate({
-                          selectionStatus:
-                            values.get("selectionStatus") === "IN_PROGRESS"
-                              ? null
-                              : values.get("selectionStatus"),
-                        });
-                      }}
-                    >
-                      <Select
-                        name="selectionStatus"
-                        label="Candidate decision"
-                        defaultValue={
-                          routeCandidate.selectionStatus || "IN_PROGRESS"
-                        }
-                      >
-                        <option value="IN_PROGRESS">In progress</option>
-                        <option value="SELECTION_ON_HOLD">On hold</option>
-                        <option value="SELECTED">Selected</option>
-                        <option value="SELECTION_REJECTED">Rejected</option>
-                      </Select>
-                      <div className="self-end">
-                        <Button
-                          type="submit"
-                          disabled={decisionMutation.isPending}
+                  <CandidateStageControls
+                    candidate={routeCandidate}
+                    editable={canEdit("recruitment") && reviewStage === currentCandidateStage}
+                    showHistory={false}
+                    onOpenJoining={() => setReviewStage("JOINED")}
+                    beforeHistory={canEdit("recruitment") && reviewStage === "MANAGEMENT" ? (
+                      <details className="group rounded-xl border border-slate-border">
+                        <summary className="flex cursor-pointer list-none items-center gap-3 p-4 font-semibold">
+                          <span>Candidate decision</span>
+                          <span className="ml-2 text-sm font-normal capitalize text-text-muted">
+                            {(routeCandidate.selectionStatus || "IN_PROGRESS").replace("SELECTION_", "").replaceAll("_", " ").toLowerCase()}
+                          </span>
+                          <ChevronDown aria-hidden="true" className="ml-auto h-4 w-4 shrink-0 transition-transform group-open:rotate-180" />
+                        </summary>
+                        <form
+                          className="grid gap-3 border-t border-slate-border p-4 sm:grid-cols-2"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            const values = new FormData(e.currentTarget);
+                            decisionMutation.mutate({
+                              selectionStatus:
+                                values.get("selectionStatus") === "IN_PROGRESS"
+                                  ? null
+                                  : values.get("selectionStatus"),
+                            });
+                          }}
                         >
-                          Save decision
-                        </Button>
-                      </div>
-                    </form>
-                  )}
-                  <CandidateStageControls candidate={routeCandidate} editable={canEdit("recruitment") && reviewStage === currentCandidateStage} onOpenJoining={() => setReviewStage("JOINED")} />
-
+                          <Select
+                            name="selectionStatus"
+                            label="Candidate decision"
+                            defaultValue={routeCandidate.selectionStatus || "IN_PROGRESS"}
+                          >
+                            <option value="IN_PROGRESS">In progress</option>
+                            <option value="SELECTION_ON_HOLD">On hold</option>
+                            <option value="SELECTED">Selected</option>
+                            <option value="SELECTION_REJECTED">Rejected</option>
+                          </Select>
+                          <div className="self-end">
+                            <Button type="submit" disabled={decisionMutation.isPending}>
+                              Save decision
+                            </Button>
+                          </div>
+                        </form>
+                      </details>
+                    ) : null}
+                  />
+                    </div>
+                  </details>
+                  <CandidateStageHistory candidate={routeCandidate} />
                 </section>
               ) : (
                 <div className="rounded-xl border border-dashed border-slate-border p-8 text-center text-gray-500">
@@ -843,7 +719,7 @@ export default function RecruitmentPage() {
           </div>
         ) : (
           <>
-            <nav
+            {activeTab !== "pipeline" && <nav
               className="grid w-full grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800 sm:flex sm:w-fit sm:max-w-full"
               role="tablist"
               aria-label="Recruitment workspace"
@@ -866,7 +742,7 @@ export default function RecruitmentPage() {
                     : `History (${historyRequisitions.length})`}
                 </button>
               ))}
-            </nav>
+            </nav>}
             {activeTab === "pipeline" ? (
               <CandidatePipeline requisitions={data} />
             ) : (
@@ -1003,11 +879,7 @@ export default function RecruitmentPage() {
       </Modal>
       <Modal
         isOpen={applicationOpen && canAdd("recruitment")}
-        onClose={() => {
-          setApplicationOpen(false);
-          setIsParsingResume(false);
-          setResumeFileName("");
-        }}
+        onClose={() => { setApplicationOpen(false); setIsParsingResume(false); setResumeFileName(""); }}
         title="New application"
       >
         <form
@@ -1100,7 +972,7 @@ export default function RecruitmentPage() {
               Choose a PDF or DOCX (up to 20 MB). Extracted details stay editable; review them before saving.
             </p>
           </div>
-          <Select name="requisitionId" label="Opening" required>
+          <Select name="requisitionId" label="Opening" required defaultValue={selectedReq?.id || searchParams.get("opening") || ""}>
             <option value="">Choose an opening</option>
             {activeRequisitions.map((req: any) => (
               <option key={req.id} value={req.id}>

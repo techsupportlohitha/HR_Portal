@@ -8,7 +8,7 @@ import { recruitmentApi } from "@/api/recruitment";
 import { employeesApi } from "@/api/employees";
 import { employeeAssignmentOptions } from "@/utils/employeeAssignmentOptions";
 import toast from "react-hot-toast";
-import { format } from "date-fns";
+
 
 interface ScheduleInterviewModalProps {
   isOpen: boolean;
@@ -24,6 +24,7 @@ export function ScheduleInterviewModal({
   existingCandidate,
 }: ScheduleInterviewModalProps) {
   const queryClient = useQueryClient();
+  const [serverError, setServerError] = useState("");
   const [candidateName, setCandidateName] = useState("");
   const [candidateEmail, setCandidateEmail] = useState("");
   const [requisitionId, setRequisitionId] = useState("");
@@ -36,6 +37,7 @@ export function ScheduleInterviewModal({
   const [interviewMode, setInterviewMode] = useState("IN_PERSON");
   React.useEffect(() => {
     if (!isOpen) return;
+    setServerError("");
     setCandidateName(existingCandidate?.candidateName || "");
     setCandidateEmail(existingCandidate?.email || "");
     setRequisitionId(
@@ -51,7 +53,7 @@ export function ScheduleInterviewModal({
         : "",
     );
     setInterviewerId(existingCandidate?.interviewerId || "");
-    setInterviewRound(existingCandidate?.interviewRound || "");
+    setInterviewRound(existingCandidate?.interviewRound || (["HR_INTERVIEW", "TECHNICAL", "MANAGEMENT"].includes(existingCandidate?.currentStage) ? existingCandidate.currentStage : "HR_INTERVIEW"));
     setInterviewLocation(existingCandidate?.interviewLocation || "");
     setDurationMinutes(
       existingCandidate?.endsAt && existingCandidate?.interviewDate
@@ -71,7 +73,7 @@ export function ScheduleInterviewModal({
     setRescheduleReason("");
   }, [isOpen, initialRequisitionId, existingCandidate]);
 
-  const { data: empData } = useQuery({
+  const { data: empData, isError: employeeLoadError, refetch: reloadEmployees } = useQuery({
     queryKey: ["employees", "assignment-options"],
 queryFn: () => employeesApi.getAllForAssignments(),
     enabled: isOpen,
@@ -119,18 +121,17 @@ queryFn: () => employeesApi.getAllForAssignments(),
       setDurationMinutes("60");
       setInterviewMode("IN_PERSON");
     },
-    onError: (error: any) =>
-      toast.error(
-        error?.response?.data?.message ||
-          "Could not save interview. Please try again.",
-      ),
+    onError: (error: any) => setServerError(error?.response?.data?.message || "Could not save interview. Your entries are still here. Please try again."),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!candidateName || !requisitionId || !interviewDate) return;
 
+    setServerError("");
+    if (!interviewerId || !interviewRound || (interviewMode !== "PHONE" && !interviewLocation.trim())) { setServerError("Complete the interviewer, round and location details before saving."); return; }
     const startsAt = new Date(interviewDate + ":00+05:30");
+    if (!Number.isFinite(startsAt.getTime())) { setServerError("Choose a valid interview date and time."); return; }
     mutation.mutate({
       candidateName,
       email: candidateEmail || undefined,
@@ -169,6 +170,9 @@ queryFn: () => employeesApi.getAllForAssignments(),
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4 py-2">
+        <p className="text-sm text-text-muted">{existingCandidate?.interviewId ? "Update this appointment. Its previous schedule remains in history." : "Confirm the candidate, interviewer and appointment details below."}</p>
+        {serverError && <p role="alert" className="rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-200">{serverError}</p>}
+        <fieldset className="space-y-3 rounded-xl border border-slate-border p-4"><legend className="px-1 font-semibold">Candidate and opening</legend>
         <Input
           label="Candidate Name"
           value={candidateName}
@@ -205,6 +209,9 @@ queryFn: () => employeesApi.getAllForAssignments(),
               </option>
             ))}
         </Select>
+        </fieldset>
+        <fieldset className="space-y-3 rounded-xl border border-slate-border p-4"><legend className="px-1 font-semibold">Interviewer and time</legend>
+        {employeeLoadError && <p role="alert" className="text-sm text-red-600">Could not load interviewers. <button type="button" className="underline" onClick={() => reloadEmployees()}>Retry</button></p>}
         <Select
           label="Interviewer"
           value={interviewerId}
@@ -215,56 +222,21 @@ queryFn: () => employeesApi.getAllForAssignments(),
           {employeeAssignmentOptions((empData as any)?.data)}
         </Select>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Select
-            label="Type of Interview"
-            value={interviewRound}
-            onChange={(e) => setInterviewRound(e.target.value)}
-            required
-          >
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Input label="Interview Date & Time" type="datetime-local" value={interviewDate} onChange={(e) => setInterviewDate(e.target.value)} required />
+          <Input label="Duration (minutes)" type="number" min="15" max="480" step="15" required value={durationMinutes} onChange={(e) => setDurationMinutes(e.target.value)} />
+        </div>
+        <p className="text-xs text-text-muted">All appointment times use Asia/Kolkata (IST).</p>
+        </fieldset>
+        <fieldset className="space-y-3 rounded-xl border border-slate-border p-4"><legend className="px-1 font-semibold">Round and location</legend>
+          <Select label="Type of Interview" value={interviewRound} onChange={(e) => setInterviewRound(e.target.value)} required disabled={!!existingCandidate?.interviewId}>
             <option value="">Select interview type...</option>
-            <option value="HR_INTERVIEW">HR Interview</option>
-            <option value="TECHNICAL">Technical Interview</option>
-            <option value="MANAGEMENT">Management Interview</option>
+            {existingCandidate?.interviewId && interviewRound === "TELEPHONIC" && <option value="TELEPHONIC">Telephonic (existing interview)</option>}
+            <option value="HR_INTERVIEW">HR Interview</option><option value="TECHNICAL">Technical Interview</option><option value="MANAGEMENT">Management Interview</option>
           </Select>
-          <Input
-            label="Place of Interview"
-            value={interviewLocation}
-            onChange={(e) => setInterviewLocation(e.target.value)}
-            placeholder="e.g. Google Meet, Main Office"
-            required
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Select
-            label="Interview mode"
-            value={interviewMode}
-            onChange={(e) => setInterviewMode(e.target.value)}
-          >
-            <option value="IN_PERSON">In person</option>
-            <option value="VIDEO">Video call</option>
-            <option value="PHONE">Phone call</option>
-          </Select>
-          <Input
-            label="Duration (minutes)"
-            type="number"
-            min="15"
-            max="480"
-            step="15"
-            required
-            value={durationMinutes}
-            onChange={(e) => setDurationMinutes(e.target.value)}
-          />
-        </div>
-
-        <Input
-          label="Interview Date & Time"
-          type="datetime-local"
-          value={interviewDate}
-          onChange={(e) => setInterviewDate(e.target.value)}
-          required
-        />
+          <Select label="Interview mode" value={interviewMode} onChange={(e) => setInterviewMode(e.target.value)}><option value="IN_PERSON">In person</option><option value="VIDEO">Video call</option><option value="PHONE">Phone call</option></Select>
+          <Input label="Place of Interview" value={interviewLocation} onChange={(e) => setInterviewLocation(e.target.value)} placeholder={interviewMode === "VIDEO" ? "Meeting link or video call details" : interviewMode === "PHONE" ? "Phone details (optional)" : "Office address or meeting room"} required={interviewMode !== "PHONE"} />
+        </fieldset>
         {existingCandidate && (
           <Input
             label={existingCandidate.interviewId ? "Reason for rescheduling" : "Reason for skipping or returning to a stage"}
@@ -273,15 +245,13 @@ queryFn: () => employeesApi.getAllForAssignments(),
             onChange={(e) => setRescheduleReason(e.target.value)}
           />
         )}
-        <p className="-mt-2 text-xs text-slate-500">
-          Times are shown in Asia/Kolkata.
-        </p>
+        {interviewDate && Number.isFinite(new Date(interviewDate + ":00+05:30").getTime()) && <div className="rounded-xl bg-tint p-3 text-sm"><p className="font-semibold">Review appointment</p><p className="mt-1">{candidateName} · {new Date(interviewDate + ":00+05:30").toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} · Asia/Kolkata · {durationMinutes} minutes</p></div>}
         <div className="flex justify-end gap-3 pt-4">
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
           <Button type="submit" isLoading={mutation.isPending}>
-            {existingCandidate ? "Save Changes" : "Schedule"}
+            {existingCandidate?.interviewId ? "Save Changes" : "Schedule interview"}
           </Button>
         </div>
       </form>

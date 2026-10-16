@@ -14,9 +14,10 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { interviewCsv } from "./interviewExport";
 import { calendarCandidates, hiringHistoryLabel, isHiringHistory } from "./calendarCandidates";
 import { stageLabel } from "./pipelineModel";
+import { InterviewAppointmentPanel } from "./InterviewAppointmentPanel";
 import { candidateDetailsUrl } from "./recruitmentNavigation";
 import toast from "react-hot-toast";
-import { CalendarDays, MapPin, UserRound } from "lucide-react";
+import { CalendarDays, ChevronDown, MapPin, UserRound } from "lucide-react";
 const zone = "Asia/Kolkata";
 const dayKey = (date: string | Date) =>
   new Intl.DateTimeFormat("en-CA", {
@@ -47,7 +48,7 @@ export default function InterviewCalendarPage() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const reqId = params.get("reqId") || "";
-  const { canEdit, canExport } = usePermissions();
+  const { canEdit, canExport, canAdd } = usePermissions();
   const cache = useQueryClient();
   const [view, setView] = useState<"agenda" | "month">(() => {
     const saved = localStorage.getItem("recruitment-calendar-view");
@@ -67,6 +68,8 @@ export default function InterviewCalendarPage() {
     status: string;
   } | null>(null);
   const [reason, setReason] = useState("");
+  const [detailsId, setDetailsId] = useState<string | null>(null);
+  const [task, setTask] = useState(params.get("task") || "all");
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["interviews", reqId],
     queryFn: () =>
@@ -100,6 +103,17 @@ export default function InterviewCalendarPage() {
         error?.response?.data?.message || "Could not update interview",
       ),
   });
+  const stageMutation = useMutation({
+    mutationFn: ({ id, stage, expectedStage }: { id: string; stage: string; expectedStage: string }) =>
+      recruitmentApi.moveCandidateStage(id, { stage, expectedStage }),
+    onSuccess: () => {
+      refresh();
+      setDetailsId(null);
+      toast.success("Candidate moved to the next stage");
+    },
+    onError: (error: any) =>
+      toast.error(error?.response?.data?.message || "Could not move candidate to the next stage"),
+  });
   const outcomeMutation = useMutation({
     mutationFn: ({ id, selectionStatus }: any) =>
       recruitmentApi.interviewCandidate(id, {
@@ -116,6 +130,7 @@ export default function InterviewCalendarPage() {
       ),
   });
   const candidateCards = useMemo(() => calendarCandidates(data || []), [data]);
+  const detailAppointment = candidateCards.find((item: any) => item.interviewId === detailsId);
   const appointments = candidateCards.filter(candidate => bucket === "history" ? isHiringHistory(candidate) : !isHiringHistory(candidate));
   const interviewers = useMemo(
     () =>
@@ -134,6 +149,8 @@ export default function InterviewCalendarPage() {
         `${a.candidateName} ${a.email || ""} ${a.requisition?.positionTitle || ""}`
           .toLowerCase()
           .includes(search.toLowerCase())) &&
+      (task !== "feedback" || (a.status === "COMPLETED" && !a.feedbackSubmittedAt && a.currentStage === a.interviewRound)) &&
+      (task !== "scheduled" || a.status === "SCHEDULED") &&
       (!round || a.interviewRound === round) &&
       (!status || a.status === status) &&
       (!panel || a.interviewerId === panel),
@@ -149,25 +166,26 @@ export default function InterviewCalendarPage() {
       status,
       panel,
       history: bucket === "history" ? "true" : "",
+      task: task === "all" ? "" : task,
     }).forEach(([key, value]) => {
       if (value) next.set(key, value);
     });
     if (next.toString() !== params.toString())
       setParams(next, { replace: true });
-  }, [reqId, search, round, status, panel, bucket, params, setParams]);
+  }, [reqId, search, round, status, panel, bucket, task, params, setParams]);
   const card = (a: any) => (
     <article
       key={a.id}
       className="min-w-0 overflow-hidden rounded-xl border border-slate-border bg-surface shadow-sm transition-shadow hover:shadow-md"
     >
-      <div className="space-y-4 p-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="space-y-3 p-3">
+        <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
             <button
               className="text-left text-base font-semibold text-text-heading hover:text-primary-700 hover:underline dark:hover:text-primary-300"
               onClick={() =>
                 navigate(
-                  candidateDetailsUrl(a.requisitionId, a.id),
+                  `${candidateDetailsUrl(a.requisitionId, a.id)}&returnTo=${encodeURIComponent("/recruitment/interviews?" + params.toString())}`,
                 )
               }
             >
@@ -182,28 +200,27 @@ export default function InterviewCalendarPage() {
           </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 border-y border-slate-border py-3">
-          <span className="rounded-md bg-tint px-2.5 py-1 text-sm font-semibold capitalize text-text-heading">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-md bg-tint px-2 py-1 text-xs font-semibold capitalize text-text-heading">
             {stageLabel(a.interviewRound)}{a.interviewRound === "TELEPHONIC" ? " interview" : ""}
           </span>
-          {a.status === "COMPLETED" && a.interviewFeedback && (
+          <span className="text-xs text-text-muted">Stage: <span className="font-medium text-text-heading">{stageLabel(a.currentStage || a.interviewRound)}</span>{a.selectionStatus === "SELECTED" && !isHiringHistory(a) && <span> · {a.offerStatus === "OFFER_ACCEPTED" ? "Offer accepted · joining pending" : "Offer and joining pending"}</span>}</span>
+          {a.status === "COMPLETED" && a.feedbackSubmittedAt && (
             <span className="text-xs text-text-muted">Feedback submitted{a.interviewScore != null ? ` · Score ${a.interviewScore}/10` : ""}</span>
           )}
-          {a.status === "COMPLETED" && !a.interviewFeedback && !isHiringHistory(a) && (
+          {a.status === "COMPLETED" && !a.feedbackSubmittedAt && !isHiringHistory(a) && (
             <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Feedback needed</span>
           )}
         </div>
 
-        <p className="text-sm text-text-muted">Stage: <span className="font-medium text-text-heading">{stageLabel(a.currentStage || a.interviewRound)}</span>{a.selectionStatus === "SELECTED" && !isHiringHistory(a) && <span> · {a.offerStatus === "OFFER_ACCEPTED" ? "Offer accepted · joining pending" : "Offer and joining pending"}</span>}</p>
-        <dl className="grid gap-x-4 gap-y-3 text-sm sm:grid-cols-2">
+        <dl className="grid gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
           <div className="flex min-w-0 items-start gap-2.5">
             <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-text-muted" aria-hidden="true" />
             <div className="min-w-0">
-              <dt className="text-xs text-text-muted">Date · Asia/Kolkata</dt>
+              <dt className="text-xs text-text-muted">Date and time · Asia/Kolkata</dt>
               <dd className="mt-0.5 font-medium text-text-heading">
-                {new Date(a.interviewDate).toLocaleDateString("en-IN", { timeZone: zone, weekday: "short", day: "numeric", month: "short", year: "numeric" })}
+                {new Date(a.interviewDate).toLocaleDateString("en-IN", { timeZone: zone, weekday: "short", day: "numeric", month: "short", year: "numeric" })} · {time(a.interviewDate)}{a.endsAt ? `–${time(a.endsAt)}` : ""}
               </dd>
-              <dd className="text-text-heading"><span className="sr-only">Time: </span>{time(a.interviewDate)}{a.endsAt ? ` – ${time(a.endsAt)}` : ""}</dd>
             </div>
           </div>
           <div className="flex min-w-0 items-start gap-2.5">
@@ -213,7 +230,7 @@ export default function InterviewCalendarPage() {
               <dd className="mt-0.5 break-words font-medium text-text-heading">{a.interviewer ? `${a.interviewer.firstName} ${a.interviewer.lastName}` : "Not assigned"}</dd>
             </div>
           </div>
-          <div className="flex min-w-0 items-start gap-2.5 sm:col-span-2">
+          <div className="flex min-w-0 items-start gap-2.5">
             <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-text-muted" aria-hidden="true" />
             <div className="min-w-0">
               <dt className="text-xs text-text-muted">Format and location</dt>
@@ -222,24 +239,10 @@ export default function InterviewCalendarPage() {
           </div>
         </dl>
 
+        {canAdd("recruitment") && !isHiringHistory(a) && !["SELECTED", "SELECTION_ON_HOLD"].includes(a.selectionStatus) && a.currentStage !== a.interviewRound && ["HR_INTERVIEW", "TECHNICAL", "MANAGEMENT"].includes(a.currentStage) && <Button type="button" onClick={() => setSchedule({ candidate: { ...a, interviewId: undefined, interviewDate: undefined, endsAt: undefined, interviewRound: a.currentStage, interviewLocation: undefined } })}>Schedule next round</Button>}
+        {a.interviewId && <Button type="button" variant={a.status === "COMPLETED" && !a.feedbackSubmittedAt && a.currentStage === a.interviewRound && canEdit("recruitment") ? "primary" : "outline"} onClick={() => setDetailsId(a.interviewId)}>{a.status === "COMPLETED" && !a.feedbackSubmittedAt && a.currentStage === a.interviewRound && canEdit("recruitment") ? a.draftFeedback ? "Continue feedback draft" : "Submit feedback" : "Interview details & feedback"}</Button>}
       {canEdit("recruitment") && !isHiringHistory(a) ? (
         <>
-          <Select
-            label="Candidate hiring decision"
-            value={a.selectionStatus || "IN_PROGRESS"}
-            disabled={outcomeMutation.isPending}
-            onChange={(e) =>
-              outcomeMutation.mutate({
-                id: a.id,
-                selectionStatus: e.target.value,
-              })
-            }
-          >
-            <option value="IN_PROGRESS">In progress</option>
-            <option value="SELECTION_ON_HOLD">On hold</option>
-            <option value="SELECTED">Selected</option>
-            <option value="SELECTION_REJECTED">Rejected</option>
-          </Select>
           {a.status === "SCHEDULED" && a.interviewId && (!a.currentStage || a.currentStage === a.interviewRound) && (
             <div className="flex flex-wrap gap-2 border-t border-slate-border pt-3">
               <Button
@@ -276,6 +279,22 @@ export default function InterviewCalendarPage() {
               ))}
             </div>
           )}
+          <details className="group rounded-xl border border-slate-border p-2.5"><summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium"><span>Candidate hiring decision</span><ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" /></summary><div className="mt-2"><Select
+            label="Candidate hiring decision"
+            value={a.selectionStatus || "IN_PROGRESS"}
+            disabled={outcomeMutation.isPending}
+            onChange={(e) =>
+              outcomeMutation.mutate({
+                id: a.id,
+                selectionStatus: e.target.value,
+              })
+            }
+          >
+            <option value="IN_PROGRESS">In progress</option>
+            <option value="SELECTION_ON_HOLD">On hold</option>
+            <option value="SELECTED">Selected</option>
+            <option value="SELECTION_REJECTED">Rejected</option>
+          </Select></div></details>
         </>
       ) : (
         <p className="text-sm text-text-muted">Candidate decision: <span className="font-medium text-text-heading">{isHiringHistory(a) ? hiringHistoryLabel(a) : readable(a.selectionStatus || "IN_PROGRESS")}</span></p>
@@ -339,6 +358,8 @@ export default function InterviewCalendarPage() {
           : date.toLocaleDateString("en-IN", { month: "long", year: "numeric" })} · Asia/Kolkata</p>
       </div>
       }
+      <section aria-label="Interview filters" className="space-y-3 rounded-xl border border-slate-border bg-surface p-4">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Interview tasks">{[["all", "All interviews"], ["scheduled", "Scheduled"], ["feedback", "Feedback due"]].map(([value, label]) => <Button key={value} size="sm" variant={task === value ? "primary" : "outline"} aria-pressed={task === value} onClick={() => setTask(value)}>{label}</Button>)}</div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Input
           label="Search"
@@ -403,6 +424,7 @@ export default function InterviewCalendarPage() {
           ))}
         </Select>
       </div>
+      </section>
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-text-muted">
         <p>
           {visible.length} {visible.length === 1 ? "candidate" : "candidates"}{bucket === "active" && <> /{" "}
@@ -424,6 +446,7 @@ export default function InterviewCalendarPage() {
         <Button
           variant="ghost"
           onClick={() => {
+            setTask("all");
             setSearch("");
             setRound("");
             setStatus("");
@@ -455,6 +478,27 @@ export default function InterviewCalendarPage() {
         </div>
         </div>
       )}
+      <Modal isOpen={!!detailAppointment} onClose={() => setDetailsId(null)} title="Interview details & feedback">
+        {detailAppointment && <div className="space-y-4">
+          <div><p className="font-semibold">{detailAppointment.candidateName}</p><p className="text-sm text-text-muted">{detailAppointment.requisition?.positionTitle}</p></div>
+          {(() => {
+            const currentStage = detailAppointment.currentStage === "SCREENING" ? "TELEPHONIC" : detailAppointment.currentStage;
+            const nextStage = currentStage === "HR_INTERVIEW" ? "TECHNICAL" : currentStage === "TECHNICAL" ? "MANAGEMENT" : undefined;
+            const canAdvanceFromFeedback = canEdit("recruitment") && !isHiringHistory(detailAppointment)
+              && detailAppointment.status === "COMPLETED" && !!detailAppointment.feedbackSubmittedAt
+              && detailAppointment.interviewRound === currentStage
+              && !["SELECTION_ON_HOLD", "SELECTION_REJECTED"].includes(detailAppointment.selectionStatus);
+            return <InterviewAppointmentPanel key={detailAppointment.interviewId}
+              interview={{ ...detailAppointment, id: detailAppointment.interviewId, startsAt: detailAppointment.interviewDate, round: detailAppointment.interviewRound, location: detailAppointment.interviewLocation, feedback: detailAppointment.interviewFeedback, score: detailAppointment.interviewScore }}
+              editable={canEdit("recruitment") && !isHiringHistory(detailAppointment) && detailAppointment.currentStage === detailAppointment.interviewRound}
+              showAppointmentDetails={false}
+              nextStage={canAdvanceFromFeedback ? nextStage : undefined}
+              movingToNextStage={stageMutation.isPending}
+              onMoveToNextStage={canAdvanceFromFeedback && nextStage ? () => stageMutation.mutate({ id: detailAppointment.id, stage: nextStage, expectedStage: currentStage }) : undefined}
+              onReschedule={() => { setDetailsId(null); setSchedule({ candidate: detailAppointment }); }} />;
+          })()}
+        </div>}
+      </Modal>
       <ScheduleInterviewModal
         isOpen={!!schedule}
         onClose={() => setSchedule(null)}

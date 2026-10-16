@@ -106,12 +106,6 @@ export default function LeaveApprovalsPage() {
  header: 'Employee',
  accessor: (row: any) => `${row.employee?.firstName} ${row.employee?.lastName}`
  },
- {
- header: 'Approved By',
- accessor: (row: any) => row.approver
- ? `${row.approver.firstName || ''} ${row.approver.lastName || ''}`.trim() || 'Not recorded'
- : row.status === 'PENDING' ? 'Pending' : 'Not recorded'
- },
  { header: 'Type', accessor: 'leaveType' as const },
  {
  header: 'Dates',
@@ -125,6 +119,12 @@ export default function LeaveApprovalsPage() {
  {
  header: 'Status',
  accessor: (row: any) => getStatusBadge(row.status)
+ },
+ {
+ header: 'Approved By',
+ accessor: (row: any) => row.approver
+ ? `${row.approver.firstName || ''} ${row.approver.lastName || ''}`.trim() || 'Not recorded'
+ : row.status === 'PENDING' ? 'Pending' : 'Not recorded'
  },
  ];
  const columns = canApprove('leave') ? [...baseColumns, { header: 'Actions', accessor: (row: any) => row.status === 'PENDING' ? (<div className="flex gap-2"><Button variant="primary" size="sm" onClick={() => handleAction(row, 'APPROVED')}>Approve</Button><Button variant="danger" size="sm" onClick={() => handleAction(row, 'REJECTED')}>Reject</Button></div>) : <span className="text-slate-400 text-sm">Processed</span> }] : baseColumns;
