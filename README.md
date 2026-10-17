@@ -13,7 +13,7 @@ This system acts as a centralized HR portal, designed from the ground up with st
 - **Asset Management**: Track company laptops and assets, issue/return workflows, and condition monitoring.
 - **Performance Review**: Goal setting, manager evaluations, and continuous feedback tracking.
 - **Training Management**: Schedule training sessions, manage participants, and track completion.
-- **Travel & Expenses**: Manage travel requests, office expenses, and multi-tier approval workflows.
+- **Travel & Expenses**: Manage travel requests, office expenses, and multi-tier approval workflows; review approved office expenses and submitted travel claims awaiting payout.
 - **HR Helpdesk**: Centralized ticketing system for employee requests and queries with status tracking.
 - **Policies & Documents**: Upload, categorize, and track employee acknowledgements for HR handbooks and policies.
 - **Workforce Analytics**: Dynamic charts tracking attendance, leave histories, and employee strength.

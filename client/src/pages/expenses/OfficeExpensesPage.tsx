@@ -200,7 +200,7 @@ export default function OfficeExpensesPage() {
  />
 
  {isAdminOrHR && data && (
- <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+ <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
  <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5">
  <p className="text-sm text-text-muted mb-1 font-medium">Pending Approval</p>
  <p className="text-2xl font-bold text-text-heading">{data.filter((d:any) => d.status === 'PENDING').length}</p>
@@ -214,6 +214,13 @@ export default function OfficeExpensesPage() {
  <p className="text-2xl font-bold text-text-heading">
 <IndianRupee className="w-5 h-5 inline mr-1 -mt-1"/>{data.filter((d:any) => d.status === 'PAID').reduce((sum:number, d:any) => sum + Number(d.amount), 0)}
  </p>
+ </div>
+ <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5">
+ <p className="text-sm text-text-muted mb-1 font-medium">Total Due to Pay</p>
+ <p className="text-2xl font-bold text-text-heading">
+ {money(data.filter((d:any) => d.status === 'APPROVED').reduce((sum:number, d:any) => sum + expenseAmounts(d).due, 0))}
+ </p>
+ <p className="mt-1 text-xs text-text-muted">Approved expenses awaiting payout</p>
  </div>
  </div>
  )}

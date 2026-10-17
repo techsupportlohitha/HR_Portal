@@ -278,7 +278,7 @@ export default function TravelListPage() {
 
 
  {isAdminOrHR && data && (
- <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+ <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
  <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5">
  <p className="text-sm text-text-muted mb-1 font-medium">Pending Approval</p>
  <p className="text-2xl font-bold text-text-heading">{data.filter((d:any) => d.approvalStatus === 'APPROVAL_PENDING').length}</p>
@@ -299,6 +299,19 @@ export default function TravelListPage() {
    return sum + total;
  }, 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
  </p>
+ </div>
+ <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5">
+ <p className="text-sm text-text-muted mb-1 font-medium">Total Due to Pay</p>
+ <p className="text-2xl font-bold text-text-heading">
+ ₹{data.filter((d:any) => d.settlementStatus === 'SUBMITTED').reduce((sum:number, d:any) => {
+   const expenses = [d.hotelExpense, d.foodAllowance, d.localConveyance, d.otherExpenses];
+   const total = expenses.some(value => value != null)
+     ? expenses.reduce((subtotal:number, value:any) => subtotal + Number(value ?? 0), 0)
+     : Number(d.totalExpenseClaimed ?? 0);
+   return sum + Math.max(0, total - Number(d.advanceApproved ?? 0));
+ }, 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+ </p>
+ <p className="mt-1 text-xs text-text-muted">Submitted claims awaiting settlement</p>
  </div>
  </div>
  )}
