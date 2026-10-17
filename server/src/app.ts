@@ -40,11 +40,23 @@ app.use((req, res, next) => {
 });
 
 // Middleware
-const corsOptions = {
-  origin: Array.from(new Set([
-    'https://hr.pafpl.in',
-    ...config.cors.origin.split(',').map((origin) => origin.trim()).filter(Boolean),
-  ])),
+const configuredCorsOrigins = (config.cors.origin || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const allowedCorsOrigins = new Set([
+  'https://hr.pafpl.in',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  ...configuredCorsOrigins,
+]);
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Requests without an Origin header (health checks, server-to-server) are allowed.
+    if (!origin || allowedCorsOrigins.has(origin)) return callback(null, true);
+    return callback(new Error('Origin is not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-correlation-id'],
@@ -52,8 +64,8 @@ const corsOptions = {
 app.options('*', cors(corsOptions)); // Handle preflight for ALL routes
 app.use(cors(corsOptions));
 app.use(express.json());
-// Only explicitly referenced profile images have a public URL. All attachments
-// require the authenticated document or module-specific download endpoints.
+// Keep file URLs private by default. Only profile images explicitly referenced by
+// an employee record are public; attachments use authenticated download routes.
 app.use('/api/uploads', async (req, res, next) => {
   try {
     let filename: string;
@@ -85,13 +97,8 @@ app.get('/api/live', (_req, res) => {
 app.get('/api/ready', async (_req, res) => {
   const correlationId = crypto.randomUUID();
   try {
-    await Promise.all([
-      prisma.candidate.findFirst({ select: { currentStage: true, stageEnteredAt: true } }),
-      prisma.performanceReview.findFirst({ select: { status: true } }),
-      prisma.modulePermission.findFirst({ select: { canExport: true } }),
-      prisma.officeExpense.findFirst({ select: { id: true } }),
-      prisma.requisition.findFirst({ where: { status: 'CLOSED' }, select: { id: true } }),
-    ]);
+    // Check that the database is reachable.
+    await prisma.$queryRaw`SELECT 1`;
     res.json({ status: 'READY', correlationId, timestamp: new Date().toISOString() });
   } catch (error) {
     res.status(503).json({ status: 'UNAVAILABLE', correlationId, timestamp: new Date().toISOString() });

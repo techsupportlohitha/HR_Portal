@@ -173,6 +173,7 @@ export class LeaveService {
             department: { select: { name: true } },
           },
         },
+        approver: { select: { firstName: true, lastName: true } },
       },
       orderBy: { createdAt: 'desc' },
     });

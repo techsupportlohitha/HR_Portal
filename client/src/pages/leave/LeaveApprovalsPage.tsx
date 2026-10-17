@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Download } from 'lucide-react';
+import { CalendarDays, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 
@@ -18,6 +18,7 @@ export default function LeaveApprovalsPage() {
  const { canApprove, canExport } = usePermissions();
  const queryClient = useQueryClient();
  const [selectedLeave, setSelectedLeave] = useState<any>(null);
+ const [detailsModalOpen, setDetailsModalOpen] = useState(false);
  const [remarks, setRemarks] = useState('');
  const [isModalOpen, setIsModalOpen] = useState(false);
  const [action, setAction] = useState<'APPROVED' | 'REJECTED'>('APPROVED');
@@ -49,6 +50,11 @@ export default function LeaveApprovalsPage() {
  setSelectedLeave(leave);
  setAction(newAction);
  setIsModalOpen(true);
+ };
+
+ const openDetails = (leave: any) => {
+ setSelectedLeave(leave);
+ setDetailsModalOpen(true);
  };
 
  const submitAction = () => {
@@ -127,7 +133,7 @@ export default function LeaveApprovalsPage() {
  : row.status === 'PENDING' ? 'Pending' : 'Not recorded'
  },
  ];
- const columns = canApprove('leave') ? [...baseColumns, { header: 'Actions', accessor: (row: any) => row.status === 'PENDING' ? (<div className="flex gap-2"><Button variant="primary" size="sm" onClick={() => handleAction(row, 'APPROVED')}>Approve</Button><Button variant="danger" size="sm" onClick={() => handleAction(row, 'REJECTED')}>Reject</Button></div>) : <span className="text-slate-400 text-sm">Processed</span> }] : baseColumns;
+ const columns = canApprove('leave') ? [...baseColumns, { header: 'Actions', accessor: (row: any) => row.status === 'PENDING' ? (<div className="flex gap-2" onClick={(event) => event.stopPropagation()}><Button variant="primary" size="sm" onClick={() => handleAction(row, 'APPROVED')}>Approve</Button><Button variant="danger" size="sm" onClick={() => handleAction(row, 'REJECTED')}>Reject</Button></div>) : <span className="text-slate-400 text-sm">Processed</span> }] : baseColumns;
 
  return (
  <div className="space-y-6">
@@ -162,9 +168,66 @@ export default function LeaveApprovalsPage() {
  ))}
  </div>
  </div>
- <DataTable columns={columns} data={filteredData} keyField="id" />
+ <DataTable columns={columns} data={filteredData} keyField="id" onRowClick={openDetails} caption="Leave approval history" />
  </div>
  )}
+
+ <Modal
+ isOpen={detailsModalOpen}
+ onClose={() => setDetailsModalOpen(false)}
+ title="Leave Request Details"
+ className="max-w-2xl"
+ >
+ {selectedLeave && (() => {
+ const employeeName = [selectedLeave.employee?.firstName, selectedLeave.employee?.lastName].filter(Boolean).join(' ') || 'Employee';
+ const leaveType = String(selectedLeave.leaveType || 'Leave').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (letter: string) => letter.toUpperCase());
+ const durationLabel = selectedLeave.isHourly
+ ? `${selectedLeave.hourlyDuration ? `${selectedLeave.hourlyDuration} minutes` : 'Hourly leave'}${selectedLeave.hourlyStartTime ? ` · from ${selectedLeave.hourlyStartTime}` : ''}`
+ : selectedLeave.isHalfDay ? `Half day${selectedLeave.halfDayPeriod ? ` · ${selectedLeave.halfDayPeriod === 'MORNING' ? 'Morning' : 'Afternoon'}` : ''}` : Number(selectedLeave.totalDays) === 1 ? '1 day' : `${selectedLeave.totalDays} days`;
+ const approverName = [selectedLeave.approver?.firstName, selectedLeave.approver?.lastName].filter(Boolean).join(' ') || '—';
+ const statusVariant = selectedLeave.status === 'APPROVED' ? 'success' : selectedLeave.status === 'REJECTED' ? 'danger' : selectedLeave.status === 'PENDING' ? 'warning' : 'default';
+
+ return <div className="space-y-4 text-sm">
+ <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/60 p-4 sm:p-5">
+ <div className="flex items-start gap-3">
+ <div className="rounded-xl bg-indigo-100 dark:bg-indigo-900/40 p-2.5 text-indigo-600 dark:text-indigo-300"><CalendarDays className="h-5 w-5" /></div>
+ <div className="min-w-0 flex-1">
+ <p className="text-xs font-medium uppercase tracking-wide text-text-muted">{leaveType} leave</p>
+ <h3 className="mt-0.5 text-xl font-semibold text-text-heading">{employeeName}</h3>
+ <p className="mt-1 text-text-muted">{formatDate(selectedLeave.startDate)}{selectedLeave.endDate && selectedLeave.endDate !== selectedLeave.startDate ? ` – ${formatDate(selectedLeave.endDate)}` : ''} · {durationLabel}</p>
+ </div>
+ </div>
+ <div className="mt-4"><Badge variant={statusVariant}>{String(selectedLeave.status || 'PENDING').replace(/_/g, ' ')}</Badge></div>
+ </div>
+
+ <section className="rounded-2xl border border-slate-border p-4 sm:p-5">
+ <h3 className="mb-4 font-semibold text-text-heading">Leave information</h3>
+ <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+ <div><dt className="text-xs text-text-muted">Employee</dt><dd className="mt-1 font-medium text-text-heading">{employeeName}</dd></div>
+ <div><dt className="text-xs text-text-muted">Employee code</dt><dd className="mt-1 font-medium text-text-heading">{selectedLeave.employee?.employeeCode || '—'}</dd></div>
+ <div><dt className="text-xs text-text-muted">Department</dt><dd className="mt-1 font-medium text-text-heading">{selectedLeave.employee?.department?.name || '—'}</dd></div>
+ <div><dt className="text-xs text-text-muted">Leave dates</dt><dd className="mt-1 font-medium text-text-heading">{formatDate(selectedLeave.startDate)}{selectedLeave.endDate && selectedLeave.endDate !== selectedLeave.startDate ? ` – ${formatDate(selectedLeave.endDate)}` : ''}</dd></div>
+ <div><dt className="text-xs text-text-muted">Duration</dt><dd className="mt-1 font-medium text-text-heading">{durationLabel}</dd></div>
+ <div className="sm:col-span-2"><dt className="text-xs text-text-muted">Reason</dt><dd className="mt-1 whitespace-pre-wrap font-medium text-text-heading">{selectedLeave.reason || '—'}</dd></div>
+ </dl>
+ </section>
+
+ <section className="rounded-2xl border border-slate-border p-4 sm:p-5">
+ <h3 className="mb-4 font-semibold text-text-heading">Approval & history</h3>
+ <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+ <div><dt className="text-xs text-text-muted">Current status</dt><dd className="mt-1 font-medium text-text-heading">{String(selectedLeave.status || 'PENDING').replace(/_/g, ' ')}</dd></div>
+ <div><dt className="text-xs text-text-muted">Approved by</dt><dd className="mt-1 font-medium text-text-heading">{approverName}</dd></div>
+ <div><dt className="text-xs text-text-muted">Applied on</dt><dd className="mt-1 font-medium text-text-heading">{selectedLeave.createdAt ? formatDateTime(selectedLeave.createdAt) : '—'}</dd></div>
+ <div><dt className="text-xs text-text-muted">Decision remarks</dt><dd className="mt-1 whitespace-pre-wrap font-medium text-text-heading">{selectedLeave.remarks || '—'}</dd></div>
+ </dl>
+ </section>
+
+ <div className="flex justify-end border-t border-slate-border pt-4">
+ <Button variant="outline" onClick={() => setDetailsModalOpen(false)}>Close</Button>
+ </div>
+ </div>;
+ })()}
+ </Modal>
 
  <Modal
  isOpen={isModalOpen}
