@@ -13,7 +13,7 @@ This system acts as a centralized HR portal, designed from the ground up with st
 - **Asset Management**: Track company laptops and assets, issue/return workflows, and condition monitoring.
 - **Performance Review**: Goal setting, manager evaluations, and continuous feedback tracking.
 - **Training Management**: Schedule training sessions, manage participants, and track completion.
-- **Travel & Expenses**: Manage travel requests, office expenses, and multi-tier approval workflows; review approved office expenses and submitted travel claims awaiting payout.
+- **Travel & Expenses**: Manage travel requests, office expenses, and multi-tier approval workflows; select multiple travel modes, enter separate outbound and return amounts, and review payout totals for approved office expenses and submitted travel claims.
 - **HR Helpdesk**: Centralized ticketing system for employee requests and queries with status tracking.
 - **Policies & Documents**: Upload, categorize, and track employee acknowledgements for HR handbooks and policies.
 - **Workforce Analytics**: Dynamic charts tracking attendance, leave histories, and employee strength.
@@ -108,4 +108,4 @@ npx prisma migrate deploy
 npm run build
 ```
 
-This release adds user soft deletion (`deletedAt`) and converts existing Screening candidates and requisitions to Telephonic. Previous screening rejections remain rejected. Use migrations for upgrades: `prisma db push` alone does not perform these data conversions. Databases originally created with `db push` must have their migration baseline reconciled before deploying migrations.
+This release adds user soft deletion (`deletedAt`), converts existing Screening candidates and requisitions to Telephonic, and adds multiple travel modes with separate outbound and return amount fields. Previous screening rejections remain rejected. Use migrations for upgrades: `prisma db push` alone does not perform these data conversions. Databases originally created with `db push` must have their migration baseline reconciled before deploying migrations.

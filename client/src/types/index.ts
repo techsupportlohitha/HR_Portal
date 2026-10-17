@@ -175,7 +175,10 @@ export interface TravelRequest {
  startDate: string;
  endDate: string;
  travelMode: TravelMode;
+ travelModes?: TravelMode[];
  amountRequired?: number;
+ outboundAmountRequired?: number;
+ returnAmountRequired?: number;
  advanceRequested?: number;
  advanceApproved?: number;
  approvalStatus: ApprovalStatus;

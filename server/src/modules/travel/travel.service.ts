@@ -40,10 +40,13 @@ export class TravelService {
       throw new Error('Travel request has overlapping dates with an existing request.');
     }
 
+    const travelModes = data.travelModes?.length ? data.travelModes : [data.travelMode];
 
     const req = await prisma.travelRequest.create({
       data: {
         ...data,
+        travelMode: travelModes[0],
+        travelModes,
         startDate,
         endDate,
         employeeId: currentUser.employeeId,

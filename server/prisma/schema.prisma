@@ -531,7 +531,10 @@ model TravelRequest {
   startDate           DateTime         @db.Date
   endDate             DateTime         @db.Date
   travelMode          TravelMode
+  travelModes         TravelMode[]     @default([])
   amountRequired      Decimal?
+  outboundAmountRequired Decimal?
+  returnAmountRequired   Decimal?
   advanceRequested    Decimal?
   advanceApproved     Decimal?
   approvalStatus      ApprovalStatus   @default(APPROVAL_PENDING)

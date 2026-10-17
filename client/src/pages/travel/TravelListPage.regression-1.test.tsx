@@ -22,9 +22,12 @@ describe('Travel employee attachment submission',()=>{
     fireEvent.click(screen.getByRole('button',{name:/New Travel Request/i}));
     fireEvent.change(screen.getByLabelText(/Start Date/),{target:{value:'2030-01-07'}});
     fireEvent.change(screen.getByLabelText(/End Date/),{target:{value:'2030-01-08'}});
-    fireEvent.change(screen.getByLabelText(/Amount Required/),{target:{value:'1250'}});
+    fireEvent.click(screen.getByLabelText('Flight'));
+    fireEvent.click(screen.getByLabelText('Train'));
+    fireEvent.change(screen.getByLabelText(/Outbound \(going\) amount/),{target:{value:'800'}});
+    fireEvent.change(screen.getByLabelText(/Return \(coming back\) amount/),{target:{value:'450'}});
     fireEvent.submit(screen.getByRole('button',{name:'Submit Request'}).closest('form')!);
-    await waitFor(()=>expect(travelApi.create).toHaveBeenCalledWith(expect.objectContaining({amountRequired:1250,billUpload:'/api/uploads/qa-receipt.pdf'})));
+    await waitFor(()=>expect(travelApi.create).toHaveBeenCalledWith(expect.objectContaining({travelMode:'AIR',travelModes:['AIR','TRAIN'],outboundAmountRequired:800,returnAmountRequired:450,amountRequired:1250,billUpload:'/api/uploads/qa-receipt.pdf'})));
   });
   it('allows self-service claims and keeps their uploaded URL without staff edit permission',async()=>{
     open();

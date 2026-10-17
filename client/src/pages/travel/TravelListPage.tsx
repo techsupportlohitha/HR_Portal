@@ -14,7 +14,6 @@ import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { FileUpload } from '@/components/ui/FileUpload';
 import toast from 'react-hot-toast';
-import { Select } from '@/components/ui/Select';
 import { Plane, Plus, FileText, CheckCircle2, Download, IndianRupee, Receipt } from 'lucide-react';
 import apiClient from '@/api/client'; // Need this for custom expense put
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -24,6 +23,7 @@ import { hasAdminAccess } from '@/utils/roles';
 const TRAVEL_MODE_LABELS: Record<string, string> = {
  AIR: 'Flight', TRAIN: 'Train', ROAD: 'Bus or cab', OWN_VEHICLE: 'Personal vehicle',
 };
+const TRAVEL_MODE_OPTIONS = Object.entries(TRAVEL_MODE_LABELS);
 
 export default function TravelListPage() {
  const { user } = useAuth();
@@ -40,6 +40,8 @@ export default function TravelListPage() {
  const [settleModalOpen, setSettleModalOpen] = useState(false);
  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+ const [outboundAmountInput, setOutboundAmountInput] = useState('');
+ const [returnAmountInput, setReturnAmountInput] = useState('');
 
  const { data, isLoading } = useQuery({
  queryKey: ['travel'],
@@ -63,7 +65,10 @@ export default function TravelListPage() {
    : 0;
  const personName = (person: any) => person ? [person.firstName, person.lastName].filter(Boolean).join(' ') || person.email || '—' : '—';
  const statusLabel = (value: string | undefined) => value?.replace(/^APPROVAL_/, '').replace(/_/g, ' ') || '—';
- const travelModeLabel = (value: string | undefined) => TRAVEL_MODE_LABELS[value || ''] || statusLabel(value);
+ const travelModeLabel = (value: string | string[] | undefined) => {
+   const modes = Array.isArray(value) ? value : value ? [value] : [];
+   return modes.map(mode => TRAVEL_MODE_LABELS[mode] || statusLabel(mode)).join(', ') || '—';
+ };
  const netAmount = expenseTotal - Number(details?.advanceApproved ?? 0);
 
  const createMutation = useMutation({
@@ -120,9 +125,9 @@ export default function TravelListPage() {
  const handleExport = () => {
  if (!data?.length) return;
  const csvContent = "data:text/csv;charset=utf-8," 
- + "ID,Employee,Destination,Purpose,Start Date,End Date,Mode,Amount Required,Legacy Advance Requested,Advance Approved,Total Expense,Amount Payable,Approval Status,Settlement Status\n"
+ + "ID,Employee,Destination,Purpose,Start Date,End Date,Modes,Outbound Amount,Return Amount,Amount Required,Legacy Advance Requested,Advance Approved,Total Expense,Amount Payable,Approval Status,Settlement Status\n"
  + data.map((e: any) => 
- `${e.id},${e.employee?.firstName || ''} ${e.employee?.lastName || ''},${e.destination},${e.travelPurpose},${e.startDate},${e.endDate},${e.travelMode},${e.amountRequired ?? ''},${e.advanceRequested || 0},${e.advanceApproved || 0},${e.totalExpenseClaimed || 0},${e.amountPayable || 0},${e.approvalStatus},${e.settlementStatus}`
+ `${e.id},${e.employee?.firstName || ''} ${e.employee?.lastName || ''},${e.destination},${e.travelPurpose},${e.startDate},${e.endDate},${travelModeLabel(e.travelModes?.length ? e.travelModes : e.travelMode)},${e.outboundAmountRequired ?? ''},${e.returnAmountRequired ?? ''},${e.amountRequired ?? ''},${e.advanceRequested || 0},${e.advanceApproved || 0},${e.totalExpenseClaimed || 0},${e.amountPayable || 0},${e.approvalStatus},${e.settlementStatus}`
  ).join("\n");
  const encodedUri = encodeURI(csvContent);
  const link = document.createElement("a");
@@ -228,13 +233,28 @@ export default function TravelListPage() {
  e.preventDefault();
  const formData = new FormData(e.currentTarget);
  const billUpload = formData.get('billUpload');
+ const travelModes = formData.getAll('travelModes').map(String);
+ if (!travelModes.length) {
+   toast.error('Select at least one travel mode');
+   return;
+ }
+ const outboundAmountRequired = Number(formData.get('outboundAmountRequired'));
+ const returnAmountRequired = Number(formData.get('returnAmountRequired'));
+ const amountRequired = Math.round((outboundAmountRequired + returnAmountRequired + Number.EPSILON) * 100) / 100;
+ if (amountRequired <= 0) {
+   toast.error('Enter an amount for at least one journey');
+   return;
+ }
  const payload: any = {
  travelPurpose: formData.get('travelPurpose'),
  destination: formData.get('destination'),
  startDate: new Date(formData.get('startDate') as string).toISOString(),
  endDate: new Date(formData.get('endDate') as string).toISOString(),
- travelMode: formData.get('travelMode'),
- amountRequired: Number(formData.get('amountRequired')),
+ travelMode: travelModes[0],
+ travelModes,
+ outboundAmountRequired,
+ returnAmountRequired,
+ amountRequired,
  };
  if (typeof billUpload === 'string' && billUpload) {
  payload.billUpload = billUpload;
@@ -270,7 +290,7 @@ export default function TravelListPage() {
  {canExport('travel') && <Button variant="outline" onClick={handleExport} className="gap-2">
  <Download className="w-4 h-4" /> Export Register
  </Button>}
- {mayCreateTravel && <Button onClick={() => setIsModalOpen(true)} className="gap-2">
+ {mayCreateTravel && <Button onClick={() => { setOutboundAmountInput(''); setReturnAmountInput(''); setIsModalOpen(true); }} className="gap-2">
  <Plus className="w-4 h-4" /> New Travel Request
  </Button>}
  </div>}
@@ -349,7 +369,7 @@ export default function TravelListPage() {
            <div className="min-w-0 flex-1">
              <p className="text-xs font-medium uppercase tracking-wide text-text-muted">Trip to</p>
              <h3 className="mt-0.5 text-xl font-semibold text-text-heading break-words">{details.destination || 'Destination not specified'}</h3>
-             <p className="mt-1 text-text-muted">{formatDate(details.startDate)} – {formatDate(details.endDate)} · {travelModeLabel(details.travelMode)}</p>
+             <p className="mt-1 text-text-muted">{formatDate(details.startDate)} – {formatDate(details.endDate)} · {travelModeLabel(details.travelModes?.length ? details.travelModes : details.travelMode)}</p>
            </div>
          </div>
          <div className="mt-4 flex flex-wrap gap-2">
@@ -388,6 +408,8 @@ export default function TravelListPage() {
                : details.advanceRequested != null
                  ? [['Legacy advance requested', details.advanceRequested]]
                  : []),
+             ...(details.outboundAmountRequired != null ? [['Outbound amount', details.outboundAmountRequired]] : []),
+             ...(details.returnAmountRequired != null ? [['Return amount', details.returnAmountRequired]] : []),
              ['Advance approved', details.advanceApproved],
              ['Hotel', details.hotelExpense], ['Food', details.foodAllowance],
              ['Local transport', details.localConveyance], ['Other expenses', details.otherExpenses],
@@ -424,18 +446,23 @@ export default function TravelListPage() {
  <DatePicker name="startDate" label="Start Date" type="date" required />
  <DatePicker name="endDate" label="End Date" type="date" required />
  </div>
+ <fieldset className="space-y-2">
+ <legend className="mb-2 ml-1 text-xs font-bold text-slate-700 dark:text-slate-300">Travel modes</legend>
+ <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+ {TRAVEL_MODE_OPTIONS.map(([mode, label]) => (
+ <label key={mode} className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-border bg-surface px-4 py-3 text-sm text-text-heading">
+ <input type="checkbox" name="travelModes" value={mode} className="h-4 w-4 accent-teal-500" />
+ <span>{label}</span>
+ </label>
+ ))}
+ </div>
+ <p className="ml-1 text-xs text-text-muted">Select every mode needed for this trip.</p>
+ </fieldset>
  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
- <div className="flex flex-col">
- <label htmlFor="travel-mode" className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1  text-gray-700 dark:text-gray-300 mb-1">Travel Mode</label>
- <Select id="travel-mode" name="travelMode" className="w-full rounded-[1.25rem] border border-slate-200 dark:border-slate-700 bg-white dark:bg-surface px-4 py-3 text-[13px] focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)] bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600">
- <option value="AIR">Flight (Air)</option>
- <option value="TRAIN">Train</option>
- <option value="ROAD">Bus / Cab (Road)</option>
- <option value="OWN_VEHICLE">Personal Vehicle</option>
- </Select>
+ <Input name="outboundAmountRequired" label="Outbound (going) amount (₹)" type="number" step="0.01" min="0" required value={outboundAmountInput} onChange={(e) => setOutboundAmountInput(e.target.value)} onKeyDown={(e) => { if(e.key === "-") e.preventDefault(); }} />
+ <Input name="returnAmountRequired" label="Return (coming back) amount (₹)" type="number" step="0.01" min="0" required value={returnAmountInput} onChange={(e) => setReturnAmountInput(e.target.value)} onKeyDown={(e) => { if(e.key === "-") e.preventDefault(); }} />
  </div>
- <Input name="amountRequired" label="Amount Required (₹)" type="number" step="0.01" min="0.01" required onKeyDown={(e) => { if(e.key === "-") e.preventDefault(); }} />
- </div>
+ <p className="-mt-2 ml-1 text-sm font-medium text-text-heading">Total amount required: {money(Number(outboundAmountInput || 0) + Number(returnAmountInput || 0))}</p>
  <FileUpload name="billUpload" label="Upload Attachment (Optional)" module="travel" action="add" />
  
  <div className="flex justify-end space-x-2 pt-4">
@@ -456,6 +483,9 @@ export default function TravelListPage() {
  <div className="grid grid-cols-2 gap-4 text-sm">
  <div><span className="text-gray-500">Employee:</span> <span className="font-medium text-text-heading">{selectedRequest?.employee?.firstName} {selectedRequest?.employee?.lastName}</span></div>
  <div><span className="text-gray-500">Destination:</span> <span className="font-medium text-text-heading">{selectedRequest?.destination}</span></div>
+ <div className="col-span-2"><span className="text-gray-500">Travel modes:</span> <span className="font-medium text-text-heading">{travelModeLabel(selectedRequest?.travelModes?.length ? selectedRequest.travelModes : selectedRequest?.travelMode)}</span></div>
+ {selectedRequest?.outboundAmountRequired != null && <div><span className="text-gray-500">Outbound amount:</span> <span className="font-medium text-text-heading">{money(selectedRequest.outboundAmountRequired)}</span></div>}
+ {selectedRequest?.returnAmountRequired != null && <div><span className="text-gray-500">Return amount:</span> <span className="font-medium text-text-heading">{money(selectedRequest.returnAmountRequired)}</span></div>}
  <div><span className="text-gray-500">Amount Required:</span> <span className="font-medium text-text-heading">{selectedRequest?.amountRequired != null ? `₹${selectedRequest.amountRequired}` : 'Not provided (legacy request)'}</span></div>
  </div>
  </div>
