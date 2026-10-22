@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowUpRight, BadgeCheck, Briefcase, Building2, ExternalLink, ShieldCheck } from 'lucide-react';
 import { employeesApi } from '@/api/employees';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { profilePhotoUrl as resolveProfilePhotoUrl } from '@/utils/profilePhotoUrl';
 
 const companyUrl = 'https://www.pattabhiagro.com/pafpl/index.html';
 
@@ -40,9 +41,17 @@ export default function PublicEmployeeVerificationPage() {
           {employee && (
             <>
               <div className="flex flex-col items-center text-center">
-                <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-teal-500 text-3xl font-bold text-white">
-                  {employee.firstName.charAt(0)}{employee.lastName.charAt(0)}
-                </div>
+                {employee.profilePhoto ? (
+                  <img
+                    src={resolveProfilePhotoUrl(employee.profilePhoto)}
+                    alt={`${employee.firstName} ${employee.lastName}`}
+                    className="h-24 w-24 rounded-3xl object-cover"
+                  />
+                ) : (
+                  <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-teal-500 text-3xl font-bold text-white">
+                    {employee.firstName.charAt(0)}{employee.lastName.charAt(0)}
+                  </div>
+                )}
                 <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300">
                   <BadgeCheck className="h-4 w-4" aria-hidden="true" /> Verified employee
                 </span>

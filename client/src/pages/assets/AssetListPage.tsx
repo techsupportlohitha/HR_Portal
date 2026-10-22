@@ -17,25 +17,27 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { Laptop, Plus, Settings2, RefreshCcw, Download, Search } from 'lucide-react';
+import { Laptop, Plus, Settings2, RefreshCcw, Download, Search, Trash2 } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { hasAdminAccess } from '@/utils/roles';
 
 export default function AssetListPage() {
  const { user } = useAuth();
- const { canExport, canAdd, canEdit, canApprove } = usePermissions();
+ const { canExport, canAdd, canEdit, canApprove, canDelete } = usePermissions();
  const queryClient = useQueryClient();
  const isAdminOrHR = hasAdminAccess(user?.role);
  const mayAddAssets = canAdd('assets');
  const mayEditAssets = canEdit('assets');
  const mayApproveAssets = canApprove('assets');
+ const mayDeleteAssets = canDelete('assets');
 
  const [isModalOpen, setIsModalOpen] = useState(false);
  const [returnConfirmOpen, setReturnConfirmOpen] = useState(false);
  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
  const [editingAsset, setEditingAsset] = useState<any>(null);
  const [detailsAsset, setDetailsAsset] = useState<any>(null);
+ const [assetToDelete, setAssetToDelete] = useState<any>(null);
  const [search, setSearch] = useState('');
  const debouncedSearch = useDebounce(search, 300);
  const [categoryFilter, setCategoryFilter] = useState('ALL');
@@ -95,6 +97,17 @@ queryFn: () => employeesApi.getAllForAssignments(),
  setIsModalOpen(false);
  setEditingAsset(null);
  }
+ });
+
+ const deleteMutation = useMutation({
+ mutationFn: (id: string) => assetsApi.delete(id),
+ onSuccess: () => {
+   queryClient.invalidateQueries({ queryKey: ['assets'] });
+   setAssetToDelete(null);
+   setDetailsAsset(null);
+   toast.success('Asset deleted');
+ },
+ onError: (error: any) => toast.error(error.response?.data?.message || 'Could not delete asset'),
  });
 
  const approveReturnMutation = useMutation({
@@ -195,6 +208,11 @@ queryFn: () => employeesApi.getAllForAssignments(),
  }}
  >
  <Settings2 className="w-4 h-4 shrink-0" /><span className="text-xs font-semibold opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity duration-300">Settings</span>
+ </button>
+ )}
+ {mayDeleteAssets && (
+ <button type="button" aria-label={`Delete ${row.brandModel || row.assetType}`} title="Delete asset" className="group flex items-center justify-start gap-2 rounded-full bg-red-50 p-1.5 text-red-600 transition-all hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-900/50" onClick={() => setAssetToDelete(row)}>
+ <Trash2 aria-hidden="true" className="h-4 w-4 shrink-0" /><span className="text-xs font-semibold">Delete</span>
  </button>
  )}
  </div>
@@ -451,6 +469,15 @@ queryFn: () => employeesApi.getAllForAssignments(),
  setReturnConfirmOpen(false);
  setSelectedAssetId(null);
  }}
+ />
+ <ConfirmDialog
+ isOpen={!!assetToDelete}
+ title="Delete asset?"
+ message={`Permanently delete ${assetToDelete?.brandModel || assetToDelete?.assetType || 'this asset'}${assetToDelete?.serialNumber ? ` (serial ${assetToDelete.serialNumber})` : ''}? This removes the asset record from the register.`}
+ confirmLabel={deleteMutation.isPending ? 'Deleting…' : 'Delete asset'}
+ isDestructive
+ onConfirm={() => assetToDelete && deleteMutation.mutate(assetToDelete.id)}
+ onCancel={() => setAssetToDelete(null)}
  />
  </div>
  );

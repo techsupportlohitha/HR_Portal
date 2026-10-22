@@ -18,6 +18,10 @@ export const assetsApi = {
  const { data } = await apiClient.put<ApiResponse<any>>(`/assets/${id}`, payload);
  return data;
  },
+ delete: async (id: string) => {
+ const { data } = await apiClient.delete<ApiResponse<{ id: string }>>(`/assets/${id}`);
+ return data;
+ },
  assignAsset: async (id: string, payload: any) => {
  const { data } = await apiClient.put<ApiResponse<any>>(`/assets/${id}/assign`, payload);
  return data;

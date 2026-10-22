@@ -21,6 +21,16 @@ export class ExpenseController {
     }
   }
 
+  async delete(req: AuthRequest, res: Response) {
+    try {
+      const data = await expenseService.delete(req.user!, req.params.id as string, { ipAddress: req.ip });
+      res.json({ success: true, data, message: 'Expense deleted' });
+    } catch (error: any) {
+      const status = error.message === 'Expense not found.' ? 404 : error.message.includes('authorized') ? 403 : 400;
+      res.status(status).json({ success: false, message: error.message });
+    }
+  }
+
   async updateStatus(req: AuthRequest, res: Response) {
     try {
       const data = await expenseService.updateStatus(req.user!, req.params.id as string, req.body);

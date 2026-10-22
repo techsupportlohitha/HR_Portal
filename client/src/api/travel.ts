@@ -10,6 +10,10 @@ export const travelApi = {
  const { data } = await apiClient.get<ApiResponse<any>>(`/travel/${id}`);
  return data;
  },
+ delete: async (id: string) => {
+ const { data } = await apiClient.delete<ApiResponse<{ id: string }>>(`/travel/${id}`);
+ return data;
+ },
  create: async (payload: any) => {
  const { data } = await apiClient.post<ApiResponse<any>>('/travel', payload);
  return data;

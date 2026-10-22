@@ -11,7 +11,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Badge } from '@/components/ui/Badge';
 import { 
   ArrowLeft, FileText, CheckCircle2, Download, Eye, QrCode, User,
-  Briefcase, Wallet, MonitorPlay, FileCheck, Award
+  Briefcase, Wallet, MonitorPlay, FileCheck, Award, Trash2
 } from 'lucide-react';
 import { formatDate } from '@/utils/dateFormat';
 import { DigitalIDCardModal } from './components/DigitalIDCardModal';
@@ -35,11 +35,12 @@ export default function EmployeeDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const isHR = hasAdminAccess(user?.role);
-  const { canEdit: hasEditPermission, canApprove, canExport } = usePermissions();
+  const { canEdit: hasEditPermission, canApprove, canExport, canDelete } = usePermissions();
   const queryClient = useQueryClient();
   const [isDigitalIDModalOpen, setIsDigitalIDModalOpen] = useState(false);
   const [openingDocumentId, setOpeningDocumentId] = useState<string | null>(null);
   const [documentPreview, setDocumentPreview] = useState<{ name: string; url: string; type: string } | null>(null);
+  const [documentToDelete, setDocumentToDelete] = useState<any>(null);
 
   useEffect(() => {
     const previewUrl = documentPreview?.url;
@@ -69,6 +70,16 @@ export default function EmployeeDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employee', id] });
     }
+  });
+
+  const deleteDocumentMutation = useMutation({
+    mutationFn: (documentId: string) => employeesApi.deleteDocument(documentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employee', id] });
+      setDocumentToDelete(null);
+      toast.success('Employee document deleted');
+    },
+    onError: (error: any) => toast.error(error?.response?.data?.message || 'Could not delete document'),
   });
 
   const handleViewDocument = async (doc: any) => {
@@ -231,6 +242,7 @@ export default function EmployeeDetailPage() {
                     <Eye className="h-3.5 w-3.5" />
                     {openingDocumentId === doc.id ? 'Opening…' : 'View document'}
                   </Button>
+                  {canDelete('employees') && <Button size="sm" variant="ghost" className="mt-2 text-status-danger hover:text-status-danger" aria-label={`Delete ${doc.documentName}`} onClick={() => setDocumentToDelete(doc)}><Trash2 aria-hidden="true" className="mr-1 h-4 w-4" />Delete document</Button>}
                 </div>
               </div>
             ))}
@@ -343,6 +355,15 @@ export default function EmployeeDetailPage() {
         )}
       </div>
       <ConfirmDialog isOpen={isDeactivateOpen} title="Deactivate Employee" message="Are you sure you want to deactivate this employee? They will lose access to the system immediately." confirmLabel="Deactivate" cancelLabel="Cancel" isDestructive={true} onConfirm={() => deactivateMutation.mutate(id as string)} onCancel={() => setIsDeactivateOpen(false)} />
+      <ConfirmDialog
+        isOpen={!!documentToDelete}
+        title="Delete employee document?"
+        message={`Permanently remove ${documentToDelete?.documentName || 'this uploaded document'} from the employee record?`}
+        confirmLabel={deleteDocumentMutation.isPending ? 'Deleting…' : 'Delete document'}
+        isDestructive
+        onConfirm={() => documentToDelete && deleteDocumentMutation.mutate(documentToDelete.id)}
+        onCancel={() => setDocumentToDelete(null)}
+      />
           <Modal
             isOpen={!!documentPreview}
             onClose={() => setDocumentPreview(null)}

@@ -14,11 +14,12 @@ import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { FileUpload } from '@/components/ui/FileUpload';
 import toast from 'react-hot-toast';
-import { Plane, Plus, FileText, CheckCircle2, Download, IndianRupee, Receipt } from 'lucide-react';
+import { Plane, Plus, FileText, CheckCircle2, Download, IndianRupee, Receipt, Trash2 } from 'lucide-react';
 import apiClient from '@/api/client'; // Need this for custom expense put
 import { PageHeader } from '@/components/ui/PageHeader';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { hasAdminAccess } from '@/utils/roles';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 const TRAVEL_MODE_LABELS: Record<string, string> = {
  AIR: 'Flight', TRAIN: 'Train', ROAD: 'Bus or cab', OWN_VEHICLE: 'Personal vehicle',
@@ -27,12 +28,13 @@ const TRAVEL_MODE_OPTIONS = Object.entries(TRAVEL_MODE_LABELS);
 
 export default function TravelListPage() {
  const { user } = useAuth();
- const { canExport, canAdd, canEdit, canApprove } = usePermissions();
+ const { canExport, canAdd, canEdit, canApprove, canDelete } = usePermissions();
  const queryClient = useQueryClient();
  const isAdminOrHR = hasAdminAccess(user?.role);
  const mayCreateTravel = canAdd('travel');
  const mayEditTravel = canEdit('travel');
  const mayApproveTravel = canApprove('travel');
+ const mayDeleteTravel = canDelete('travel');
  
  const [isModalOpen, setIsModalOpen] = useState(false);
  const [approvalModalOpen, setApprovalModalOpen] = useState(false);
@@ -40,13 +42,18 @@ export default function TravelListPage() {
  const [settleModalOpen, setSettleModalOpen] = useState(false);
  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+ const [requestToDelete, setRequestToDelete] = useState<any>(null);
  const [outboundAmountInput, setOutboundAmountInput] = useState('');
  const [returnAmountInput, setReturnAmountInput] = useState('');
+ const [approvalStatusFilter, setApprovalStatusFilter] = useState('ALL');
 
  const { data, isLoading } = useQuery({
  queryKey: ['travel'],
  queryFn: () => travelApi.getAll().then(res => res.data),
  });
+ const filteredTravel = (data || []).filter((request: any) =>
+   approvalStatusFilter === 'ALL' || request.approvalStatus === `APPROVAL_${approvalStatusFilter}`
+ );
 
  const detailsQuery = useQuery({
    queryKey: ['travel-detail', selectedRequest?.id],
@@ -119,6 +126,18 @@ export default function TravelListPage() {
  onError: (error: any) => {
  toast.error(error.response?.data?.message || 'Failed to settle claim');
  }
+ });
+
+ const deleteMutation = useMutation({
+ mutationFn: (id: string) => travelApi.delete(id),
+ onSuccess: () => {
+   queryClient.invalidateQueries({ queryKey: ['travel'] });
+   queryClient.invalidateQueries({ queryKey: ['travel-detail'] });
+   setRequestToDelete(null);
+   setDetailsModalOpen(false);
+   toast.success('Travel request deleted');
+ },
+ onError: (error: any) => toast.error(error.response?.data?.message || 'Could not delete travel request'),
  });
 
 
@@ -224,6 +243,11 @@ export default function TravelListPage() {
  <span className="text-xs font-semibold opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity duration-300">Settle</span>
  </button>
  )}
+ {mayDeleteTravel && (isAdminOrHR || (row.employee?.id === user?.employeeId && row.approvalStatus === 'APPROVAL_PENDING' && row.settlementStatus === 'UNSETTLED')) && (
+ <button type="button" aria-label={`Delete travel request to ${row.destination}`} title="Delete travel request" className="group flex items-center justify-start gap-2 rounded-full bg-red-50 p-1.5 text-red-600 transition-all hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-900/50" onClick={() => setRequestToDelete(row)}>
+ <Trash2 aria-hidden="true" className="h-4 w-4 shrink-0" /><span className="text-xs font-semibold">Delete</span>
+ </button>
+ )}
  </div>
  ) 
  },
@@ -307,7 +331,7 @@ export default function TravelListPage() {
  <p className="text-sm text-text-muted mb-1 font-medium">Awaiting Settlement</p>
  <p className="text-2xl font-bold text-text-heading">{data.filter((d:any) => d.settlementStatus === 'SUBMITTED').length}</p>
  </div>
- <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5">
+ <div className="order-last bg-surface rounded-xl shadow-sm border border-slate-border p-5">
  <p className="text-sm text-text-muted mb-1 font-medium">Total Settled Expenses</p>
  <p className="text-2xl font-bold text-text-heading">
  ₹{data.filter((d:any) => d.settlementStatus === 'SETTLED').reduce((sum:number, d:any) => {
@@ -336,7 +360,25 @@ export default function TravelListPage() {
  </div>
  )}
 
- <div className="animate-in fade-in">
+ <div className="animate-in fade-in space-y-4">
+ {!isLoading && data && (
+ <div className="flex justify-end overflow-x-auto">
+ <div role="group" aria-label="Filter travel by approval status" className="inline-flex min-w-max items-center gap-1.5 rounded-full border border-slate-200 bg-white p-1.5 shadow-sm dark:border-slate-700 dark:bg-surface">
+ <span className="pl-3 pr-2 text-sm font-medium text-slate-500 dark:text-slate-400">Status:</span>
+ {['ALL', 'PENDING', 'APPROVED', 'REJECTED'].map((status) => (
+ <button
+ key={status}
+ type="button"
+ aria-pressed={approvalStatusFilter === status}
+ onClick={() => setApprovalStatusFilter(status)}
+ className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${approvalStatusFilter === status ? 'bg-brand-primary text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'}`}
+ >
+ {status === 'ALL' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase()}
+ </button>
+ ))}
+ </div>
+ </div>
+ )}
  {isLoading ? (
  <div className="py-12"><LoadingSpinner /></div>
  ) : !data || data.length === 0 ? (
@@ -350,7 +392,7 @@ export default function TravelListPage() {
  ) : (
  <DataTable 
  columns={columns} 
- data={data} 
+ data={filteredTravel}
  keyField="id" 
  emptyMessage="No travel requests found."
  onRowClick={openDetails}
@@ -579,6 +621,16 @@ export default function TravelListPage() {
  </div>
  </div>
  </Modal>
+
+ <ConfirmDialog
+ isOpen={!!requestToDelete}
+ title="Delete travel request?"
+ message={`Permanently delete the travel request for ${requestToDelete?.destination || 'this destination'} (${requestToDelete?.travelPurpose || 'no purpose recorded'})? Its request and expense settlement details will be removed.`}
+ confirmLabel={deleteMutation.isPending ? 'Deleting…' : 'Delete request'}
+ isDestructive
+ onConfirm={() => requestToDelete && deleteMutation.mutate(requestToDelete.id)}
+ onCancel={() => setRequestToDelete(null)}
+ />
 
  </div>
  );

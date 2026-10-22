@@ -376,6 +376,8 @@ suite(
     test("creates a separate interview appointment, protects salary in register results, and preserves reschedule history", async () => {
       const reqId = await opening();
       const candidateId = await schedule(reqId);
+      const initialNotice = await prisma.notification.findFirst({ where: { recipientId: interviewerId, triggerEvent: `interview-scheduled:${candidateId}` } });
+      expect(initialNotice?.message).toContain("Synthetic Candidate");
       await submitCurrentFeedback(candidateId);
       const create = await api("HR").post(
         `/candidates/${candidateId}/interviews`,
@@ -392,6 +394,8 @@ suite(
       );
       expect(create.status).toBe(200);
       const interviewId = create.body.data.id;
+      const roundNotice = await prisma.notification.findFirst({ where: { recipientId: interviewerId, triggerEvent: `interview-scheduled:${interviewId}` } });
+      expect(roundNotice?.message).toContain("TECHNICAL interview scheduled");
       expect(
         (
           await prisma.interview.findUniqueOrThrow({
@@ -425,9 +429,7 @@ suite(
         });
       }
 
-      expect(
-        (
-          await api("HR").put(`/interviews/${interviewId}/schedule`, {
+      const reschedule = await api("HR").put(`/interviews/${interviewId}/schedule`, {
             round: "TECHNICAL",
             startsAt: "2026-11-04T11:00:00.000Z",
             endsAt: "2026-11-04T12:30:00.000Z",
@@ -436,12 +438,16 @@ suite(
             interviewerId,
             location: "New video link",
             reason: "Panel availability",
-          })
-        ).status,
-      ).toBe(200);
+          });
+      expect(reschedule.status).toBe(200);
+      const rescheduleNotice = await prisma.notification.findFirst({ where: { recipientId: interviewerId, triggerEvent: `interview-rescheduled:${reschedule.body.data.id}` } });
+      expect(rescheduleNotice?.message).toContain("interview rescheduled");
       const history = await api("HR").get(
         "/requisitions/" + reqId + "/candidates",
       );
+      const rescheduleLog = history.body.data.find((candidate: any) => candidate.id === candidateId).activity.find((event: any) => event.actionPerformed === "RESCHEDULE_INTERVIEW");
+      expect(JSON.parse(rescheduleLog.oldValue)).toMatchObject({ round: "TECHNICAL", startsAt: "2026-11-04T09:00:00.000Z" });
+      expect(JSON.parse(rescheduleLog.newValue)).toMatchObject({ round: "TECHNICAL", startsAt: "2026-11-04T11:00:00.000Z", reason: "Panel availability" });
       expect(
         history.body.data.find((candidate: any) => candidate.id === candidateId)
           .interviews,
@@ -652,6 +658,11 @@ suite(
       expect(accepted.joiningDate?.toISOString()).toBe(
         "2026-11-10T00:00:00.000Z",
       );
+      const offerHistory = await api("HR").get(`/requisitions/${reqId}/candidates`);
+      const offerChanges = offerHistory.body.data.find((row: any) => row.id === id).activity.filter((event: any) => event.actionPerformed === "OFFER_CANDIDATE");
+      expect(offerChanges).toHaveLength(2);
+      expect(offerChanges.map((event: any) => JSON.parse(event.newValue).offerStatus)).toContain("OFFER_ACCEPTED");
+      expect(offerChanges.every((event: any) => !event.newValue.includes("50000"))).toBe(true);
       expect(
         (
           await api("HR").put(`/candidates/${id}/offer`, {

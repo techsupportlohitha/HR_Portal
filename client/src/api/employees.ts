@@ -6,19 +6,20 @@ export interface PublicEmployeeCard {
  firstName: string;
  lastName: string;
  designation: string | null;
+ profilePhoto: string | null;
  department: { name: string } | null;
 }
 
 export const employeesApi = {
- getAll: async (params?: { page?: number; limit?: number; search?: string; departmentId?: string; status?: string; location?: string; history?: boolean }) => {
+ getAll: async (params?: { page?: number; limit?: number; search?: string; departmentId?: string; status?: string; location?: string; history?: boolean; assignmentOptions?: boolean }) => {
  const { data } = await apiClient.get<ApiResponse<Employee[]>>('/employees', { params });
  return data;
  },
  getAllForAssignments: async (): Promise<ApiResponse<Employee[]>> => {
- const first = await employeesApi.getAll({ page: 1, limit: 100 });
+ const first = await employeesApi.getAll({ page: 1, limit: 100, assignmentOptions: true });
  const employees = [...first.data];
  for (let page = 2; page <= (first.meta?.totalPages || 1); page++) {
- const next = await employeesApi.getAll({ page, limit: 100 });
+ const next = await employeesApi.getAll({ page, limit: 100, assignmentOptions: true });
  employees.push(...next.data);
  }
  return { ...first, data: employees.filter((employee: any) => !employee.user || employee.user.isActive) };

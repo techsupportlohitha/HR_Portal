@@ -130,6 +130,31 @@ export class TravelService {
     return req;
   }
 
+  async deleteTravelRequest(currentUser: CurrentUser, id: string, reqContext: { ipAddress?: string } = {}) {
+    const scope = getModuleScope(currentUser.role as Role, 'travel');
+    return prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "travel_requests" WHERE "id" = ${id} FOR UPDATE`;
+      const request = await tx.travelRequest.findUnique({ where: { id } });
+      if (!request) throw new Error('Travel request not found.');
+      if (scope !== 'ORG') {
+        if (scope !== 'SELF' || request.employeeId !== currentUser.employeeId) throw new Error('Not authorized to delete this travel request.');
+        if (request.approvalStatus !== ApprovalStatus.APPROVAL_PENDING || request.settlementStatus !== SettlementStatus.UNSETTLED) {
+          throw new Error('Only travel requests awaiting approval can be deleted.');
+        }
+      }
+      await tx.auditLog.create({ data: {
+        actionPerformed: 'DELETE_TRAVEL_REQUEST',
+        moduleAffected: 'travel',
+        recordIdAffected: request.id,
+        userId: currentUser.userId,
+        ipAddress: reqContext.ipAddress,
+        oldValue: JSON.stringify({ destination: request.destination, travelPurpose: request.travelPurpose, approvalStatus: request.approvalStatus, settlementStatus: request.settlementStatus }),
+      } });
+      await tx.travelRequest.delete({ where: { id } });
+      return { id };
+    });
+  }
+
   
   async updateApprovalStatus(currentUser: CurrentUser, id: string, data: any, reqContext: { ipAddress?: string } = {}) {
     const scope = getModuleScope(currentUser.role as Role, 'travel');

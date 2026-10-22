@@ -31,6 +31,16 @@ export class TravelController {
     }
   }
 
+  async deleteTravelRequest(req: AuthRequest, res: Response) {
+    try {
+      const result = await travelService.deleteTravelRequest(req.user!, req.params.id as string, { ipAddress: req.ip });
+      return sendSuccess(res, result, 'Travel request deleted');
+    } catch (error: any) {
+      const status = error.message === 'Travel request not found.' ? 404 : error.message.includes('authorized') ? 403 : 400;
+      return sendError(res, error.message, status);
+    }
+  }
+
   async updateApprovalStatus(req: AuthRequest, res: Response) {
     try {
       const result = await travelService.updateApprovalStatus(req.user!, req.params.id as string, req.body, { ipAddress: req.ip });

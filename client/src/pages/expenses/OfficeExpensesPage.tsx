@@ -14,22 +14,27 @@ import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { FileUpload } from '@/components/ui/FileUpload';
 import { Select } from '@/components/ui/Select';
-import { Wallet, Plus, CheckCircle2, Download, XCircle, IndianRupee } from 'lucide-react';
+import { Wallet, Plus, CheckCircle2, Download, XCircle, IndianRupee, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { hasAdminAccess } from '@/utils/roles';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import toast from 'react-hot-toast';
 
 export default function OfficeExpensesPage() {
  const { user } = useAuth();
- const { canExport, canAdd, canApprove } = usePermissions();
+ const { canExport, canAdd, canApprove, canDelete } = usePermissions();
  const queryClient = useQueryClient();
  const isAdminOrHR = hasAdminAccess(user?.role);
  const mayCreateExpense = canAdd('expenses');
  const mayApproveExpense = canApprove('expenses');
+ const mayDeleteExpense = canDelete('expenses');
  
  const [isModalOpen, setIsModalOpen] = useState(false);
  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
  const [selectedExpense, setSelectedExpense] = useState<any>(null);
+ const [expenseToDelete, setExpenseToDelete] = useState<any>(null);
+ const [statusFilter, setStatusFilter] = useState('ALL');
  const openDetails = (expense: any) => {
    setSelectedExpense(expense);
    setDetailsModalOpen(true);
@@ -47,6 +52,7 @@ export default function OfficeExpensesPage() {
  queryKey: ['office-expenses'],
  queryFn: () => expensesApi.getAll().then(res => res.data),
  });
+ const filteredExpenses = (data || []).filter((expense: any) => statusFilter === 'ALL' || expense.status === statusFilter);
 
  const createMutation = useMutation({
  mutationFn: (payload: any) => expensesApi.create(payload),
@@ -61,6 +67,17 @@ export default function OfficeExpensesPage() {
  onSuccess: () => {
  queryClient.invalidateQueries({ queryKey: ['office-expenses'] });
  }
+ });
+
+ const deleteMutation = useMutation({
+ mutationFn: (id: string) => expensesApi.delete(id),
+ onSuccess: () => {
+   queryClient.invalidateQueries({ queryKey: ['office-expenses'] });
+   setExpenseToDelete(null);
+   setDetailsModalOpen(false);
+   toast.success('Expense entry deleted');
+ },
+ onError: (error: any) => toast.error(error.response?.data?.message || 'Could not delete expense'),
  });
 
 
@@ -167,6 +184,11 @@ export default function OfficeExpensesPage() {
  <span className="text-xs font-semibold opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity duration-300">Pay Now</span>
  </button>
  )}
+ {mayDeleteExpense && (isAdminOrHR || (row.submittedBy?.id === user?.employeeId && row.status === 'PENDING')) && (
+ <button type="button" aria-label={`Delete ${row.category.replace(/_/g, ' ').toLowerCase()} expense`} title="Delete expense" className="group flex items-center justify-start gap-2 rounded-full bg-red-50 p-1.5 text-red-600 transition-all hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-900/50" onClick={() => setExpenseToDelete(row)}>
+ <Trash2 aria-hidden="true" className="h-4 w-4 shrink-0" /><span className="text-xs font-semibold">Delete</span>
+ </button>
+ )}
  </div>
  ) 
  },
@@ -209,7 +231,7 @@ export default function OfficeExpensesPage() {
  <p className="text-sm text-text-muted mb-1 font-medium">Awaiting Payout</p>
  <p className="text-2xl font-bold text-text-heading">{data.filter((d:any) => d.status === 'APPROVED').length}</p>
  </div>
- <div className="bg-surface rounded-xl shadow-sm border border-slate-border p-5">
+ <div className="order-last bg-surface rounded-xl shadow-sm border border-slate-border p-5">
  <p className="text-sm text-text-muted mb-1 font-medium">Total Paid (All Time)</p>
  <p className="text-2xl font-bold text-text-heading">
 <IndianRupee className="w-5 h-5 inline mr-1 -mt-1"/>{data.filter((d:any) => d.status === 'PAID').reduce((sum:number, d:any) => sum + Number(d.amount), 0)}
@@ -225,7 +247,25 @@ export default function OfficeExpensesPage() {
  </div>
  )}
 
- <div className="animate-in fade-in">
+ <div className="animate-in fade-in space-y-4">
+ {!isLoading && data && (
+ <div className="flex justify-end overflow-x-auto">
+ <div role="group" aria-label="Filter expenses by status" className="inline-flex min-w-max items-center gap-1.5 rounded-full border border-slate-200 bg-white p-1.5 shadow-sm dark:border-slate-700 dark:bg-surface">
+ <span className="pl-3 pr-2 text-sm font-medium text-slate-500 dark:text-slate-400">Status:</span>
+ {['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'PAID'].map((status) => (
+ <button
+ key={status}
+ type="button"
+ aria-pressed={statusFilter === status}
+ onClick={() => setStatusFilter(status)}
+ className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${statusFilter === status ? 'bg-brand-primary text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'}`}
+ >
+ {status === 'ALL' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase()}
+ </button>
+ ))}
+ </div>
+ </div>
+ )}
  {isLoading ? (
  <div className="py-12"><LoadingSpinner /></div>
  ) : !data || data.length === 0 ? (
@@ -239,7 +279,7 @@ export default function OfficeExpensesPage() {
  ) : (
  <DataTable 
  columns={columns} 
- data={data} 
+ data={filteredExpenses}
  keyField="id" 
  emptyMessage="No expenses found."
  onRowClick={openDetails}
@@ -293,6 +333,16 @@ export default function OfficeExpensesPage() {
      </div>
    </div>}
  </Modal>
+
+ <ConfirmDialog
+ isOpen={!!expenseToDelete}
+ title="Delete expense entry?"
+ message={`Permanently delete ${expenseToDelete?.category?.replace(/_/g, ' ').toLowerCase() || 'this'} expense for ${money(expenseToDelete?.amount)}? The expense record and its payment status will be removed.`}
+ confirmLabel={deleteMutation.isPending ? 'Deleting…' : 'Delete expense'}
+ isDestructive
+ onConfirm={() => expenseToDelete && deleteMutation.mutate(expenseToDelete.id)}
+ onCancel={() => setExpenseToDelete(null)}
+ />
 
  <Modal isOpen={isModalOpen && mayCreateExpense} onClose={() => setIsModalOpen(false)} title="Submit Office Expense">
  <form onSubmit={handleSubmit} className="space-y-4">

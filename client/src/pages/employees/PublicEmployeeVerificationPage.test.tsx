@@ -19,6 +19,7 @@ describe('public employee verification page', () => {
         firstName: 'Devi',
         lastName: 'Employee',
         designation: 'Quality Analyst',
+        profilePhoto: '/api/uploads/devi-profile.jpg',
         department: { name: 'Quality' },
       },
     });
@@ -39,6 +40,7 @@ describe('public employee verification page', () => {
     expect(await screen.findByRole('heading', { name: 'Devi Employee' })).toBeInTheDocument();
     expect(screen.getByText('EMP-001')).toBeInTheDocument();
     expect(screen.getByText('Quality Analyst')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Devi Employee' })).toHaveAttribute('src', expect.stringContaining('/api/uploads/devi-profile.jpg'));
     expect(screen.getByRole('link', { name: /visit pattabhi agro foods website/i })).toHaveAttribute(
       'href',
       'https://www.pattabhiagro.com/pafpl/index.html',

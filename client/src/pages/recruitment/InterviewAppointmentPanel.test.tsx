@@ -28,6 +28,14 @@ describe("appointment feedback flow", () => {
     expect(screen.queryByRole("textbox")).toBeNull();
     expect(screen.queryByRole("button", { name: "Complete interview" })).toBeNull();
   });
+  it("shows the reschedule count and dated change log for this interview round", () => {
+    show({ interview: { ...interview, status: "SCHEDULED" }, editable: false, rescheduleHistory: [{
+      id: "reschedule-1", actionPerformed: "RESCHEDULE_INTERVIEW", oldValue: JSON.stringify({ round: "TECHNICAL", startsAt: "2026-10-15T09:00:00Z" }), newValue: JSON.stringify({ round: "TECHNICAL", startsAt: "2026-10-16T09:00:00Z", reason: "Interviewer unavailable" }), createdAt: "2026-10-14T10:00:00Z", user: { employee: { firstName: "Test", lastName: "Interviewer" } },
+    }] });
+    fireEvent.click(screen.getByText("Rescheduled 1 time"));
+    expect(screen.getByText(/Changed by Test Interviewer/)).toBeInTheDocument();
+    expect(screen.getByText(/Interviewer unavailable/)).toBeInTheDocument();
+  });
   it("uses honest first-round and missing-feedback states", () => {
     const { rerender } = render(<PreviousRoundFeedback value={{ state: "first-round" }} />);
     expect(screen.getByText("No previous round.")).toBeInTheDocument();

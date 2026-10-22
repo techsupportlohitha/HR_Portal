@@ -1,7 +1,7 @@
 # Recruitment UI and scheduling organisation
 
 Date: 15 October 2026 (Asia/Kolkata)
-Status: Implemented in the main local checkout; verified on localhost:5173
+Status: Implemented; local build and test checks passed
 Priority: Organise the existing recruitment UI, interview scheduling flow and interview management.
 
 This replaces the earlier broad lifecycle proposal. Improve the screens and flows already present. External integrations, automated reminders, new ownership systems, assessment-attempt models and broader workflow expansion are excluded from this revision.
@@ -58,6 +58,14 @@ Present the current appointment and feedback in one readable section or dialog. 
 
 Use the existing history filters and data. Keep previous appointment and feedback details readable without introducing another history system. Do not infer completion or no-show solely because the scheduled time has passed.
 
+### Shortlist, interviewer notice and offer history
+
+Add a Shortlist view to the candidate pipeline for applications marked `SHORTLISTED`, meaning they are selected to proceed to interviews. Show candidate contact, opening, qualification, experience, current stage and shortlist status in a searchable, paginated grid that opens the existing candidate details.
+
+When an interview is scheduled for an assigned interviewer, create an in-app `INTERVIEW` notification with the candidate, opening, round and Asia/Kolkata time. Do this for both a new scheduled application and an interview scheduled from an existing candidate. Rescheduling sends a notice to the currently assigned interviewer.
+
+Record each reschedule's previous and updated date/time, round, interviewer, location, reason and acting user in the existing audit log. Show the count and an expandable dated change log on the interview card/details. Record offer and joining status changes in the same audit log and show a count plus the dated status history in the candidate's Offer and Joining views. Do not include compensation values in history responses.
+
 ### Previous-round feedback on the scheduled candidate card
 
 For the authorised interviewer assigned to the next round, show a read-only Previous round feedback section directly in the scheduled candidate card. Include the prior round name, submitted feedback, score/recommendation where recorded, reviewer name and submission date. Show a short preview with an Expand feedback control for longer notes so the interviewer can prepare without navigating away.
@@ -89,6 +97,9 @@ Primary files: RecruitmentPage.tsx, CandidatePipeline.tsx, CandidateStageControl
 - The displayed actions match the existing appointment/feedback state, without duplicate or misleading primary buttons.
 - Earlier round details remain readable; completed-stage editing rules stay enforced.
 - The assigned next-round interviewer sees the correct previous-round submitted feedback on the scheduled candidate card, with reviewer, round and date; long feedback expands in place.
+- Shortlist shows only applications selected to proceed to interviews and retains opening/search context when opening a candidate.
+- The assigned interviewer receives an in-app notification for new and rescheduled appointments.
+- Interview history reports reschedule counts and old/new appointment details; offer history reports dated status changes without exposing salary.
 - Verify first-round/no-feedback states, multiple appointments, separate applications for the same person and denied access for unauthorised users; drafts and restricted compensation are never included.
 - List and Month remain available; Week, Screening and Telephonic scheduling remain absent.
 - The core flow works on a narrow mobile viewport and with keyboard navigation.
@@ -104,6 +115,6 @@ The earlier independent review concerned the broader proposal. This revised docu
 
 ## Implementation verification — 15 October 2026
 
-Implemented the scoped UI organisation, shared appointment/feedback panel, scheduled-card previous-round feedback, grouping/validation in scheduling, mobile stage selection and preserved navigation context. Previous feedback is projected from already authorised candidate queries using an explicit field list and reviewer-name lookup; no new schema or external integration was introduced.
+Implemented the scoped UI organisation, shared appointment/feedback panel, scheduled-card previous-round feedback, shortlist grid, interviewer notifications, reschedule logs, offer status history, grouping/validation in scheduling, mobile stage selection and preserved navigation context. Previous feedback is projected from already authorised candidate queries using an explicit field list and reviewer-name lookup; appointment and offer history reuse the existing audit log, with compensation values excluded; no new schema or external integration was introduced.
 
 Verification: 24 focused client tests, four server projection tests and one complete API journey passed. The API journey ran against an isolated local database and covered schedule/reschedule history, feedback draft/submission, next-round feedback visibility, read-only manager access, compensation redaction, unauthorised access and booking conflicts. TypeScript checks and the production client build passed. Live browser checks covered the scheduling form, previous-feedback display and mobile stage → candidate → back navigation.

@@ -55,6 +55,25 @@ export class AssetService {
     return asset;
   }
 
+  async deleteAsset(id: string, currentUser: CurrentUser, reqContext: { ipAddress?: string } = {}) {
+    if (getModuleScope(currentUser.role as Role, 'assets') !== 'ORG') throw new Error('Not authorized to delete assets.');
+    return prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "assets" WHERE "id" = ${id} FOR UPDATE`;
+      const asset = await tx.asset.findUnique({ where: { id } });
+      if (!asset) throw new Error('Asset not found.');
+      await tx.auditLog.create({ data: {
+        actionPerformed: 'DELETE_ASSET',
+        moduleAffected: 'assets',
+        recordIdAffected: asset.id,
+        userId: currentUser.userId,
+        ipAddress: reqContext.ipAddress,
+        oldValue: JSON.stringify({ assetType: asset.assetType, brandModel: asset.brandModel, serialNumber: asset.serialNumber, status: asset.status }),
+      } });
+      await tx.asset.delete({ where: { id } });
+      return { id };
+    });
+  }
+
   async getAssets(currentUser: CurrentUser, filters: any = {}) {
     const scope = getModuleScope(currentUser.role as Role, 'assets');
     if (scope !== 'ORG' && !currentUser.employeeId) return [];

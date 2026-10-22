@@ -25,7 +25,10 @@ vi.mock("@/api/recruitment", () => ({
   },
 }));
 vi.mock("@/api/employees", () => ({
-  employeesApi: { getAll: vi.fn(async () => ({ data: [] })) },
+  employeesApi: { getAll: vi.fn(async () => ({ data: [] })), getAllForAssignments: vi.fn(async () => ({ data: [
+    { id: "manager-account", firstName: "Interview", lastName: "Manager", user: { role: "MANAGER", isActive: true } },
+    { id: "hr-account", firstName: "Interview", lastName: "HR", user: { role: "HR", isActive: true } },
+  ] })) },
 }));
 describe("Interview scheduling requisition choices", () => {
   test("offers only open requisitions for new candidates", async () => {
@@ -43,6 +46,19 @@ describe("Interview scheduling requisition choices", () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "Closed QA" })).toBeNull();
     expect(screen.queryByRole("option", { name: "Archived QA" })).toBeNull();
+  });
+  test("offers active accounts created in role management as interviewers", async () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ScheduleInterviewModal isOpen onClose={vi.fn()} />
+      </QueryClientProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Interviewer" }));
+    const managerOption = await screen.findByRole("option", { name: "Manager · Interview Manager" });
+    expect(screen.getByRole("option", { name: "HR · Interview HR" })).toBeInTheDocument();
+    fireEvent.click(managerOption);
+    fireEvent.click(screen.getByRole("button", { name: "Interviewer" }));
+    expect(screen.getByRole("option", { name: "Manager · Interview Manager" })).toHaveAttribute("aria-selected", "true");
   });
   test("reschedules the existing candidate and refreshes dashboard and candidate queries", async () => {
     vi.mocked(recruitmentApi.rescheduleInterview).mockResolvedValue({

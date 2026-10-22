@@ -44,6 +44,29 @@ export class ExpenseService {
     });
   }
 
+  async delete(currentUser: CurrentUser, id: string, reqContext: { ipAddress?: string } = {}) {
+    const scope = getModuleScope(currentUser.role as any, 'office_expenses');
+    return prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "OfficeExpense" WHERE "id" = ${id} FOR UPDATE`;
+      const expense = await tx.officeExpense.findUnique({ where: { id } });
+      if (!expense) throw new Error('Expense not found.');
+      if (scope !== 'ORG') {
+        if (scope !== 'SELF' || expense.submittedById !== currentUser.employeeId) throw new Error('Not authorized to delete this expense.');
+        if (expense.status !== ExpenseStatus.PENDING) throw new Error('Only pending expenses can be deleted.');
+      }
+      await tx.auditLog.create({ data: {
+        actionPerformed: 'DELETE_OFFICE_EXPENSE',
+        moduleAffected: 'expenses',
+        recordIdAffected: expense.id,
+        userId: currentUser.id,
+        ipAddress: reqContext.ipAddress,
+        oldValue: JSON.stringify({ category: expense.category, amount: expense.amount, status: expense.status, description: expense.description }),
+      } });
+      await tx.officeExpense.delete({ where: { id } });
+      return { id };
+    });
+  }
+
   async updateStatus(currentUser: CurrentUser, id: string, data: any) {
     const scope = getModuleScope(currentUser.role as any, 'office_expenses');
     if (scope !== 'ORG') throw new Error('Not authorized to approve expenses');

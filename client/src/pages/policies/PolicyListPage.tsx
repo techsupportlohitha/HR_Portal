@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { DataTable } from '@/components/ui/DataTable';
-import { Search, Plus, FileText, CheckCircle, Eye, Users, CalendarDays, Tag } from 'lucide-react';
+import { Search, Plus, FileText, CheckCircle, Eye, Users, CalendarDays, Tag, Trash2 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -16,6 +16,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import toast from 'react-hot-toast';
 import { hasAdminAccess } from '@/utils/roles';
 import { usePermissions } from '@/hooks/usePermissions';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 const CATEGORIES = [
  { value: 'HR_POLICY', label: 'HR Policies' },
@@ -36,7 +37,7 @@ const CATEGORIES = [
 
 export default function PolicyListPage() {
  const { user } = useAuth();
- const { canAdd } = usePermissions();
+ const { canAdd, canDelete } = usePermissions();
  const queryClient = useQueryClient();
  const [isModalOpen, setIsModalOpen] = useState(false);
  const [recordsModalOpen, setRecordsModalOpen] = useState(false);
@@ -48,6 +49,8 @@ export default function PolicyListPage() {
 
  const isAdminOrHR = hasAdminAccess(user?.role);
  const mayAddPolicy = canAdd('policies');
+ const mayDeletePolicy = canDelete('policies');
+ const [policyToDelete, setPolicyToDelete] = useState<any>(null);
 
  const { data: policiesData, isLoading } = useQuery({
  queryKey: ['policies'],
@@ -83,6 +86,17 @@ export default function PolicyListPage() {
  toast.success('Document acknowledged');
  },
  onError: () => toast.error('Failed to acknowledge document')
+ });
+
+ const deleteMutation = useMutation({
+ mutationFn: (id: string) => policiesApi.delete(id),
+ onSuccess: () => {
+   queryClient.invalidateQueries({ queryKey: ['policies'] });
+   queryClient.invalidateQueries({ queryKey: ['my-acknowledgements'] });
+   setPolicyToDelete(null);
+   toast.success('Document deleted');
+ },
+ onError: (error: any) => toast.error(error?.response?.data?.message || 'Could not delete document'),
  });
 
  const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -279,6 +293,11 @@ export default function PolicyListPage() {
  <Users className="h-4 w-4" aria-hidden="true" /> Records
  </button>
  )}
+ {mayDeletePolicy && (
+ <Button type="button" variant="ghost" size="sm" className="text-status-danger hover:text-status-danger" aria-label={`Delete ${policy.policyName}`} onClick={() => setPolicyToDelete(policy)}>
+ <Trash2 aria-hidden="true" className="mr-1 h-4 w-4" />Delete
+ </Button>
+ )}
  </div>
  </article>
  );
@@ -331,6 +350,15 @@ export default function PolicyListPage() {
  )}
  </Modal>
  )}
+ <ConfirmDialog
+ isOpen={!!policyToDelete}
+ title="Delete document?"
+ message={`Permanently delete ${policyToDelete?.policyName || 'this document'} (${policyToDelete?.versionNumber || 'version unknown'})? Its acknowledgement records will also be removed.`}
+ confirmLabel={deleteMutation.isPending ? 'Deleting…' : 'Delete document'}
+ isDestructive
+ onConfirm={() => policyToDelete && deleteMutation.mutate(policyToDelete.id)}
+ onCancel={() => setPolicyToDelete(null)}
+ />
  </div>
  );
 }

@@ -124,6 +124,66 @@ export class RecruitmentService {
     }
   }
 
+  private async assertRequisitionAccess(requisitionId: string, userId: string) {
+    const [user, requisition] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId } }),
+      prisma.requisition.findUnique({ where: { id: requisitionId } }),
+    ]);
+    if (!user || !requisition) throw new Error("Requisition not found.");
+    const scope = getModuleScope(user.role, "recruitment");
+    if (scope === "ORG") return;
+    if (!user.employeeId) throw new Error("Unauthorized to access this opening.");
+    if (scope === "SELF" && requisition.raisedById !== user.employeeId) throw new Error("Unauthorized to access this opening.");
+    if (scope === "TEAM") {
+      const employee = await prisma.employee.findUnique({ where: { id: user.employeeId }, select: { departmentId: true } });
+      if (!employee?.departmentId || requisition.departmentId !== employee.departmentId) throw new Error("Unauthorized to access this opening.");
+    }
+  }
+
+  async deleteCandidate(candidateId: string, userId: string, reqContext: { ipAddress?: string } = {}) {
+    await this.assertCandidateAccess(candidateId, userId);
+    return prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "candidates" WHERE "id" = ${candidateId} FOR UPDATE`;
+      const candidate = await tx.candidate.findUnique({ where: { id: candidateId }, include: { requisition: { select: { positionTitle: true } } } });
+      if (!candidate) throw new Error("Candidate not found.");
+      await tx.auditLog.create({
+        data: {
+          actionPerformed: "DELETE_CANDIDATE",
+          moduleAffected: "recruitment",
+          recordIdAffected: candidate.id,
+          userId,
+          ipAddress: reqContext.ipAddress,
+          oldValue: JSON.stringify({ candidateName: candidate.candidateName, requisitionId: candidate.requisitionId, positionTitle: candidate.requisition.positionTitle }),
+        },
+      });
+      await tx.candidate.delete({ where: { id: candidate.id } });
+      return { id: candidate.id, requisitionId: candidate.requisitionId, candidateName: candidate.candidateName };
+    });
+  }
+
+  async deleteRequisition(requisitionId: string, userId: string, reqContext: { ipAddress?: string } = {}) {
+    await this.assertRequisitionAccess(requisitionId, userId);
+    return prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "requisitions" WHERE "id" = ${requisitionId} FOR UPDATE`;
+      const requisition = await tx.requisition.findUnique({ where: { id: requisitionId }, include: { _count: { select: { candidates: true } } } });
+      if (!requisition) throw new Error("Requisition not found.");
+      const candidateCount = requisition._count.candidates;
+      await tx.auditLog.create({
+        data: {
+          actionPerformed: "DELETE_REQUISITION",
+          moduleAffected: "recruitment",
+          recordIdAffected: requisition.id,
+          userId,
+          ipAddress: reqContext.ipAddress,
+          oldValue: JSON.stringify({ positionTitle: requisition.positionTitle, candidateCount }),
+        },
+      });
+      await tx.candidate.deleteMany({ where: { requisitionId: requisition.id } });
+      await tx.requisition.delete({ where: { id: requisition.id } });
+      return { id: requisition.id, candidateCount, positionTitle: requisition.positionTitle };
+    });
+  }
+
   private async closeFilledRequisition(
     tx: Prisma.TransactionClient,
     requisitionId: string,
@@ -442,7 +502,7 @@ export class RecruitmentService {
     userId: string,
     reqContext: { ipAddress?: string } = {},
   ) {
-    return prisma.$transaction(async (tx) => {
+    const created = await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT "id" FROM "requisitions" WHERE "id" = ${data.requisitionId} FOR UPDATE`;
       const requisition = await tx.requisition.findUnique({
         where: { id: data.requisitionId },
@@ -508,6 +568,16 @@ export class RecruitmentService {
       });
       return candidate;
     });
+    if (created.interviewDate && created.interviewerId) {
+      const requisition = await prisma.requisition.findUnique({ where: { id: created.requisitionId }, select: { positionTitle: true } });
+      await notificationService.createNotification({
+        notificationType: "INTERVIEW",
+        recipientId: created.interviewerId,
+        triggerEvent: `interview-scheduled:${created.id}`,
+        message: `${created.candidateName} · ${requisition?.positionTitle || "Recruitment"} · ${(created.interviewRound || "HR_INTERVIEW").replace(/_/g, " ")} interview scheduled for ${created.interviewDate.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} (Asia/Kolkata).`,
+      }).catch(error => console.error("Could not notify interviewer of scheduled interview", error));
+    }
+    return created;
   }
 
   async getAllInterviews(currentUser: CurrentUser) {
@@ -550,7 +620,15 @@ export class RecruitmentService {
       },
       orderBy: { interviewDate: "asc" },
     });
-    const enrichedCandidates = await this.addPreviousRoundFeedback(candidates);
+    const rescheduleEvents = candidates.length ? await prisma.auditLog.findMany({
+      where: { moduleAffected: "recruitment", actionPerformed: "RESCHEDULE_INTERVIEW", recordIdAffected: { in: candidates.map(candidate => candidate.id) } },
+      select: { id: true, recordIdAffected: true, oldValue: true, newValue: true, createdAt: true, user: { select: { email: true, employee: { select: { firstName: true, lastName: true } } } } },
+      orderBy: { createdAt: "desc" },
+    }) : [];
+    const enrichedCandidates = await this.addPreviousRoundFeedback(candidates.map(candidate => ({
+      ...candidate,
+      activity: rescheduleEvents.filter(event => event.recordIdAffected === candidate.id).map(event => ({ ...event, actionPerformed: "RESCHEDULE_INTERVIEW" })),
+    })));
     const historical = enrichedCandidates.flatMap((candidate) =>
       candidate.interviews.map((interview: any) => ({
         ...candidate,
@@ -634,6 +712,7 @@ export class RecruitmentService {
       ...(filters.stage === "TELEPHONIC"
         ? { currentStage: { in: ["TELEPHONIC", "SCREENING"] } }
         : filters.stage ? { currentStage: String(filters.stage) } : {}),
+      ...(filters.screeningStatus ? { screeningStatus: String(filters.screeningStatus) as any } : {}),
       ...(filters.outcome === "IN_PROGRESS"
         ? { selectionStatus: null }
         : filters.outcome
@@ -671,9 +750,20 @@ export class RecruitmentService {
         take: pageSize,
       }),
     ]);
+    const activity = rows.length ? await prisma.auditLog.findMany({
+      where: { moduleAffected: "recruitment", recordIdAffected: { in: rows.map(row => row.id) } },
+      select: { id: true, recordIdAffected: true, actionPerformed: true, oldValue: true, newValue: true, createdAt: true, user: { select: { email: true, employee: { select: { firstName: true, lastName: true } } } } },
+      orderBy: { createdAt: "desc" },
+      take: 500,
+    }) : [];
     const safeRows = await this.protectCandidateCompensation(rows.map((row) => ({
       ...row,
       currentStage: row.currentStage === "SCREENING" ? "TELEPHONIC" : row.currentStage,
+      activity: activity.filter(event => event.recordIdAffected === row.id).map(event => {
+        if (event.actionPerformed === "OFFER_CANDIDATE" || event.actionPerformed === "RESCHEDULE_INTERVIEW") return event;
+        const { oldValue: _oldValue, newValue: _newValue, ...safeEvent } = event;
+        return safeEvent;
+      }),
     })), role);
     return { items: safeRows, total, page, pageSize };
   }
@@ -725,8 +815,10 @@ export class RecruitmentService {
         id: true,
         recordIdAffected: true,
         actionPerformed: true,
+        oldValue: true,
+        newValue: true,
         createdAt: true,
-        user: { select: { email: true } },
+        user: { select: { email: true, employee: { select: { firstName: true, lastName: true } } } },
       },
       orderBy: { createdAt: "desc" },
       take: 500,
@@ -735,7 +827,11 @@ export class RecruitmentService {
       (await this.addPreviousRoundFeedback(rows)).map((row) => ({
         ...row,
         currentStage: row.currentStage === "SCREENING" ? "TELEPHONIC" : row.currentStage,
-        activity: activity.filter((event) => event.recordIdAffected === row.id),
+        activity: activity.filter((event) => event.recordIdAffected === row.id).map(event => {
+          if (event.actionPerformed === "OFFER_CANDIDATE" || event.actionPerformed === "RESCHEDULE_INTERVIEW") return event;
+          const { oldValue: _oldValue, newValue: _newValue, ...safeEvent } = event;
+          return safeEvent;
+        }),
       })),
       currentUser.role as Role,
     );
@@ -748,7 +844,7 @@ export class RecruitmentService {
     reqContext: { ipAddress?: string } = {},
   ) {
     await this.assertCandidateAccess(candidateId, userId);
-    return prisma.$transaction(async (tx) => {
+    const created = await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT "id" FROM "candidates" WHERE "id" = ${candidateId} FOR UPDATE`;
       const candidate = await tx.candidate.findUnique({
         where: { id: candidateId },
@@ -809,6 +905,16 @@ export class RecruitmentService {
       await this.setCandidateStage(tx, candidate, data.round, userId, data.reason || "Interview scheduled");
       return interview;
     });
+    if (created.interviewerId) {
+      const candidate = await prisma.candidate.findUnique({ where: { id: candidateId }, include: { requisition: { select: { positionTitle: true } } } });
+      await notificationService.createNotification({
+        notificationType: "INTERVIEW",
+        recipientId: created.interviewerId,
+        triggerEvent: `interview-scheduled:${created.id}`,
+        message: `${candidate?.candidateName || "A candidate"} · ${candidate?.requisition.positionTitle || "Recruitment"} · ${created.round.replace(/_/g, " ")} interview scheduled for ${created.startsAt.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} (Asia/Kolkata).`,
+      }).catch(error => console.error("Could not notify interviewer of scheduled interview", error));
+    }
+    return created;
   }
 
   async rescheduleInterview(
@@ -822,7 +928,7 @@ export class RecruitmentService {
     });
     if (!appointment) throw new Error("Interview not found.");
     await this.assertCandidateAccess(appointment.candidateId, userId);
-    return prisma.$transaction(async (tx) => {
+    const replacement = await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT "id" FROM "candidates" WHERE "id" = ${appointment.candidateId} FOR UPDATE`;
       const existing = await tx.interview.findUnique({
         where: { id: interviewId },
@@ -892,7 +998,17 @@ export class RecruitmentService {
           oldValue: JSON.stringify({
             startsAt: existing.startsAt,
             endsAt: existing.endsAt,
+            round: existing.round,
+            interviewerId: existing.interviewerId,
             location: existing.location,
+            reason,
+          }),
+          newValue: JSON.stringify({
+            startsAt: replacement.startsAt,
+            endsAt: replacement.endsAt,
+            round: replacement.round,
+            interviewerId: replacement.interviewerId,
+            location: replacement.location,
             reason,
           }),
           moduleAffected: "recruitment",
@@ -903,6 +1019,16 @@ export class RecruitmentService {
       });
       return replacement;
     });
+    if (replacement.interviewerId) {
+      const candidate = await prisma.candidate.findUnique({ where: { id: replacement.candidateId }, include: { requisition: { select: { positionTitle: true } } } });
+      await notificationService.createNotification({
+        notificationType: "INTERVIEW",
+        recipientId: replacement.interviewerId,
+        triggerEvent: `interview-rescheduled:${replacement.id}`,
+        message: `${candidate?.candidateName || "A candidate"} · ${candidate?.requisition.positionTitle || "Recruitment"} · ${replacement.round.replace(/_/g, " ")} interview rescheduled to ${replacement.startsAt.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} (Asia/Kolkata).`,
+      }).catch(error => console.error("Could not notify interviewer of rescheduled interview", error));
+    }
+    return replacement;
   }
 
   async updateInterviewStatus(
@@ -1250,6 +1376,8 @@ export class RecruitmentService {
       await tx.auditLog.create({
         data: {
           actionPerformed: "OFFER_CANDIDATE",
+          oldValue: JSON.stringify({ offerStatus: current.offerStatus, offerDate: current.offerDate, joiningDate: current.joiningDate, joiningStatus: current.joiningStatus, actualJoiningDate: current.actualJoiningDate }),
+          newValue: JSON.stringify({ offerStatus: updated.offerStatus, offerDate: updated.offerDate, joiningDate: updated.joiningDate, joiningStatus: updated.joiningStatus, actualJoiningDate: updated.actualJoiningDate }),
           moduleAffected: "recruitment",
           recordIdAffected: id,
           userId,

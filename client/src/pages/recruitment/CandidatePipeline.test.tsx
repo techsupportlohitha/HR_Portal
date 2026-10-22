@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { CandidatePipeline } from "./CandidatePipeline";
@@ -7,6 +7,7 @@ import { CandidateStageControls } from "./CandidateStageControls";
 
 vi.mock("@/api/recruitment", () => ({ recruitmentApi: {
   getPipeline: vi.fn(async () => ({ data: { columns: [{ stage: "TELEPHONIC", total: 104, items: [{ id: "qa", candidateName: "QA Candidate", requisitionId: "opening", currentStage: "TELEPHONIC", requisition: { positionTitle: "Developer" } }] }] } })),
+  getCandidateRegister: vi.fn(async () => ({ data: { total: 1, items: [{ id: "qa", candidateName: "QA Candidate", requisitionId: "opening", currentStage: "TELEPHONIC", screeningStatus: "SHORTLISTED", qualification: "B.Tech", totalExperience: 2, requisition: { positionTitle: "Developer" } }] } })),
   moveCandidateStage: vi.fn(),
 } }));
 
@@ -27,6 +28,19 @@ describe("pipeline access and complete counts", () => {
     render(wrapper(<CandidateStageControls editable={false} candidate={{ id: "qa", currentStage: "TELEPHONIC", stageHistory: [{ id: "event", fromStage: "SCREENING", toStage: "TELEPHONIC", reason: "Shortlist reviewed", createdAt: "2026-10-12T09:00:00Z" }] }} />));
     expect(screen.queryByRole("button", { name: "Move stage" })).toBeNull();
     expect(screen.getByText("Shortlist reviewed")).toBeInTheDocument();
+  });
+  it("offers candidate deletion when permission is granted", async () => {
+    const remove = vi.fn();
+    render(wrapper(<CandidatePipeline requisitions={[]} deleteAllowed onDeleteCandidate={remove} />));
+    fireEvent.click(await screen.findByRole("button", { name: "Delete QA Candidate" }));
+    expect(remove).toHaveBeenCalledWith(expect.objectContaining({ id: "qa", candidateName: "QA Candidate" }));
+  });
+  it("shows shortlisted applicants in a dedicated grid", async () => {
+    render(wrapper(<CandidatePipeline requisitions={[]} />));
+    fireEvent.click(await screen.findByRole("button", { name: "Shortlist" }));
+    expect(await screen.findByRole("table")).toBeInTheDocument();
+    expect(screen.getByText("B.Tech")).toBeInTheDocument();
+    expect(screen.getByText("Shortlisted")).toBeInTheDocument();
   });
 });
 

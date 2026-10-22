@@ -69,6 +69,26 @@ export class RecruitmentController {
     }
   }
 
+  async deleteRequisition(req: AuthRequest, res: Response) {
+    try {
+      const result = await recruitmentService.deleteRequisition(req.params.id as string, req.user!.userId, { ipAddress: req.ip });
+      return sendSuccess(res, result, "Opening and its candidates deleted");
+    } catch (error: any) {
+      const status = error.message === "Requisition not found." ? 404 : error.message.includes("Unauthorized") ? 403 : 400;
+      return sendError(res, error.message, status);
+    }
+  }
+
+  async deleteCandidate(req: AuthRequest, res: Response) {
+    try {
+      const result = await recruitmentService.deleteCandidate(req.params.id as string, req.user!.userId, { ipAddress: req.ip });
+      return sendSuccess(res, result, "Candidate deleted");
+    } catch (error: any) {
+      const status = error.message === "Candidate not found." ? 404 : error.message.includes("Unauthorized") ? 403 : 400;
+      return sendError(res, error.message, status);
+    }
+  }
+
   async createCandidate(req: AuthRequest, res: Response) {
     try {
       const result = await recruitmentService.createCandidate(

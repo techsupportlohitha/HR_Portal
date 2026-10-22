@@ -43,6 +43,7 @@ export class EmployeeController {
         status: status as string,
         location: location as string,
         history: history === 'true',
+        assignmentOptions: req.query.assignmentOptions === 'true',
       });
       const canViewRestricted = await permissionService.canViewRestricted(req.user!.role as Role, 'employees');
       sendSuccess(

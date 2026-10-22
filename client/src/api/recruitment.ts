@@ -53,6 +53,10 @@ export const recruitmentApi = {
     );
     return data;
   },
+  deleteRequisition: async (id: string) => {
+    const { data } = await apiClient.delete<ApiResponse<{ id: string; candidateCount: number; positionTitle: string }>>(`/recruitment/requisitions/${id}`);
+    return data;
+  },
   getCandidates: async (id: string) => {
     const { data } = await apiClient.get<ApiResponse<any[]>>(
       `/recruitment/requisitions/${id}/candidates`,
@@ -64,6 +68,10 @@ export const recruitmentApi = {
       "/recruitment/candidates",
       payload,
     );
+    return data;
+  },
+  deleteCandidate: async (id: string) => {
+    const { data } = await apiClient.delete<ApiResponse<{ id: string; requisitionId: string; candidateName: string }>>(`/recruitment/candidates/${id}`);
     return data;
   },
   interviewCandidate: async (id: string, payload: any) => {

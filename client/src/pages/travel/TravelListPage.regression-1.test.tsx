@@ -9,7 +9,7 @@ import { travelApi } from '@/api/travel';
 import apiClient from '@/api/client';
 
 vi.mock('@/contexts/AuthContext', () => ({useAuth:()=>({user:{role:'EMPLOYEE',employeeId:'qa-employee'}})}));
-vi.mock('@/hooks/usePermissions', () => ({usePermissions:()=>({canAdd:()=>true,canEdit:()=>false,canExport:()=>false,canApprove:()=>false})}));
+vi.mock('@/hooks/usePermissions', () => ({usePermissions:()=>({canAdd:()=>true,canEdit:()=>false,canExport:()=>false,canApprove:()=>false,canDelete:()=>false})}));
 vi.mock('@/api/travel', () => ({travelApi:{getAll:vi.fn().mockResolvedValue({data:[{id:'qa-travel',employee:{id:'qa-employee',firstName:'QA',lastName:'Employee'},approvalStatus:'APPROVAL_APPROVED',settlementStatus:'UNSETTLED',destination:'QA Office',startDate:'2030-01-07',endDate:'2030-01-08'}]}),create:vi.fn().mockResolvedValue({success:true})}}));
 vi.mock('@/api/client', () => ({default:{put:vi.fn().mockResolvedValue({data:{success:true}})}}));
 vi.mock('@/components/ui/FileUpload', () => ({FileUpload:({name,action}:{name:string;action:string})=><input data-testid="receipt-url" data-action={action} type="hidden" name={name} value="/api/uploads/qa-receipt.pdf"/>}));

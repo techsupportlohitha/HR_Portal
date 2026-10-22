@@ -26,4 +26,10 @@ describe("job position cards", () => {
     expect(screen.queryByRole("link", { name: "View applicants for Sales Manager" })).toBeNull();
     expect(screen.getByRole("link", { name: "View applicants for Developer" })).toBeInTheDocument();
   });
+  it("exposes opening deletion when allowed", () => {
+    const remove = vi.fn();
+    render(<MemoryRouter><JobPositions requisitions={openings} editable={false} history={false} onEdit={vi.fn()} onClose={vi.fn()} deleteAllowed onDelete={remove} /></MemoryRouter>);
+    fireEvent.click(screen.getByRole("button", { name: "Delete Sales Manager" }));
+    expect(remove).toHaveBeenCalledWith(openings[0]);
+  });
 });

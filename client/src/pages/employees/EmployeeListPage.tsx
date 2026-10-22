@@ -1,8 +1,8 @@
 import { profilePhotoUrl as resolveProfilePhotoUrl } from '@/utils/profilePhotoUrl';
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, UsersRound, Download } from 'lucide-react';
+import { Search, Plus, UsersRound, Download, Trash2 } from 'lucide-react';
 import { employeesApi } from '@/api/employees';
 import { departmentsApi } from '@/api/departments';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,17 +16,22 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { Select } from '@/components/ui/Select';
 import { hasAdminAccess } from '@/utils/roles';
 import { PaginationControls } from '@/components/ui/PaginationControls';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import toast from 'react-hot-toast';
 
 export default function EmployeeListPage() {
  const navigate = useNavigate();
  const { user } = useAuth();
- const { canExport, canAdd } = usePermissions();
+ const { canExport, canAdd, canDelete } = usePermissions();
+ const queryClient = useQueryClient();
  const mayAddEmployees = canAdd('employees');
+ const mayDeleteEmployees = canDelete('employees');
  const [search, setSearch] = useState('');
  const debouncedSearch = useDebounce(search, 500);
  const [departmentId, setDepartmentId] = useState('');
  const [location, setLocation] = useState('Hyderabad Office');
  const [showHistory, setShowHistory] = useState(false);
+ const [employeeToDelete, setEmployeeToDelete] = useState<any>(null);
 
  const [page, setPage] = useState(1);
  const pageSize = 10;
@@ -45,6 +50,17 @@ export default function EmployeeListPage() {
  });
 
  const displayedEmployees = empData?.data || [];
+
+ const deactivateMutation = useMutation({
+   mutationFn: (employeeId: string) => employeesApi.delete(employeeId),
+   onSuccess: () => {
+     queryClient.invalidateQueries({ queryKey: ['employees'] });
+     queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+     toast.success('Employee removed from the active directory');
+     setEmployeeToDelete(null);
+   },
+   onError: (error: any) => toast.error(error?.response?.data?.message || 'Could not remove employee'),
+ });
  const employeeTotal = empData?.meta?.total ?? displayedEmployees.length;
  const customOrder = ['HR&ADMIN-IT', 'HR & ADMIN', 'COMMERCIAL', 'ACCOUNTS', 'PROCUREMENT'];
  const sortedDepts = [...(deptData?.data || [])].sort((a, b) => {
@@ -259,6 +275,7 @@ export default function EmployeeListPage() {
  <th scope="col" className="px-5 py-4 font-semibold">Contact</th>
  <th scope="col" className="px-5 py-4 font-semibold">Office</th>
  <th scope="col" className="px-5 py-4 font-semibold">Status</th>
+ {mayDeleteEmployees && <th scope="col" className="px-5 py-4 text-right font-semibold">Actions</th>}
  </tr>
  </thead>
  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -302,6 +319,7 @@ export default function EmployeeListPage() {
  </td>
  <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">{emp.location || 'Not assigned'}</td>
  <td className="px-5 py-4">{getStatusBadge(emp.status)}</td>
+ {mayDeleteEmployees && <td className="px-5 py-4 text-right" onClick={(event) => event.stopPropagation()}>{emp.isActive !== false && emp.status !== 'INACTIVE' && <Button variant="ghost" size="sm" className="text-status-danger hover:text-status-danger" aria-label={`Delete ${emp.firstName} ${emp.lastName}`} onClick={() => setEmployeeToDelete(emp)}><Trash2 aria-hidden="true" className="mr-1 h-4 w-4" />Delete</Button>}</td>}
  </tr>
  ))}
  </tbody>
@@ -370,6 +388,7 @@ export default function EmployeeListPage() {
  <p className="text-xs text-slate-400 mb-1">Office Location</p>
  <p className="font-medium text-slate-700 dark:text-slate-300 truncate" title={emp.location}>{emp.location || '-'}</p>
  </div>
+ {mayDeleteEmployees && emp.isActive !== false && emp.status !== 'INACTIVE' && <div className="flex justify-end border-t border-slate-border pt-3" onClick={(event) => event.stopPropagation()}><Button variant="ghost" size="sm" className="text-status-danger hover:text-status-danger" aria-label={`Delete ${emp.firstName} ${emp.lastName}`} onClick={() => setEmployeeToDelete(emp)}><Trash2 aria-hidden="true" className="mr-1 h-4 w-4" />Delete employee</Button></div>}
  </div>
  </div>
  ))}
@@ -378,6 +397,15 @@ export default function EmployeeListPage() {
  <PaginationControls page={page} pageSize={pageSize} total={employeeTotal} onPageChange={setPage} itemLabel="employees" />
  </div>
  )}
+ <ConfirmDialog
+   isOpen={!!employeeToDelete}
+   title="Remove employee from active directory?"
+   message={`${employeeToDelete?.firstName || ''} ${employeeToDelete?.lastName || ''} will be deactivated and removed from the active employee list. Their employee record and related history will be retained and available under History.`}
+   confirmLabel={deactivateMutation.isPending ? 'Removing…' : 'Remove employee'}
+   isDestructive
+   onConfirm={() => employeeToDelete && deactivateMutation.mutate(employeeToDelete.id)}
+   onCancel={() => setEmployeeToDelete(null)}
+ />
  </div>
  );
 }

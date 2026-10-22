@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 import { stageLabel } from "./pipelineModel";
 import { PreviousRoundFeedback } from "./PreviousRoundFeedback";
 
-export function InterviewAppointmentPanel({ interview, editable, onReschedule, showAppointmentDetails = true, nextStage, onMoveToNextStage, movingToNextStage = false }: { interview: any; editable: boolean; onReschedule?: () => void; showAppointmentDetails?: boolean; nextStage?: string; onMoveToNextStage?: () => void; movingToNextStage?: boolean }) {
+export function InterviewAppointmentPanel({ interview, editable, onReschedule, showAppointmentDetails = true, nextStage, onMoveToNextStage, movingToNextStage = false, rescheduleHistory = [] }: { interview: any; editable: boolean; onReschedule?: () => void; showAppointmentDetails?: boolean; nextStage?: string; onMoveToNextStage?: () => void; movingToNextStage?: boolean; rescheduleHistory?: any[] }) {
   const cache = useQueryClient();
   const fieldId = useId();
   const [correction, setCorrection] = useState(false);
@@ -26,11 +26,22 @@ export function InterviewAppointmentPanel({ interview, editable, onReschedule, s
   });
   const submitted = !!interview.feedbackSubmittedAt;
   const readable = (value: string) => value.replace(/_/g, " ").toLowerCase();
+  const parseSchedule = (value?: string) => { try { return value ? JSON.parse(value) : {}; } catch { return {}; } };
+  const reschedules = rescheduleHistory.filter((event: any) => {
+    if (event.actionPerformed !== "RESCHEDULE_INTERVIEW") return false;
+    const oldSchedule = parseSchedule(event.oldValue);
+    const newSchedule = parseSchedule(event.newValue);
+    return oldSchedule.round === interview.round || newSchedule.round === interview.round;
+  });
   return <article className="space-y-4 rounded-xl border border-slate-border bg-surface p-4" aria-label={`${stageLabel(interview.round)} appointment`}>
     <div className="flex flex-wrap items-center justify-between gap-2"><h4 className="font-semibold">{stageLabel(interview.round)}</h4><span className="rounded-md bg-tint px-2 py-1 text-xs font-medium capitalize">{readable(interview.status)}</span></div>
+    {reschedules.length > 0 && <details className="group rounded-lg border border-slate-border bg-tint/50 p-3">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-medium"><span>Rescheduled {reschedules.length} {reschedules.length === 1 ? "time" : "times"}</span><span aria-hidden="true" className="text-text-muted transition-transform group-open:rotate-180">⌄</span></summary>
+      <ol className="mt-3 space-y-2 border-l border-slate-border pl-3">{reschedules.map((event: any) => { const oldSchedule = parseSchedule(event.oldValue); const newSchedule = parseSchedule(event.newValue); const actor = event.user?.employee ? `${event.user.employee.firstName} ${event.user.employee.lastName}` : event.user?.email || "Recruitment team"; return <li key={event.id} className="text-xs text-text-muted"><p className="font-medium text-text-heading">{oldSchedule.startsAt ? new Date(oldSchedule.startsAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "Previous time unavailable"} → {newSchedule.startsAt ? new Date(newSchedule.startsAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "Updated time unavailable"}</p><p className="mt-0.5">Changed by {actor} · {new Date(event.createdAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} · Asia/Kolkata{newSchedule.reason ? ` · ${newSchedule.reason}` : ""}</p></li>; })}</ol>
+    </details>}
     {showAppointmentDetails && <dl className="grid gap-3 text-sm sm:grid-cols-2">
       <div><dt className="text-xs text-text-muted">Date and time · Asia/Kolkata</dt><dd className="mt-1">{new Date(interview.startsAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}</dd></div>
-      <div><dt className="text-xs text-text-muted">Interviewer</dt><dd className="mt-1">{interview.interviewer ? `${interview.interviewer.firstName} ${interview.interviewer.lastName}` : "Not assigned"}</dd></div>
+      <div><dt className="text-xs text-text-muted">Interviewer for this round</dt><dd className="mt-1">{interview.interviewer ? `${interview.interviewer.firstName} ${interview.interviewer.lastName}` : "Not assigned"}</dd></div>
       <div className="sm:col-span-2"><dt className="text-xs text-text-muted">Format and location</dt><dd className="mt-1 break-words capitalize">{readable(interview.mode || "IN_PERSON")} · {interview.location || "Not provided"}</dd></div>
     </dl>}
     <PreviousRoundFeedback value={interview.previousRoundFeedback} />

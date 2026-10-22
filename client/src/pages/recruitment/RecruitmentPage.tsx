@@ -17,6 +17,7 @@ import {
   Download,
   CheckCircle2,
   Upload,
+  Trash2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { ScheduleInterviewModal } from "@/pages/dashboard/components/ScheduleInterviewModal";
@@ -43,7 +44,7 @@ export default function RecruitmentPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const { canExport, canEdit, canAdd, canViewRestricted } = usePermissions();
+  const { canExport, canEdit, canAdd, canDelete, canViewRestricted } = usePermissions();
 
   const [isReqModalOpen, setIsReqModalOpen] = useState(false);
   const [selectedReq, setSelectedReq] = useState<any>(null);
@@ -60,6 +61,7 @@ export default function RecruitmentPage() {
   const [scheduleCandidate, setScheduleCandidate] = useState<any>(null);
   const [reviewStage, setReviewStage] = useState("TELEPHONIC");
   const [joiningOutcome, setJoiningOutcome] = useState("PENDING");
+  const [deleteTarget, setDeleteTarget] = useState<{ type: "candidate" | "requisition"; record: any } | null>(null);
   React.useEffect(() => {
     const next = normalizeRecruitmentSearch(searchParams);
     const tab = next.get("tab") || "openings";
@@ -202,6 +204,23 @@ export default function RecruitmentPage() {
     },
     onError: (error: any) =>
       toast.error(error?.response?.data?.message || "Could not update opening"),
+  });
+  const deleteMutation = useMutation({
+    mutationFn: ({ type, record }: { type: "candidate" | "requisition"; record: any }) =>
+      type === "candidate" ? recruitmentApi.deleteCandidate(record.id) as Promise<any> : recruitmentApi.deleteRequisition(record.id) as Promise<any>,
+    onSuccess: (_response, variables) => {
+      ["requisitions", "candidates", "candidate-register", "candidate-pipeline", "interviews", "dashboard-stats"].forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
+      setDeleteTarget(null);
+      if (variables.type === "candidate") {
+        const openingId = variables.record.requisitionId || selectedReq?.id;
+        navigate(`/recruitment?tab=pipeline&opening=${encodeURIComponent(openingId || "")}&viewStage=${encodeURIComponent(variables.record.currentStage || "TELEPHONIC")}`);
+      } else {
+        setSelectedReq(null);
+        navigate("/recruitment?tab=openings");
+      }
+      toast.success(variables.type === "candidate" ? "Candidate deleted" : "Opening and its applicants deleted");
+    },
+    onError: (error: any) => toast.error(error?.response?.data?.message || "Could not delete record"),
   });
   const applicationMutation = useMutation({
     mutationFn: (payload: any) => recruitmentApi.createCandidate(payload),
@@ -393,6 +412,11 @@ export default function RecruitmentPage() {
               {canExport("recruitment") && (
                 <Button variant="outline" onClick={handleExportCandidates}>
                   <Download className="w-4 h-4 mr-2" /> Export Register
+                </Button>
+              )}
+              {routeCandidate && canDelete("recruitment") && (
+                <Button variant="danger" onClick={() => setDeleteTarget({ type: "candidate", record: routeCandidate })}>
+                  <Trash2 className="w-4 h-4 mr-2" /> Delete candidate
                 </Button>
               )}
             </div>
@@ -645,10 +669,18 @@ export default function RecruitmentPage() {
                     {reviewStage === "OFFER" && canViewRestricted("recruitment") && <div><dt className="text-text-muted">Offered salary</dt><dd className="mt-1 font-medium">{routeCandidate.offeredSalary != null ? `₹${Number(routeCandidate.offeredSalary).toLocaleString("en-IN")}` : "Not provided"}</dd></div>}
                     {reviewStage === "JOINED" && <div><dt className="text-text-muted">Actual joining date</dt><dd className="mt-1 font-medium">{routeCandidate.actualJoiningDate ? new Date(routeCandidate.actualJoiningDate).toLocaleDateString("en-IN", {timeZone:"Asia/Kolkata"}) : "Not provided"}</dd></div>}
                   </dl>}
+                  {["OFFER", "JOINED"].includes(reviewStage) && (() => {
+                    const offerChanges = (routeCandidate.activity || []).filter((event: any) => event.actionPerformed === "OFFER_CANDIDATE");
+                    const parse = (value?: string) => { try { return value ? JSON.parse(value) : {}; } catch { return {}; } };
+                    return <details className="group rounded-xl border border-slate-border">
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-sm font-semibold"><span>Offer change history</span><span className="flex items-center gap-2"><span className="rounded-full bg-tint px-2.5 py-1 text-xs">{offerChanges.length} {offerChanges.length === 1 ? "change" : "changes"}</span><ChevronDown aria-hidden="true" className="h-4 w-4 transition-transform group-open:rotate-180" /></span></summary>
+                      {offerChanges.length ? <ol className="space-y-3 border-t border-slate-border p-4">{offerChanges.map((event: any) => { const before = parse(event.oldValue); const after = parse(event.newValue); const actor = event.user?.employee ? `${event.user.employee.firstName} ${event.user.employee.lastName}` : event.user?.email || "Recruitment team"; return <li key={event.id} className="border-l-2 border-primary-500 pl-3 text-sm"><p className="font-medium">{String(before.offerStatus || "Not recorded").replace("OFFER_", "").replace(/_/g, " ")} → {String(after.offerStatus || "Not recorded").replace("OFFER_", "").replace(/_/g, " ")}</p><p className="mt-1 text-xs text-text-muted">{actor} · {new Date(event.createdAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} · Asia/Kolkata{after.joiningStatus && after.joiningStatus !== before.joiningStatus ? ` · Joining: ${String(after.joiningStatus).replace(/_/g, " ").toLowerCase()}` : ""}</p></li>; })}</ol> : <p className="border-t border-slate-border p-4 text-sm text-text-muted">No offer changes recorded yet.</p>}
+                    </details>;
+                  })()}
                   {!["OFFER", "JOINED"].includes(reviewStage) && <>
                   <section className="space-y-3" aria-label="Round appointments and feedback">
                     {canAdd("recruitment") && reviewStage !== "TELEPHONIC" && candidateStages.findIndex(stage => stage.value === reviewStage) >= candidateStageIndex && !roundAppointments.some((item: any) => item.status === "SCHEDULED") && !["SELECTED", "SELECTION_REJECTED"].includes(routeCandidate.selectionStatus) && routeCandidate.joiningStatus !== "JOINED" && <Button onClick={() => setScheduleCandidate({ ...routeCandidate, interviewId: undefined, interviewDate: undefined, interviewRound: reviewStage })}>Schedule {candidateStages.find(stage => stage.value === reviewStage)?.label.toLowerCase()}</Button>}
-                    {roundAppointments.map((interview: any) => <InterviewAppointmentPanel key={interview.id} interview={interview} editable={canEdit("recruitment") && reviewStage === currentCandidateStage && !["SELECTED", "SELECTION_REJECTED"].includes(routeCandidate.selectionStatus) && routeCandidate.joiningStatus !== "JOINED"} onReschedule={() => setScheduleCandidate({ ...routeCandidate, ...interview, id: routeCandidate.id, interviewId: interview.id, interviewDate: interview.startsAt, interviewRound: interview.round, interviewLocation: interview.location })} />)}
+                    {roundAppointments.map((interview: any) => <InterviewAppointmentPanel key={interview.id} interview={interview} rescheduleHistory={routeCandidate.activity || []} editable={canEdit("recruitment") && reviewStage === currentCandidateStage && !["SELECTED", "SELECTION_REJECTED"].includes(routeCandidate.selectionStatus) && routeCandidate.joiningStatus !== "JOINED"} onReschedule={() => setScheduleCandidate({ ...routeCandidate, ...interview, id: routeCandidate.id, interviewId: interview.id, interviewDate: interview.startsAt, interviewRound: interview.round, interviewLocation: interview.location })} />)}
                     {!roundAppointments.length && <p className="rounded-xl border border-dashed border-slate-border p-4 text-sm text-text-muted">{reviewStage === "TELEPHONIC" ? "Record the telephonic assessment through the existing stage controls below. Calendar scheduling is not required." : "No appointments recorded for this round."}</p>}
                   </section>
                   </>}
@@ -744,7 +776,7 @@ export default function RecruitmentPage() {
               ))}
             </nav>}
             {activeTab === "pipeline" ? (
-              <CandidatePipeline requisitions={data} />
+              <CandidatePipeline requisitions={data} deleteAllowed={canDelete("recruitment")} onDeleteCandidate={(candidate) => setDeleteTarget({ type: "candidate", record: candidate })} />
             ) : (
               <JobPositions
                 requisitions={visibleRequisitions}
@@ -755,6 +787,8 @@ export default function RecruitmentPage() {
                   setClosureReason("");
                   setClosureRequest({ id: opening.id, status: ["CLOSED", "JOINED_REJECTED"].includes(opening.status) ? "REQUIREMENT" : "CLOSED" });
                 }}
+                deleteAllowed={canDelete("recruitment")}
+                onDelete={(opening) => setDeleteTarget({ type: "requisition", record: opening })}
               />
             )}
           </>
@@ -842,6 +876,26 @@ export default function RecruitmentPage() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        isOpen={!!deleteTarget}
+        onClose={() => !deleteMutation.isPending && setDeleteTarget(null)}
+        title={deleteTarget?.type === "candidate" ? "Delete candidate" : "Delete recruitment opening"}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-text-body">
+            {deleteTarget?.type === "candidate" ? (
+              <>Permanently delete <strong>{deleteTarget.record.candidateName}</strong>? Their interview appointments, feedback, and stage history will also be removed.</>
+            ) : (
+              <>Permanently delete <strong>{deleteTarget?.record.positionTitle}</strong> and its {deleteTarget?.record._count?.candidates ?? deleteTarget?.record.candidateCount ?? 0} applicant(s)? Their interview appointments, feedback, and stage history will also be removed.</>
+            )}
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" disabled={deleteMutation.isPending} onClick={() => setDeleteTarget(null)}>Cancel</Button>
+            <Button variant="danger" isLoading={deleteMutation.isPending} onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget)}><Trash2 className="mr-2 h-4 w-4" />Delete permanently</Button>
+          </div>
+        </div>
       </Modal>
 
       <Modal

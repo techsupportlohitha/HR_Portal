@@ -38,6 +38,7 @@ export class EmployeeService {
         firstName: true,
         lastName: true,
         designation: true,
+        profilePhoto: true,
         department: { select: { name: true } },
       },
     });
@@ -55,6 +56,7 @@ export class EmployeeService {
       status?: string;
       location?: string;
       history?: boolean;
+      assignmentOptions?: boolean;
     }
   ) {
     const page = query.page || 1;
@@ -76,9 +78,9 @@ export class EmployeeService {
       : { isActive: true };
     // Role Management creates lightweight, linked account profiles with reserved USR-* codes.
     // Keep those profiles available to assignment lookups, but out of employee management.
-    const roleAccountProfileFilter: Prisma.EmployeeWhereInput = {
-      NOT: { employeeCode: { startsWith: 'USR-' } },
-    };
+    const roleAccountProfileFilter: Prisma.EmployeeWhereInput = query.assignmentOptions
+      ? {}
+      : { NOT: { employeeCode: { startsWith: 'USR-' } } };
 
     const baseWhere: Prisma.EmployeeWhereInput = {
       AND: [

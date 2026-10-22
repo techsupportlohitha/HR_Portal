@@ -57,21 +57,23 @@ export class PolicyService {
   }
 
   async deletePolicy(id: string, userId: string, reqContext: { ipAddress?: string } = {}) {
-    const policy = await prisma.policy.delete({
-      where: { id }
-    });
-
-    await prisma.auditLog.create({
-      data: {
+    return prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "policies" WHERE "id" = ${id} FOR UPDATE`;
+      const policy = await tx.policy.findUnique({ where: { id } });
+      if (!policy) throw new Error('Document not found.');
+      const acknowledgements = await tx.policyAcknowledgement.count({ where: { policyId: id } });
+      await tx.auditLog.create({ data: {
         actionPerformed: 'DELETE_POLICY',
         moduleAffected: 'policies',
         recordIdAffected: policy.id,
-        userId: userId,
+        userId,
         ipAddress: reqContext.ipAddress,
-      }
+        oldValue: JSON.stringify({ policyName: policy.policyName, versionNumber: policy.versionNumber, acknowledgementCount: acknowledgements }),
+      } });
+      await tx.policyAcknowledgement.deleteMany({ where: { policyId: id } });
+      await tx.policy.delete({ where: { id } });
+      return policy;
     });
-
-    return policy;
   }
 
   async acknowledgePolicy(policyId: string, employeeId: string, status: string, userId: string, reqContext: { ipAddress?: string } = {}) {

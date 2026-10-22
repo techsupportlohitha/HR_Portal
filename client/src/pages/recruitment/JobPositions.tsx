@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Briefcase, Pencil, ArrowRight, Search } from "lucide-react";
+import { Briefcase, Pencil, ArrowRight, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -11,9 +11,11 @@ interface Props {
   history: boolean;
   onEdit: (opening: any) => void;
   onClose: (opening: any) => void;
+  deleteAllowed?: boolean;
+  onDelete?: (opening: any) => void;
 }
 
-export function JobPositions({ requisitions, editable, history, onEdit, onClose }: Props) {
+export function JobPositions({ requisitions, editable, history, onEdit, onClose, deleteAllowed = false, onDelete = () => undefined }: Props) {
   const [search, setSearch] = useState("");
   const [department, setDepartment] = useState("");
   const departments = Array.from(new Map(requisitions.filter((opening) => opening.department).map((opening) => [opening.department.id, opening.department])).values());
@@ -68,6 +70,7 @@ export function JobPositions({ requisitions, editable, history, onEdit, onClose 
                   <Button size="sm" variant="ghost" className="relative z-10" aria-label={`Edit ${opening.positionTitle}`} onClick={() => onEdit(opening)}><Pencil aria-hidden="true" className="mr-1 h-3.5 w-3.5" />Edit</Button>
                   <Button size="sm" variant="ghost" className="relative z-10" onClick={() => onClose(opening)}>{history ? "Reopen" : "Close"}</Button>
                 </>}
+                {deleteAllowed && <Button size="sm" variant="ghost" className="relative z-10 text-status-danger hover:text-status-danger" aria-label={`Delete ${opening.positionTitle}`} onClick={() => onDelete(opening)}><Trash2 aria-hidden="true" className="mr-1 h-3.5 w-3.5" />Delete</Button>}
                 </div>
                 <span className="hidden items-center gap-1 text-xs font-semibold text-text-body md:inline-flex">Open <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" /></span>
               </div>

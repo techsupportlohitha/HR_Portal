@@ -15,6 +15,7 @@ describe('public employee card data', () => {
       firstName: 'Devi',
       lastName: 'Employee',
       designation: 'Quality Analyst',
+      profilePhoto: '/api/uploads/employee-profile.jpg',
       department: { name: 'Quality' },
     });
 
@@ -27,6 +28,7 @@ describe('public employee card data', () => {
         firstName: true,
         lastName: true,
         designation: true,
+        profilePhoto: true,
         department: { select: { name: true } },
       },
     });

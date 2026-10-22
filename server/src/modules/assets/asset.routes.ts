@@ -12,6 +12,7 @@ router.post('/', requirePermission('assets', 'add'), validateRequest({ body: cre
 router.get('/', requirePermission('assets', 'view'), (req, res) => assetController.getAssets(req, res));
 router.get('/:id', requirePermission('assets', 'view'), (req, res) => assetController.getAssetById(req, res));
 router.put('/:id', requirePermission('assets', 'edit'), validateRequest({ body: updateAssetSchema }), (req, res) => assetController.updateAsset(req, res));
+router.delete('/:id', requirePermission('assets', 'delete'), (req, res) => assetController.deleteAsset(req, res));
 router.put('/:id/assign', requirePermission('assets', 'edit'), validateRequest({ body: assignAssetSchema }), (req, res) => assetController.assignAsset(req, res));
 router.put('/:id/return', (req, res, next) => {
   const role = (req as import('../../middleware/auth.middleware').AuthRequest).user?.role;

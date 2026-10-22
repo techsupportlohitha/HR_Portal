@@ -40,6 +40,16 @@ export class AssetController {
     }
   }
 
+  async deleteAsset(req: AuthRequest, res: Response) {
+    try {
+      const result = await assetService.deleteAsset(req.params.id as string, req.user!, { ipAddress: req.ip });
+      return sendSuccess(res, result, 'Asset deleted');
+    } catch (error: any) {
+      const status = error.message === 'Asset not found.' ? 404 : error.message.includes('authorized') ? 403 : 400;
+      return sendError(res, error.message, status);
+    }
+  }
+
   async assignAsset(req: AuthRequest, res: Response) {
     try {
       const result = await assetService.assignAsset(req.params.id as string, req.body, req.user!.userId, { ipAddress: req.ip });

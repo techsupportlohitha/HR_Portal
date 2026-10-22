@@ -79,6 +79,7 @@ router.put(
   validateRequest({ body: updateRequisitionStatusSchema }),
   (req, res) => recruitmentController.updateRequisitionStatus(req, res),
 );
+router.delete("/requisitions/:id", requirePermission("recruitment", "delete"), (req, res) => recruitmentController.deleteRequisition(req, res));
 
 // Interviews
 router.get("/pipeline", requirePermission("recruitment", "view"), (req, res) => recruitmentController.getPipeline(req, res));
@@ -142,5 +143,6 @@ router.put(
   validateRequest({ body: offerCandidateSchema }),
   (req, res) => recruitmentController.offerCandidate(req, res),
 );
+router.delete("/candidates/:id", requirePermission("recruitment", "delete"), (req, res) => recruitmentController.deleteCandidate(req, res));
 
 export default router;
