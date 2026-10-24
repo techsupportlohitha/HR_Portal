@@ -137,8 +137,8 @@ export default function DashboardPage() {
    refetchOnMount: 'always',
  });
  const upcomingInterviews = useMemo(
-   () => getUpcomingInterviews(interviewData || [], clockNow),
-   [interviewData, clockNow],
+   () => getUpcomingInterviews(interviewData || []),
+   [interviewData],
  );
 
  const { data: attritionData, isLoading: isAttritionLoading } = useQuery({
@@ -539,6 +539,9 @@ export default function DashboardPage() {
                     <div className="flex flex-col items-end shrink-0 gap-1">
                       <span className="text-xs font-semibold text-text-muted group-hover:text-accent-600 dark:group-hover:text-accent-400">{dateStr}</span>
                       <span className="text-[10px] text-slate-500 font-medium">{interviewerName}</span>
+                      {new Date(candidate.endsAt || candidate.interviewDate).getTime() < clockNow && (
+                        <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400">Status update due</span>
+                      )}
                     </div>
                   </div>
                 );
@@ -550,7 +553,7 @@ export default function DashboardPage() {
                 <Clock className="h-6 w-6 text-text-muted" />
               </div>
               <p className="text-sm font-medium text-text-heading">No interviews scheduled</p>
-              <p className="text-xs text-text-muted mt-1">Candidates with upcoming interviews will appear here</p>
+              <p className="text-xs text-text-muted mt-1">Scheduled interviews will appear here</p>
             </div>
           )}
         </div>

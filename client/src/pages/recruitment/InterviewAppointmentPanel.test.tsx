@@ -36,6 +36,17 @@ describe("appointment feedback flow", () => {
     expect(screen.getByText(/Changed by Test Interviewer/)).toBeInTheDocument();
     expect(screen.getByText(/Interviewer unavailable/)).toBeInTheDocument();
   });
+  it("retains older reschedule records and excludes changes for other rounds", () => {
+    show({ interview, editable: false, rescheduleHistory: [
+      { id: "older", actionPerformed: "RESCHEDULE_INTERVIEW", oldValue: JSON.stringify({ startsAt: "2026-10-15T09:00:00Z", reason: "Candidate requested another day" }), createdAt: "2026-10-14T10:00:00Z", user: { email: "scheduler@example.com" } },
+      { id: "other-round", actionPerformed: "RESCHEDULE_INTERVIEW", oldValue: JSON.stringify({ round: "HR_INTERVIEW", reason: "Other round reason" }), createdAt: "2026-10-15T10:00:00Z" },
+    ] });
+    fireEvent.click(screen.getByText("Rescheduled 1 time"));
+    expect(screen.getByText("Round not recorded in this older entry.")).toBeInTheDocument();
+    expect(screen.getByText(/Candidate requested another day/)).toBeInTheDocument();
+    expect(screen.getByText(/Changed by scheduler@example.com/)).toBeInTheDocument();
+    expect(screen.queryByText(/Other round reason/)).toBeNull();
+  });
   it("uses honest first-round and missing-feedback states", () => {
     const { rerender } = render(<PreviousRoundFeedback value={{ state: "first-round" }} />);
     expect(screen.getByText("No previous round.")).toBeInTheDocument();

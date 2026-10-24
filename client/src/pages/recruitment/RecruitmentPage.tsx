@@ -1,3 +1,4 @@
+import { OfferHistory } from "./OfferHistory";
 import React, { useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -31,14 +32,7 @@ import { InterviewAppointmentPanel } from "./InterviewAppointmentPanel";
 import { candidateDetailsUrl, normalizeRecruitmentSearch } from "./recruitmentNavigation";
 
 const EMPTY_REQUISITIONS: any[] = [];
-const STAGE_GUIDANCE: Record<string, string> = {
-  TELEPHONIC: "Record the initial conversation and assessment here. This round does not need calendar scheduling.",
-  HR_INTERVIEW: "Review the previous round’s feedback, schedule the HR interview, and submit feedback before moving forward.",
-  TECHNICAL: "Use the previous round’s feedback to focus the technical discussion, then submit this round’s assessment.",
-  MANAGEMENT: "Review the interview history, complete the management discussion, and record the hiring decision.",
-  OFFER: "Track the offer response, key dates, and compensation details for this candidate.",
-  JOINED: "Record whether the candidate joined and capture the actual joining date.",
-};
+
 
 export default function RecruitmentPage() {
   const navigate = useNavigate();
@@ -134,10 +128,7 @@ export default function RecruitmentPage() {
       : (routeCandidate?.interviews || []).some((interview: any) =>
           interview.round === stageValue && interview.status === "COMPLETED" && !!interview.feedbackSubmittedAt,
         );
-  const collapseCompletedPreviousStage =
-    ["HR_INTERVIEW", "TECHNICAL", "MANAGEMENT"].includes(reviewStage)
-    && reviewStageIndex < candidateStageIndex
-    && isStageComplete(reviewStage, reviewStageIndex);
+
 
   React.useEffect(() => {
     if (!routeReqId) {
@@ -546,23 +537,11 @@ export default function RecruitmentPage() {
                     })}
                     </ol>
                   </nav>
-                  <details open={!collapseCompletedPreviousStage} className={`group ${collapseCompletedPreviousStage ? "rounded-xl border border-slate-border bg-tint" : ""}`}>
-                    <summary className={collapseCompletedPreviousStage ? "flex cursor-pointer list-none items-center justify-between gap-3 p-4 font-semibold" : "hidden"}>
-                      <span>{candidateStages[reviewStageIndex]?.label} stage details</span>
-                      <span className="flex shrink-0 items-center gap-2"><span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">Completed</span><ChevronDown aria-hidden="true" className="h-4 w-4 transition-transform group-open:rotate-180" /></span>
-                    </summary>
-                    <div className={collapseCompletedPreviousStage ? "space-y-4 border-t border-slate-border p-4" : "space-y-4"}>
-                  <section id="candidate-round-actions" aria-label={`${candidateStages[reviewStageIndex]?.label || "Selected stage"} workspace`} className="space-y-2 rounded-xl border border-slate-border bg-tint p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">{reviewStage === currentCandidateStage ? "Current stage" : reviewStageIndex < candidateStageIndex ? "Previous stage" : "Upcoming stage"}</p>
-                        <h4 className="mt-1 text-lg font-semibold text-text-heading">{candidateStages[reviewStageIndex]?.label}</h4>
-                      </div>
-                      <span className="rounded-full border border-slate-border bg-surface px-3 py-1 text-xs font-medium text-text-muted">Step {reviewStageIndex + 1} / {candidateStages.length}</span>
-                    </div>
-                    <p className="text-sm text-text-muted">{STAGE_GUIDANCE[reviewStage]}</p>
-                    <p className="text-sm font-medium">Application outcome: {(routeCandidate.selectionStatus || "IN_PROGRESS").replaceAll("_", " ").toLowerCase()}</p>
-                  </section>
+                  <div className="space-y-4">
+                  <header id="candidate-round-actions" aria-label={`${candidateStages[reviewStageIndex]?.label || "Selected stage"} workspace`} className="flex scroll-mt-4 items-center justify-between gap-3 py-2">
+                    <h3 className="text-lg font-semibold text-text-heading">{candidateStages[reviewStageIndex]?.label}</h3>
+                    <span className="shrink-0 text-sm text-text-muted">Step {reviewStageIndex + 1} / {candidateStages.length}</span>
+                  </header>
 
                   {canEdit("recruitment") && (
                     <div className="space-y-4">
@@ -656,7 +635,7 @@ export default function RecruitmentPage() {
                         >
                           {offerMutation.isPending
                             ? "Saving…"
-                            : reviewStage === "JOINED" ? "Save joining outcome" : "Save offer status"}
+                            : reviewStage === "JOINED" ? "Save joining outcome" : "Save offer changes"}
                         </Button>
                         </form>
                       </details>}
@@ -669,14 +648,7 @@ export default function RecruitmentPage() {
                     {reviewStage === "OFFER" && canViewRestricted("recruitment") && <div><dt className="text-text-muted">Offered salary</dt><dd className="mt-1 font-medium">{routeCandidate.offeredSalary != null ? `₹${Number(routeCandidate.offeredSalary).toLocaleString("en-IN")}` : "Not provided"}</dd></div>}
                     {reviewStage === "JOINED" && <div><dt className="text-text-muted">Actual joining date</dt><dd className="mt-1 font-medium">{routeCandidate.actualJoiningDate ? new Date(routeCandidate.actualJoiningDate).toLocaleDateString("en-IN", {timeZone:"Asia/Kolkata"}) : "Not provided"}</dd></div>}
                   </dl>}
-                  {["OFFER", "JOINED"].includes(reviewStage) && (() => {
-                    const offerChanges = (routeCandidate.activity || []).filter((event: any) => event.actionPerformed === "OFFER_CANDIDATE");
-                    const parse = (value?: string) => { try { return value ? JSON.parse(value) : {}; } catch { return {}; } };
-                    return <details className="group rounded-xl border border-slate-border">
-                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-sm font-semibold"><span>Offer change history</span><span className="flex items-center gap-2"><span className="rounded-full bg-tint px-2.5 py-1 text-xs">{offerChanges.length} {offerChanges.length === 1 ? "change" : "changes"}</span><ChevronDown aria-hidden="true" className="h-4 w-4 transition-transform group-open:rotate-180" /></span></summary>
-                      {offerChanges.length ? <ol className="space-y-3 border-t border-slate-border p-4">{offerChanges.map((event: any) => { const before = parse(event.oldValue); const after = parse(event.newValue); const actor = event.user?.employee ? `${event.user.employee.firstName} ${event.user.employee.lastName}` : event.user?.email || "Recruitment team"; return <li key={event.id} className="border-l-2 border-primary-500 pl-3 text-sm"><p className="font-medium">{String(before.offerStatus || "Not recorded").replace("OFFER_", "").replace(/_/g, " ")} → {String(after.offerStatus || "Not recorded").replace("OFFER_", "").replace(/_/g, " ")}</p><p className="mt-1 text-xs text-text-muted">{actor} · {new Date(event.createdAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} · Asia/Kolkata{after.joiningStatus && after.joiningStatus !== before.joiningStatus ? ` · Joining: ${String(after.joiningStatus).replace(/_/g, " ").toLowerCase()}` : ""}</p></li>; })}</ol> : <p className="border-t border-slate-border p-4 text-sm text-text-muted">No offer changes recorded yet.</p>}
-                    </details>;
-                  })()}
+                  {["OFFER", "JOINED"].includes(reviewStage) && <OfferHistory events={routeCandidate.activity || []} showSalary={canViewRestricted("recruitment")} />}
                   {!["OFFER", "JOINED"].includes(reviewStage) && <>
                   <section className="space-y-3" aria-label="Round appointments and feedback">
                     {canAdd("recruitment") && reviewStage !== "TELEPHONIC" && candidateStages.findIndex(stage => stage.value === reviewStage) >= candidateStageIndex && !roundAppointments.some((item: any) => item.status === "SCHEDULED") && !["SELECTED", "SELECTION_REJECTED"].includes(routeCandidate.selectionStatus) && routeCandidate.joiningStatus !== "JOINED" && <Button onClick={() => setScheduleCandidate({ ...routeCandidate, interviewId: undefined, interviewDate: undefined, interviewRound: reviewStage })}>Schedule {candidateStages.find(stage => stage.value === reviewStage)?.label.toLowerCase()}</Button>}
@@ -730,8 +702,7 @@ export default function RecruitmentPage() {
                       </details>
                     ) : null}
                   />
-                    </div>
-                  </details>
+                  </div>
                   <CandidateStageHistory candidate={routeCandidate} />
                 </section>
               ) : (

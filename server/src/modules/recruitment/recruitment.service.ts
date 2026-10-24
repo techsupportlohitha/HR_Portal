@@ -1,3 +1,4 @@
+import { redactOfferHistory } from "./offer-history";
 import prisma from "../../config/database";
 import { notificationService } from "../notifications/notification.service";
 import { Role, Prisma, RequisitionStatus } from "@prisma/client";
@@ -101,7 +102,7 @@ export class RecruitmentService {
         recruitmentCost,
         ...safe
       } = row;
-      return safe as T;
+      return { ...safe, ...(Array.isArray(safe.activity) ? { activity: redactOfferHistory(safe.activity) } : {}) } as T;
     });
   }
 
@@ -1376,8 +1377,8 @@ export class RecruitmentService {
       await tx.auditLog.create({
         data: {
           actionPerformed: "OFFER_CANDIDATE",
-          oldValue: JSON.stringify({ offerStatus: current.offerStatus, offerDate: current.offerDate, joiningDate: current.joiningDate, joiningStatus: current.joiningStatus, actualJoiningDate: current.actualJoiningDate }),
-          newValue: JSON.stringify({ offerStatus: updated.offerStatus, offerDate: updated.offerDate, joiningDate: updated.joiningDate, joiningStatus: updated.joiningStatus, actualJoiningDate: updated.actualJoiningDate }),
+          oldValue: JSON.stringify({ offerStatus: current.offerStatus, offeredSalary: current.offeredSalary, offerDate: current.offerDate, joiningDate: current.joiningDate, joiningStatus: current.joiningStatus, actualJoiningDate: current.actualJoiningDate }),
+          newValue: JSON.stringify({ offerStatus: updated.offerStatus, offeredSalary: updated.offeredSalary, offerDate: updated.offerDate, joiningDate: updated.joiningDate, joiningStatus: updated.joiningStatus, actualJoiningDate: updated.actualJoiningDate }),
           moduleAffected: "recruitment",
           recordIdAffected: id,
           userId,

@@ -64,7 +64,7 @@ Add a Shortlist view to the candidate pipeline for applications marked `SHORTLIS
 
 When an interview is scheduled for an assigned interviewer, create an in-app `INTERVIEW` notification with the candidate, opening, round and Asia/Kolkata time. Do this for both a new scheduled application and an interview scheduled from an existing candidate. Rescheduling sends a notice to the currently assigned interviewer.
 
-Record each reschedule's previous and updated date/time, round, interviewer, location, reason and acting user in the existing audit log. Show the count and an expandable dated change log on the interview card/details. Record offer and joining status changes in the same audit log and show a count plus the dated status history in the candidate's Offer and Joining views. Do not include compensation values in history responses.
+Record each reschedule's previous and updated date/time, round, interviewer, location, reason and acting user in the existing audit log. Show the count and an expandable dated change log on the interview card/details. Record offer and joining status changes in the same audit log and show a count plus the dated status history in the candidate's Offer and Joining views. Record previous and revised offered salary for each saved offer revision. Return historical amounts only to viewers with recruitment compensation access; redact them from candidate and audit endpoints for other viewers. Older events without amounts remain explicitly incomplete.
 
 ### Previous-round feedback on the scheduled candidate card
 
@@ -99,7 +99,7 @@ Primary files: RecruitmentPage.tsx, CandidatePipeline.tsx, CandidateStageControl
 - The assigned next-round interviewer sees the correct previous-round submitted feedback on the scheduled candidate card, with reviewer, round and date; long feedback expands in place.
 - Shortlist shows only applications selected to proceed to interviews and retains opening/search context when opening a candidate.
 - The assigned interviewer receives an in-app notification for new and rescheduled appointments.
-- Interview history reports reschedule counts and old/new appointment details; offer history reports dated status changes without exposing salary.
+- Interview history reports reschedule counts and old/new appointment details; offer history reports dated status, salary and date changes, with historical salary protected by recruitment compensation permissions.
 - Verify first-round/no-feedback states, multiple appointments, separate applications for the same person and denied access for unauthorised users; drafts and restricted compensation are never included.
 - List and Month remain available; Week, Screening and Telephonic scheduling remain absent.
 - The core flow works on a narrow mobile viewport and with keyboard navigation.
@@ -115,6 +115,13 @@ The earlier independent review concerned the broader proposal. This revised docu
 
 ## Implementation verification — 15 October 2026
 
-Implemented the scoped UI organisation, shared appointment/feedback panel, scheduled-card previous-round feedback, shortlist grid, interviewer notifications, reschedule logs, offer status history, grouping/validation in scheduling, mobile stage selection and preserved navigation context. Previous feedback is projected from already authorised candidate queries using an explicit field list and reviewer-name lookup; appointment and offer history reuse the existing audit log, with compensation values excluded; no new schema or external integration was introduced.
+Implemented the scoped UI organisation, shared appointment/feedback panel, scheduled-card previous-round feedback, shortlist grid, interviewer notifications, reschedule logs, offer status history, grouping/validation in scheduling, mobile stage selection and preserved navigation context. Previous feedback is projected from already authorised candidate queries using an explicit field list and reviewer-name lookup; appointment and offer history reuse the existing audit log, with historical compensation values protected by the same permissions as current compensation; no new schema or external integration was introduced.
 
 Verification: 24 focused client tests, four server projection tests and one complete API journey passed. The API journey ran against an isolated local database and covered schedule/reschedule history, feedback draft/submission, next-round feedback visibility, read-only manager access, compensation redaction, unauthorised access and booking conflicts. TypeScript checks and the production client build passed. Live browser checks covered the scheduling form, previous-feedback display and mobile stage → candidate → back navigation.
+
+
+## 24 October 2026 local release
+
+The dashboard keeps unfinished scheduled interviews visible after their start time and marks appointments whose end time passed as needing a status update. Recruitment stages use a plain heading and step number. Appointment details, reschedule history and feedback are separate collapsible cards. Previous and submitted feedback use the interview stage as their inner heading and matching badges and content layout.
+
+Offer history records old and new offered amounts, status and dates on every save, including salary-only negotiation revisions. Amounts omitted from older entries cannot be reconstructed. Tests cover revision display, historical salary redaction, legacy reschedule entries and unfinished dashboard appointments.

@@ -1,15 +1,14 @@
 import { stageLabel } from "./pipelineModel";
 import { ChevronDown } from "lucide-react";
 
-export function PreviousRoundFeedback({ value }: { value?: any }) {
+export function PreviousRoundFeedback({ value, label = "Previous round feedback" }: { value?: any; label?: string }) {
   if (!value) return null;
   const date = (value: string) => new Date(value).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
   const recommendation = value.recommendation?.replaceAll("_", " ").toLowerCase();
-  return <section aria-label="Previous round feedback" className="overflow-hidden rounded-xl border border-slate-border bg-tint text-sm">
+  return <section aria-label={label} className="overflow-hidden rounded-xl border border-slate-border bg-tint text-sm">
     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-border px-4 py-3">
       <div>
-        <h4 className="font-semibold text-text-heading">Previous round feedback</h4>
-        {value.round && <p className="mt-0.5 text-xs text-text-muted">{stageLabel(value.round)}</p>}
+        <h4 className="font-semibold text-text-heading">{value.round ? stageLabel(value.round) : "Interview feedback"}</h4>
       </div>
       {value.state === "available" && (value.score != null || recommendation) && <div className="flex flex-wrap gap-1.5">
         {value.score != null && <span className="rounded-full bg-surface px-2.5 py-1 text-xs font-semibold">{value.score}/10</span>}

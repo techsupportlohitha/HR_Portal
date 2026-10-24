@@ -4,7 +4,7 @@ import { getUpcomingInterviews } from './upcomingInterviews';
 describe('getUpcomingInterviews', () => {
   const now = Date.parse('2026-10-14T00:00:00Z');
 
-  it('returns future scheduled interviews in date order and ignores completed or past records', () => {
+  it('keeps unfinished scheduled interviews visible after their start time and ignores completed records', () => {
     const entries = [
       { id: 'later', status: 'SCHEDULED', interviewDate: '2026-10-16T10:00:00Z' },
       { id: 'completed', status: 'COMPLETED', interviewDate: '2026-10-15T10:00:00Z' },
@@ -12,7 +12,8 @@ describe('getUpcomingInterviews', () => {
       { id: 'soon', status: 'SCHEDULED', interviewDate: '2026-10-15T05:52:00Z' },
     ];
 
-    expect(getUpcomingInterviews(entries, now).map(({ id }) => id)).toEqual([
+    expect(getUpcomingInterviews(entries).map(({ id }) => id)).toEqual([
+      'past',
       'soon',
       'later',
     ]);
@@ -25,7 +26,7 @@ describe('getUpcomingInterviews', () => {
       interviewDate: new Date(now + (index + 1) * 60_000),
     }));
 
-    expect(getUpcomingInterviews(entries, now).map(({ id }) => id)).toEqual([
+    expect(getUpcomingInterviews(entries).map(({ id }) => id)).toEqual([
       '0',
       '1',
       '2',

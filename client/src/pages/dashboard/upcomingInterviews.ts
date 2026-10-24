@@ -7,7 +7,6 @@ export interface InterviewCalendarEntry {
 
 export function getUpcomingInterviews<T extends InterviewCalendarEntry>(
   interviews: T[],
-  now = Date.now(),
 ): T[] {
   return interviews
     .filter((interview) => {
@@ -16,7 +15,9 @@ export function getUpcomingInterviews<T extends InterviewCalendarEntry>(
       }
 
       const startsAt = new Date(interview.interviewDate).getTime();
-      return Number.isFinite(startsAt) && startsAt >= now;
+      // A scheduled appointment still needs action after its start time passes.
+      // Only an explicit status change should remove it from the dashboard.
+      return Number.isFinite(startsAt);
     })
     .sort(
       (a, b) =>

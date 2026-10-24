@@ -662,7 +662,7 @@ suite(
       const offerChanges = offerHistory.body.data.find((row: any) => row.id === id).activity.filter((event: any) => event.actionPerformed === "OFFER_CANDIDATE");
       expect(offerChanges).toHaveLength(2);
       expect(offerChanges.map((event: any) => JSON.parse(event.newValue).offerStatus)).toContain("OFFER_ACCEPTED");
-      expect(offerChanges.every((event: any) => !event.newValue.includes("50000"))).toBe(true);
+      expect(offerChanges.some((event: any) => JSON.parse(event.newValue).offeredSalary === "50000")).toBe(true);
       expect(
         (
           await api("HR").put(`/candidates/${id}/offer`, {

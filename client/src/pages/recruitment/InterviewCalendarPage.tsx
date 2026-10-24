@@ -1,3 +1,4 @@
+import { InterviewRescheduleHistory } from "./InterviewRescheduleHistory";
 import React, { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -239,18 +240,7 @@ export default function InterviewCalendarPage() {
           </div>
         </dl>
 
-        {(() => {
-          const parse = (value?: string) => { try { return value ? JSON.parse(value) : {}; } catch { return {}; } };
-          const reschedules = (a.activity || []).filter((event: any) => {
-            if (event.actionPerformed !== "RESCHEDULE_INTERVIEW") return false;
-            const before = parse(event.oldValue); const after = parse(event.newValue);
-            return before.round === a.interviewRound || after.round === a.interviewRound;
-          });
-          return reschedules.length > 0 && <details className="group rounded-lg border border-slate-border bg-tint/50 p-3">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-medium"><span>Rescheduled {reschedules.length} {reschedules.length === 1 ? "time" : "times"}</span><ChevronDown aria-hidden="true" className="h-4 w-4 transition-transform group-open:rotate-180" /></summary>
-            <ol className="mt-3 space-y-2 border-l border-slate-border pl-3">{reschedules.map((event: any) => { const before = parse(event.oldValue); const after = parse(event.newValue); const actor = event.user?.employee ? `${event.user.employee.firstName} ${event.user.employee.lastName}` : event.user?.email || "Recruitment team"; return <li key={event.id} className="text-xs text-text-muted"><p className="font-medium text-text-heading">{before.startsAt ? new Date(before.startsAt).toLocaleString("en-IN", { timeZone: zone }) : "Previous time unavailable"} → {after.startsAt ? new Date(after.startsAt).toLocaleString("en-IN", { timeZone: zone }) : "Updated time unavailable"}</p><p className="mt-0.5">Changed by {actor} · {new Date(event.createdAt).toLocaleString("en-IN", { timeZone: zone })} · Asia/Kolkata</p></li>; })}</ol>
-          </details>;
-        })()}
+        <InterviewRescheduleHistory events={a.activity || []} round={a.interviewRound} />
 
         {canAdd("recruitment") && !isHiringHistory(a) && !["SELECTED", "SELECTION_ON_HOLD"].includes(a.selectionStatus) && a.currentStage !== a.interviewRound && ["HR_INTERVIEW", "TECHNICAL", "MANAGEMENT"].includes(a.currentStage) && <Button type="button" onClick={() => setSchedule({ candidate: { ...a, interviewId: undefined, interviewDate: undefined, endsAt: undefined, interviewRound: a.currentStage, interviewLocation: undefined } })}>Schedule next round</Button>}
         {a.interviewId && <Button type="button" variant={a.status === "COMPLETED" && !a.feedbackSubmittedAt && a.currentStage === a.interviewRound && canEdit("recruitment") ? "primary" : "outline"} onClick={() => setDetailsId(a.interviewId)}>{a.status === "COMPLETED" && !a.feedbackSubmittedAt && a.currentStage === a.interviewRound && canEdit("recruitment") ? a.draftFeedback ? "Continue feedback draft" : "Submit feedback" : "Interview details & feedback"}</Button>}
@@ -504,6 +494,7 @@ export default function InterviewCalendarPage() {
             return <InterviewAppointmentPanel key={detailAppointment.interviewId}
               interview={{ ...detailAppointment, id: detailAppointment.interviewId, startsAt: detailAppointment.interviewDate, round: detailAppointment.interviewRound, location: detailAppointment.interviewLocation, feedback: detailAppointment.interviewFeedback, score: detailAppointment.interviewScore }}
               editable={canEdit("recruitment") && !isHiringHistory(detailAppointment) && detailAppointment.currentStage === detailAppointment.interviewRound}
+              rescheduleHistory={detailAppointment.activity || []}
               showAppointmentDetails={false}
               nextStage={canAdvanceFromFeedback ? nextStage : undefined}
               movingToNextStage={stageMutation.isPending}
