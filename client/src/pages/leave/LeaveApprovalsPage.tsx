@@ -12,6 +12,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { CalendarDays, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { usePermissions } from '@/hooks/usePermissions';
+import { Select } from '@/components/ui/Select';
 
 export default function LeaveApprovalsPage() {
  const { user } = useAuth();
@@ -21,7 +22,7 @@ export default function LeaveApprovalsPage() {
  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
  const [remarks, setRemarks] = useState('');
  const [isModalOpen, setIsModalOpen] = useState(false);
- const [action, setAction] = useState<'APPROVED' | 'REJECTED'>('APPROVED');
+ const [action, setAction] = useState<'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'>('APPROVED');
  const [statusFilter, setStatusFilter] = useState('ALL');
 
  const { data: leavesData, isLoading } = useQuery({
@@ -37,7 +38,7 @@ export default function LeaveApprovalsPage() {
  const statusMutation = useMutation({
  mutationFn: leavesApi.updateStatus,
  onSuccess: () => {
- toast.success(`Leave request ${action.toLowerCase()}`);
+ toast.success(`Leave request status changed to ${action.toLowerCase()}`);
  queryClient.invalidateQueries({ queryKey: ['leaves', 'all'] });
  setIsModalOpen(false);
  setSelectedLeave(null);
@@ -46,9 +47,10 @@ export default function LeaveApprovalsPage() {
  onError: (err: any) => toast.error(err.response?.data?.message || 'Action failed'),
  });
 
- const handleAction = (leave: any, newAction: 'APPROVED' | 'REJECTED') => {
+ const handleAction = (leave: any, newAction: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED') => {
  setSelectedLeave(leave);
  setAction(newAction);
+ setRemarks('');
  setIsModalOpen(true);
  };
 
@@ -124,7 +126,9 @@ export default function LeaveApprovalsPage() {
  },
  {
  header: 'Status',
- accessor: (row: any) => getStatusBadge(row.status)
+ accessor: (row: any) => canApprove('leave')
+ ? <div onClick={(event) => event.stopPropagation()}><Select aria-label={`Change leave status for ${row.employee?.firstName || 'employee'}`} value={row.status} onChange={(event) => event.target.value !== row.status && handleAction(row, event.target.value as 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED')} className="min-w-36 rounded-xl border border-slate-border bg-surface px-3 py-2 text-sm"><option value="PENDING">Pending</option><option value="APPROVED">Approved</option><option value="REJECTED">Rejected</option><option value="CANCELLED">Cancelled</option></Select></div>
+ : getStatusBadge(row.status)
  },
  {
  header: 'Approved By',
@@ -133,7 +137,7 @@ export default function LeaveApprovalsPage() {
  : row.status === 'PENDING' ? 'Pending' : 'Not recorded'
  },
  ];
- const columns = canApprove('leave') ? [...baseColumns, { header: 'Actions', accessor: (row: any) => row.status === 'PENDING' ? (<div className="flex gap-2" onClick={(event) => event.stopPropagation()}><Button variant="primary" size="sm" onClick={() => handleAction(row, 'APPROVED')}>Approve</Button><Button variant="danger" size="sm" onClick={() => handleAction(row, 'REJECTED')}>Reject</Button></div>) : <span className="text-slate-400 text-sm">Processed</span> }] : baseColumns;
+ const columns = baseColumns;
 
  return (
  <div className="space-y-6">
@@ -153,7 +157,7 @@ export default function LeaveApprovalsPage() {
  <div className="flex justify-end">
  <div className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-surface p-1.5 shadow-sm">
  <span className="pl-3 pr-2 text-sm font-medium text-slate-500 dark:text-slate-400">Status:</span>
- {['ALL', 'PENDING', 'APPROVED', 'REJECTED'].map((status) => (
+ {['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].map((status) => (
  <button
  key={status}
  onClick={() => setStatusFilter(status)}
@@ -232,11 +236,11 @@ export default function LeaveApprovalsPage() {
  <Modal
  isOpen={isModalOpen}
  onClose={() => setIsModalOpen(false)}
- title={`${action === 'APPROVED' ? 'Approve' : 'Reject'} Leave Request`}
+ title="Update Leave Status"
  >
  <div className="space-y-4">
  <p className="text-sm text-slate-600">
- Are you sure you want to {action.toLowerCase()} the leave request for
+ Are you sure you want to change this leave request from {String(selectedLeave?.status || 'PENDING').toLowerCase()} to {action.toLowerCase()} for
  <strong> {selectedLeave?.employee?.firstName} {selectedLeave?.employee?.lastName}</strong>?
  </p>
 
@@ -253,11 +257,11 @@ export default function LeaveApprovalsPage() {
  <div className="flex justify-end gap-2 pt-2">
  <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
  <Button
- variant={action === 'APPROVED' ? 'primary' : 'danger'}
+ variant={action === 'REJECTED' || action === 'CANCELLED' ? 'danger' : 'primary'}
  onClick={submitAction}
  isLoading={statusMutation.isPending}
  >
- Confirm {action === 'APPROVED' ? 'Approval' : 'Rejection'}
+ Save status
  </Button>
  </div>
  </div>

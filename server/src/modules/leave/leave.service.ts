@@ -101,7 +101,7 @@ export class LeaveService {
     });
   }
 
-  async updateStatus(leaveId: string, approverId: string, data: UpdateLeaveStatusInput) {
+  async updateStatus(leaveId: string, approverId: string | null, data: UpdateLeaveStatusInput) {
     const leave = await prisma.leave.findUnique({
       where: { id: leaveId },
     });
@@ -110,29 +110,41 @@ export class LeaveService {
       throw new Error('Leave request not found');
     }
 
-    if (leave.status !== 'PENDING') {
-      throw new Error('This leave request has already been processed');
-    }
-
     return prisma.$transaction(async (tx) => {
-      // Claim the pending transition before touching balances. Concurrent retries
-      // cannot charge the employee twice; every write rolls back on failure.
+      // Compare the prior status so concurrent edits cannot apply a balance
+      // adjustment more than once. Balance and status changes roll back together.
       const claimed = await tx.leave.updateMany({
-        where: { id: leaveId, status: 'PENDING' },
-        data: { status: data.status as any, remarks: data.remarks, approverId },
+        where: { id: leaveId, status: leave.status },
+        data: {
+          status: data.status,
+          remarks: data.status === 'PENDING' ? (data.remarks ?? null) : data.remarks,
+          approverId: data.status === 'PENDING' ? null : approverId,
+        },
       });
-      if (claimed.count !== 1) throw new Error('This leave request has already been processed');
-      if (data.status === 'APPROVED' && leave.leaveType !== 'UNPAID') {
+      if (claimed.count !== 1) throw new Error('This leave request changed while you were editing it. Refresh and try again.');
+
+      const wasApproved = leave.status === 'APPROVED' && leave.leaveType !== 'UNPAID';
+      const willBeApproved = data.status === 'APPROVED' && leave.leaveType !== 'UNPAID';
+      if (wasApproved !== willBeApproved) {
         const year = leave.startDate.getUTCFullYear();
         const balance = await tx.leaveBalance.findUnique({
           where: { employeeId_year_leaveType: { employeeId: leave.employeeId, year, leaveType: leave.leaveType } },
         });
         if (balance) {
-          const updated = await tx.leaveBalance.updateMany({
-            where: { id: balance.id, remainingDays: { gte: leave.totalDays } },
-            data: { usedDays: { increment: leave.totalDays }, remainingDays: { decrement: leave.totalDays } },
-          });
-          if (updated.count !== 1) throw new Error('Insufficient leave balance for approval');
+          const updated = willBeApproved
+            ? await tx.leaveBalance.updateMany({
+                where: { id: balance.id, remainingDays: { gte: leave.totalDays } },
+                data: { usedDays: { increment: leave.totalDays }, remainingDays: { decrement: leave.totalDays } },
+              })
+            : await tx.leaveBalance.updateMany({
+                where: { id: balance.id, usedDays: { gte: leave.totalDays } },
+                data: { usedDays: { decrement: leave.totalDays }, remainingDays: { increment: leave.totalDays } },
+              });
+          if (updated.count !== 1) {
+            throw new Error(willBeApproved
+              ? 'Insufficient leave balance for approval'
+              : 'The leave balance could not be restored safely. Please review the employee balance before changing this status.');
+          }
         }
       }
       return tx.leave.findUniqueOrThrow({

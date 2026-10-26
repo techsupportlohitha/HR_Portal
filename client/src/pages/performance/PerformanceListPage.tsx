@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 
 type Tab = 'My Performance' | 'Team/Company Reviews';
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { performanceApi } from '@/api/performance';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { PerformanceReviewModal } from './PerformanceReviewModal';
@@ -19,12 +19,16 @@ import { DataTable } from '@/components/ui/DataTable';
 import { Select } from '@/components/ui/Select';
 import { hasAdminAccess } from '@/utils/roles';
 import { usePermissions } from '@/hooks/usePermissions';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import toast from 'react-hot-toast';
+import { Trash2 } from 'lucide-react';
 
 export default function PerformanceListPage() {
  const { user } = useAuth();
  const isAdminOrHR = hasAdminAccess(user?.role);
  const isManager = user?.role === 'MANAGER';
- const { canAdd } = usePermissions();
+ const { canAdd, canDelete } = usePermissions();
+ const queryClient = useQueryClient();
  const [activeTab, setActiveTab] = useState<Tab>('My Performance');
  const currentTab: Tab = isManager ? 'Team/Company Reviews' : activeTab;
  const tabs: Tab[] = isManager
@@ -33,6 +37,7 @@ export default function PerformanceListPage() {
  ? ['Team/Company Reviews', 'My Performance']
  : ['My Performance'];
  const [selectedReview, setSelectedReview] = useState<any>(null);
+ const [reviewToDelete, setReviewToDelete] = useState<any>(null);
  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
  const [searchQuery, setSearchQuery] = useState('');
  const [typeFilter, setTypeFilter] = useState('All Types');
@@ -40,6 +45,16 @@ export default function PerformanceListPage() {
  const { data: rawReviews, isLoading } = useQuery({
  queryKey: ['performance', currentTab],
  queryFn: () => currentTab === 'My Performance' ? performanceApi.getMyReviews().then(res => res.data) : performanceApi.getAll().then(res => res.data)
+ });
+
+ const deleteMutation = useMutation({
+ mutationFn: performanceApi.delete,
+ onSuccess: () => {
+ queryClient.invalidateQueries({ queryKey: ['performance'] });
+ toast.success('Performance review deleted');
+ setReviewToDelete(null);
+ },
+ onError: (error: any) => toast.error(error.response?.data?.message || 'Failed to delete performance review'),
  });
 
  const reviews = React.useMemo(() => {
@@ -128,7 +143,8 @@ export default function PerformanceListPage() {
  ...(user?.role !== 'HR' || currentTab === 'My Performance' ? [{ header: 'Self', accessor: (review: any) => review.selfRating != null ? `${review.selfRating}/5` : 'Not rated' }] : []),
  ...(currentTab === 'Team/Company Reviews' && user?.role !== 'EMPLOYEE' && user?.role !== 'HR' ? [{ header: 'Manager', accessor: (review: any) => review.managerRating != null ? `${review.managerRating}/5` : 'Not rated' }] : []),
  { header: 'Final', accessor: (review: any) => review.status === 'COMPLETED' && review.finalRating != null ? `${review.finalRating}/5` : 'Pending' },
- { header: 'Next action', accessor: (review: any) => <span className="font-medium text-accent-700 dark:text-accent-300">{actionLabel(review.status)}</span> }
+ { header: 'Next action', accessor: (review: any) => <span className="font-medium text-accent-700 dark:text-accent-300">{actionLabel(review.status)}</span> },
+ ...(canDelete('performance') ? [{ header: 'Actions', accessor: (review: any) => <Button type="button" variant="ghost" size="sm" className="text-status-danger hover:text-status-danger" aria-label={`Delete ${getReviewEmployee(review)} performance review`} onClick={(event: React.MouseEvent) => { event.stopPropagation(); setReviewToDelete(review); }}><Trash2 aria-hidden="true" className="mr-1 h-4 w-4" />Delete</Button> }] : [])
  ]}
  />
  );
@@ -235,6 +251,16 @@ export default function PerformanceListPage() {
  <PerformanceCreateModal
  isOpen={isCreateModalOpen}
  onClose={() => setIsCreateModalOpen(false)}
+ />
+
+ <ConfirmDialog
+ isOpen={!!reviewToDelete}
+ title="Delete performance review?"
+ message={`Permanently delete the ${formatReviewPeriod(reviewToDelete?.reviewPeriod).toLowerCase()} performance review for ${reviewToDelete ? getReviewEmployee(reviewToDelete) : 'this employee'}? Its review ratings and feedback will be removed.`}
+ confirmLabel={deleteMutation.isPending ? 'Deleting…' : 'Delete review'}
+ isDestructive
+ onConfirm={() => reviewToDelete && deleteMutation.mutate(reviewToDelete.id)}
+ onCancel={() => !deleteMutation.isPending && setReviewToDelete(null)}
  />
  </div>
  );

@@ -8,11 +8,11 @@ This system acts as a centralized HR portal, designed from the ground up with st
 
 - **Dashboard**: Role-specific overview with key metrics and quick actions for pending approvals.
 - **Employee Management**: Full employee directory, profile management, document verification, and automatic user account provisioning. Authorized users can deactivate employees while retaining their records and history, and remove uploaded employee documents.
-- **Leave Management**: Leave requests, holiday lists, manager approvals, and real-time attendance tracking.
+- **Leave Management**: Leave requests, holiday lists, manager approvals, and real-time attendance tracking. Authorized approvers can update processed request statuses; moving a request into or out of Approved adjusts the employee's leave balance when a balance record exists.
 - **Recruitment Tracker**: Manage job requisitions, track candidates from Telephonic through HR, Technical, Management, Offer, and Joining. Authorized users can delete candidates or requisitions; deleting a requisition also removes its candidates. Upload a text PDF or DOCX resume (up to 20 MB) to autofill editable application fields; notice period is optional. See the [recruitment UI and scheduling guide](docs/designs/recruitment-lifecycle.md).
 - **Asset Management**: Track company laptops and assets, issue/return workflows, condition monitoring, and permission-controlled asset deletion.
-- **Performance Review**: Goal setting, manager evaluations, and continuous feedback tracking.
-- **Training Management**: Schedule training sessions, manage participants, and track completion.
+- **Performance Review**: Goal setting, manager evaluations, continuous feedback tracking, and permission-controlled review deletion.
+- **Training Management**: Schedule training sessions, manage participants, track completion, and permission-controlled session deletion. Deleting a session also removes its participant assessment and feedback records.
 - **Travel & Expenses**: Manage travel requests, office expenses, and multi-tier approval workflows; select multiple travel modes, enter separate outbound and return amounts, and review payout totals for approved office expenses and submitted travel claims. Employees with delete permission can delete their own pending travel requests and expenses; organization-level users with delete permission can delete records within their scope.
 - **HR Helpdesk**: Centralized ticketing system for employee requests and queries with status tracking.
 - **Policies & Documents**: Upload, categorize, and track employee acknowledgements for HR handbooks and policies. Authorized users can delete documents, which also removes their acknowledgement records.

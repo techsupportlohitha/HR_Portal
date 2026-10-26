@@ -19,13 +19,9 @@ export class LeaveController {
 
   async updateStatus(req: AuthRequest, res: Response): Promise<void> {
     try {
-      if (!req.user?.employeeId) {
-        sendError(res, 'Employee profile not found', 400);
-        return;
-      }
       const leave = await leaveService.updateStatus(
         req.params.id as string,
-        req.user.employeeId,
+        req.user!.employeeId,
         req.body
       );
       sendSuccess(res, leave, `Leave ${req.body.status.toLowerCase()} successfully`);
