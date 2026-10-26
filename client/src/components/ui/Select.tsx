@@ -243,7 +243,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             <div
               role="listbox"
               aria-labelledby={label ? `${selectId}-label` : undefined}
-              className="absolute z-50 w-full mt-2 bg-surface border border-slate-200 dark:border-slate-700 rounded-[1.25rem] shadow-xl max-h-60 overflow-auto p-1.5 ring-1 ring-black ring-opacity-5"
+              className="absolute z-50 flex w-full flex-col mt-2 bg-surface border border-slate-200 dark:border-slate-700 rounded-[1.25rem] shadow-xl max-h-60 overflow-y-auto overscroll-contain p-1.5 ring-1 ring-black ring-opacity-5"
             >
               {options.map((opt, i) => (
                 <button
@@ -258,7 +258,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                   }
                   key={i}
                   className={cn(
-                    "cursor-pointer select-none relative py-2.5 px-3 text-[13px] rounded-xl transition-colors font-medium mb-0.5 last:mb-0",
+                    "block w-full shrink-0 text-left cursor-pointer select-none relative py-2.5 px-3 text-[13px] rounded-xl transition-colors font-medium mb-0.5 last:mb-0",
                     opt.disabled
                       ? "opacity-50 cursor-not-allowed"
                       : "hover:bg-brand-primary hover:text-white dark:hover:bg-brand-primary dark:hover:text-white text-gray-900 dark:text-gray-100",
