@@ -156,6 +156,23 @@ export class PerformanceService {
     });
   }
 
+  async deleteReview(id: string, userId: string, reqContext: { ipAddress?: string } = {}) {
+    return prisma.$transaction(async (tx) => {
+      const review = await tx.performanceReview.findUnique({ where: { id }, select: { id: true } });
+      if (!review) throw new Error('Performance review not found');
+      await tx.performanceReview.delete({ where: { id } });
+      await tx.auditLog.create({
+        data: {
+          actionPerformed: 'DELETE_PERFORMANCE_REVIEW',
+          moduleAffected: 'performance',
+          recordIdAffected: id,
+          userId,
+          ipAddress: reqContext.ipAddress,
+        }
+      });
+    });
+  }
+
   async submitSelfAppraisal(id: string, data: any, currentUser: CurrentUser, reqContext: { ipAddress?: string } = {}) {
     const isOverride = currentUser.role === 'ADMIN';
     

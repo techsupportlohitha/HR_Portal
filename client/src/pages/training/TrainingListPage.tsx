@@ -16,22 +16,24 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
-import { Plus, Download, BookOpen, Clock, IndianRupee, Star, CheckCircle, Calendar, Users, TrendingUp, Search, SlidersHorizontal, X } from 'lucide-react';
+import { Plus, Download, BookOpen, Clock, IndianRupee, Star, CheckCircle, Calendar, Users, TrendingUp, Search, SlidersHorizontal, X, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 import apiClient from '@/api/client';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { hasAdminAccess } from '@/utils/roles';
 import { PaginationControls } from '@/components/ui/PaginationControls';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 export default function TrainingListPage() {
  const { user } = useAuth();
- const { canAdd, canEdit, canExport } = usePermissions();
+ const { canAdd, canEdit, canExport, canDelete } = usePermissions();
  const queryClient = useQueryClient();
  const [isModalOpen, setIsModalOpen] = useState(false);
  const [selectedTraining, setSelectedTraining] = useState<any>(null);
  const [participantPage, setParticipantPage] = useState(1);
  const participantPageSize = 10;
  const [selectedTrainingForEdit, setSelectedTrainingForEdit] = useState<any>(null);
+ const [trainingToDelete, setTrainingToDelete] = useState<any>(null);
  const [editingParticipant, setEditingParticipant] = useState<any>(null);
  const [newParticipantId, setNewParticipantId] = useState('');
  const [searchTerm, setSearchTerm] = useState('');
@@ -86,6 +88,17 @@ export default function TrainingListPage() {
  setSelectedTrainingForEdit(null);
  },
  onError: () => toast.error('Failed to update training')
+ });
+
+ const deleteMutation = useMutation({
+ mutationFn: trainingApi.delete,
+ onSuccess: () => {
+ queryClient.invalidateQueries({ queryKey: ['trainings'] });
+ toast.success('Training session deleted');
+ setTrainingToDelete(null);
+ setSelectedTraining(null);
+ },
+ onError: (error: any) => toast.error(error.response?.data?.message || 'Failed to delete training session'),
  });
 
  const addParticipantMutation = useMutation({
@@ -173,6 +186,7 @@ export default function TrainingListPage() {
  }}>
  Edit
  </Button>}
+ {canDelete('training') && <Button variant="ghost" size="sm" className="text-status-danger hover:text-status-danger" aria-label={`Delete ${row.trainingTopic}`} onClick={(event) => { event.stopPropagation(); setTrainingToDelete(row); }}><Trash2 aria-hidden="true" className="mr-1 h-4 w-4" />Delete</Button>}
  </div>
  )
  },
@@ -232,7 +246,7 @@ export default function TrainingListPage() {
  {t.trainingEndDate ? `${formatDate(t.trainingDate)} to ${formatDate(t.trainingEndDate)}` : formatDateTime(t.trainingDate)}
  </p>
  </div>
- <Button variant="outline" size="sm" onClick={() => setSelectedTraining(t)}>Manage</Button>
+ <div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => setSelectedTraining(t)}>Manage</Button>{canDelete('training') && <Button variant="ghost" size="sm" className="text-status-danger hover:text-status-danger" aria-label={`Delete ${t.trainingTopic}`} onClick={() => setTrainingToDelete(t)}><Trash2 aria-hidden="true" className="h-4 w-4" />Delete</Button>}</div>
  </div>
  <div className="flex flex-wrap items-center gap-6 text-sm text-gray-600 dark:text-gray-400 mt-4">
  <span className="flex items-center gap-1.5"><Users className="w-4 h-4"/> {t.trainerName || 'TBD'}</span>
@@ -607,6 +621,16 @@ export default function TrainingListPage() {
  No participants enrolled in this training yet.
  </div>
  )}
+
+ <ConfirmDialog
+ isOpen={!!trainingToDelete}
+ title="Delete training session?"
+ message={`Permanently delete “${trainingToDelete?.trainingTopic || 'this training session'}”? Its participant assignments, assessments, and feedback will also be removed.`}
+ confirmLabel={deleteMutation.isPending ? 'Deleting…' : 'Delete training'}
+ isDestructive
+ onConfirm={() => trainingToDelete && deleteMutation.mutate(trainingToDelete.id)}
+ onCancel={() => !deleteMutation.isPending && setTrainingToDelete(null)}
+ />
  </div>
 
  <div className="flex justify-end pt-4">

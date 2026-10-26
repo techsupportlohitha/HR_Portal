@@ -18,6 +18,10 @@ export const performanceApi = {
  const { data } = await apiClient.put<ApiResponse<any>>(`/performance/${id}`, payload);
  return data;
  },
+ delete: async (id: string) => {
+ const { data } = await apiClient.delete<ApiResponse<null>>(`/performance/${id}`);
+ return data;
+ },
  submitSelfAppraisal: async (id: string, payload: any) => {
  const { data } = await apiClient.put<ApiResponse<any>>(`/performance/${id}/self-appraisal`, payload);
  return data;

@@ -19,6 +19,7 @@ router.get('/dashboard', requirePermission('training', 'view'), trainingControll
 router.get('/', requireStaffView('training'), trainingController.getAllTrainings);
 router.post('/', requirePermission('training', 'add'), validateRequest({ body: createTrainingSchema }), trainingController.createTraining);
 router.put('/:id', requirePermission('training', 'edit'), validateRequest({ body: updateTrainingSchema }), trainingController.updateTraining);
+router.delete('/:id', requirePermission('training', 'delete'), trainingController.deleteTraining);
 
 // Participants
 router.post('/:id/participants', requirePermission('training', 'edit'), validateRequest({ body: addParticipantSchema }), trainingController.addParticipant);

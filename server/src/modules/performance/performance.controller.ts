@@ -31,6 +31,15 @@ export class PerformanceController {
     }
   };
 
+  deleteReview = async (req: AuthRequest, res: Response) => {
+    try {
+      await performanceService.deleteReview(req.params.id as string, req.user!.userId, { ipAddress: req.ip });
+      return sendSuccess(res, null, 'Performance review deleted');
+    } catch (error: any) {
+      return sendError(res, error.message, 400);
+    }
+  };
+
   getReviews = async (req: AuthRequest, res: Response) => {
     try {
       const result = await performanceService.getReviews(req.user!, req.query);

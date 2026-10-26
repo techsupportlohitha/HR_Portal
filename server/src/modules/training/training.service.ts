@@ -95,6 +95,24 @@ export class TrainingService {
     });
   }
 
+  async deleteTraining(id: string, userId: string, reqContext: { ipAddress?: string } = {}) {
+    return prisma.$transaction(async (tx) => {
+      const training = await tx.training.findUnique({ where: { id }, select: { id: true } });
+      if (!training) throw new Error('Training not found');
+      await tx.trainingParticipant.deleteMany({ where: { trainingId: id } });
+      await tx.training.delete({ where: { id } });
+      await tx.auditLog.create({
+        data: {
+          actionPerformed: 'DELETE_TRAINING',
+          moduleAffected: 'training',
+          recordIdAffected: id,
+          userId,
+          ipAddress: reqContext.ipAddress,
+        }
+      });
+    });
+  }
+
   async addParticipant(trainingId: string, employeeId: string, userId: string, reqContext: { ipAddress?: string } = {}) {
     const exists = await prisma.trainingParticipant.findUnique({
       where: { trainingId_employeeId: { trainingId, employeeId } }

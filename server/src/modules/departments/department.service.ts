@@ -44,7 +44,7 @@ export class DepartmentService {
       data: {
         name: data.name,
         description: data.description,
-        headId: data.headId,
+        headId: data.headId || null,
       },
       include: {
         head: { select: { id: true, firstName: true, lastName: true } },
@@ -56,7 +56,7 @@ export class DepartmentService {
   async update(id: string, data: UpdateDepartmentInput) {
     return prisma.department.update({
       where: { id },
-      data,
+      data: { ...data, ...(data.headId !== undefined ? { headId: data.headId || null } : {}) },
       include: {
         head: { select: { id: true, firstName: true, lastName: true } },
         _count: { select: { employees: true } },

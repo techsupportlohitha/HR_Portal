@@ -18,6 +18,7 @@ router.use(authenticate);
 router.get('/my-reviews', requirePermission('performance', 'view'), performanceController.getMyReviews);
 router.post('/', requirePermission('performance', 'add'), validateRequest({ body: createPerformanceReviewSchema }), performanceController.createReview);
 router.put('/:id', requirePermission('performance', 'edit'), validateRequest({ body: updatePerformanceReviewSchema }), performanceController.updateReview);
+router.delete('/:id', requirePermission('performance', 'delete'), performanceController.deleteReview);
 router.get('/', requireStaffView('performance'), performanceController.getReviews);
 
 router.put('/:id/self-appraisal', requirePermission('performance', 'edit'), validateRequest({ body: selfAppraisalSchema }), performanceController.submitSelfAppraisal);

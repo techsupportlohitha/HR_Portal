@@ -40,6 +40,15 @@ export class TrainingController {
     }
   };
 
+  deleteTraining = async (req: AuthRequest, res: Response) => {
+    try {
+      await trainingService.deleteTraining(req.params.id as string, req.user!.userId, { ipAddress: req.ip });
+      return sendSuccess(res, null, 'Training deleted');
+    } catch (error: any) {
+      return sendError(res, error.message, 400);
+    }
+  };
+
   addParticipant = async (req: AuthRequest, res: Response) => {
     try {
       const result = await trainingService.addParticipant(req.params.id as string, req.body.employeeId, req.user!.userId, { ipAddress: req.ip });
